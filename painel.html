@@ -11,7 +11,7 @@
     <div class="brand"><span class="brand-mark">BQ</span><span>Verificando acesso...</span></div>
   </div>
   <aside class="sidebar">
-    <a class="brand" href="painel.html"><span class="brand-mark">BQ</span><span id="business-name-short">Menu</span></a>
+    <a class="brand" href="painel.html"><span id="dashboard-logo" class="brand-mark">BQ</span><span id="business-name-short">Menu</span></a>
     <nav>
       <a href="#dashboard">Dashboard</a>
       <a href="#pedidos">Pedidos</a>
@@ -96,6 +96,7 @@
         </form>
         <form id="product-form" class="form-grid panel-inner">
           <h3 class="full">Produtos</h3>
+          <p class="form-hint full">Para pizza meio a meio: crie uma categoria, cadastre os sabores nessa categoria, depois crie o produto como "Produto com sabores", escolha máximo 2 sabores e use "Maior valor prevalece".</p>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
           <label>Preço base<input name="preco" type="number" step="0.01" required></label>
@@ -141,8 +142,8 @@
     <section id="taxas" class="panel">
       <div class="panel-heading"><h2>Taxas por forma de pagamento</h2></div>
       <form id="fees-form" class="form-grid">
-        <label>Credito %<input name="creditoPercentual" type="number" step="0.01"></label>
-        <label>Debito %<input name="debitoPercentual" type="number" step="0.01"></label>
+        <label>Crédito %<input name="creditoPercentual" type="number" step="0.01"></label>
+        <label>Débito %<input name="debitoPercentual" type="number" step="0.01"></label>
         <label>PIX %<input name="pixPercentual" type="number" step="0.01"></label>
         <label>Dinheiro %<input name="dinheiroPercentual" type="number" step="0.01"></label>
         <label>PIX valor fixo<input name="pixFixo" type="number" step="0.01"></label>
@@ -186,16 +187,16 @@
         <label>Domingo fecha<input name="horario_domingo_fecha" type="time"></label>
         <label>Segunda abre<input name="horario_segunda_abre" type="time"></label>
         <label>Segunda fecha<input name="horario_segunda_fecha" type="time"></label>
-        <label>Terca abre<input name="horario_terca_abre" type="time"></label>
-        <label>Terca fecha<input name="horario_terca_fecha" type="time"></label>
+        <label>Terça abre<input name="horario_terca_abre" type="time"></label>
+        <label>Terça fecha<input name="horario_terca_fecha" type="time"></label>
         <label>Quarta abre<input name="horario_quarta_abre" type="time"></label>
         <label>Quarta fecha<input name="horario_quarta_fecha" type="time"></label>
         <label>Quinta abre<input name="horario_quinta_abre" type="time"></label>
         <label>Quinta fecha<input name="horario_quinta_fecha" type="time"></label>
         <label>Sexta abre<input name="horario_sexta_abre" type="time"></label>
         <label>Sexta fecha<input name="horario_sexta_fecha" type="time"></label>
-        <label>Sabado abre<input name="horario_sabado_abre" type="time"></label>
-        <label>Sabado fecha<input name="horario_sabado_fecha" type="time"></label>
+        <label>Sábado abre<input name="horario_sabado_abre" type="time"></label>
+        <label>Sábado fecha<input name="horario_sabado_fecha" type="time"></label>
         <label class="full">Mensagem de boas-vindas<textarea name="mensagem" rows="3"></textarea></label>
         <button class="btn btn-primary full" type="submit">Salvar configurações</button>
       </form>

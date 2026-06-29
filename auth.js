@@ -21,23 +21,23 @@ const loginMessage = document.querySelector("#login-message");
 
 document.querySelector("#signup-location")?.addEventListener("click", () => {
   if (!navigator.geolocation) {
-    setMessage(signupMessage, "Seu navegador nao permite pegar localizacao.", "error");
+    setMessage(signupMessage, "Seu navegador não permite pegar localização.", "error");
     return;
   }
   navigator.geolocation.getCurrentPosition((position) => {
     signupForm.elements.estabelecimentoLatitude.value = position.coords.latitude.toFixed(6);
     signupForm.elements.estabelecimentoLongitude.value = position.coords.longitude.toFixed(6);
-    setMessage(signupMessage, "Localizacao preenchida.");
+    setMessage(signupMessage, "Localização preenchida.");
   }, () => {
-    setMessage(signupMessage, "Nao foi possivel pegar a localizacao. Verifique a permissao do navegador.", "error");
+    setMessage(signupMessage, "Não foi possível pegar a localização. Verifique a permissão do navegador.", "error");
   }, { enableHighAccuracy: true, timeout: 12000 });
 });
 
 document.querySelector("#signup-geocode")?.addEventListener("click", async () => {
   try {
-    setMessage(signupMessage, "Buscando coordenadas pelo endereco...");
+    setMessage(signupMessage, "Buscando coordenadas pelo endereço...");
     await fillCoordinatesFromAddress(signupForm);
-    setMessage(signupMessage, "Coordenadas preenchidas pelo endereco.");
+    setMessage(signupMessage, "Coordenadas preenchidas pelo endereço.");
   } catch (error) {
     setMessage(signupMessage, error.message, "error");
   }
@@ -73,12 +73,12 @@ if (signupForm) {
         dataCadastro: serverTimestamp()
       });
       signupForm.reset();
-      setMessage(signupMessage, "Cadastro enviado com sucesso. Aguarde aprovacao da equipe.");
+      setMessage(signupMessage, "Cadastro enviado com sucesso. Aguarde aprovação da equipe.");
     } catch (error) {
       const duplicate = String(error.code || "").includes("permission-denied");
       setMessage(signupMessage, duplicate
-        ? "Ja existe uma solicitacao com este e-mail. Aguarde a aprovacao ou fale com o suporte."
-        : `Nao foi possivel enviar: ${error.message}`, "error");
+        ? "Já existe uma solicitação com este e-mail. Aguarde a aprovação ou fale com o suporte."
+        : `Não foi possível enviar: ${error.message}`, "error");
     }
   });
 }
@@ -96,12 +96,12 @@ if (loginForm) {
       }
       const businesses = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", credential.user.uid)));
       if (businesses.empty) {
-        setMessage(loginMessage, "Seu usuario ainda nao esta vinculado a um estabelecimento aprovado.", "error");
+        setMessage(loginMessage, "Seu usuário ainda não está vinculado a um estabelecimento aprovado.", "error");
         return;
       }
       const business = businesses.docs[0].data();
       if (!["ativo"].includes(String(business.status || "").toLowerCase())) {
-        setMessage(loginMessage, "Acesso temporariamente bloqueado. Fale com a administracao da plataforma.", "error");
+        setMessage(loginMessage, "Acesso temporariamente bloqueado. Fale com a administração da plataforma.", "error");
         return;
       }
       sessionStorage.setItem("businessId", businesses.docs[0].id);

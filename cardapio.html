@@ -42,7 +42,7 @@
     <form id="checkout-form" class="form-grid">
       <div class="dialog-heading full"><h2>Finalização</h2><button type="button" id="checkout-close" class="icon-button">x</button></div>
       <label class="full">WhatsApp<input name="whatsapp" required inputmode="tel" placeholder="11999999999"></label>
-      <button id="lookup-client" type="button" class="btn btn-small full">Buscar cadastro pelo WhatsApp</button>
+      <p id="client-lookup-message" class="form-message full"></p>
       <label>Nome<input name="nome" required></label>
       <label>Cidade<input name="cidade"></label>
       <label>Endereço<input name="endereco"></label>
@@ -60,8 +60,8 @@
       <label>Pagamento
         <select name="formaPagamento" id="payment-method" required>
           <option>PIX</option>
-          <option>Cartao de credito</option>
-          <option>Cartao de debito</option>
+          <option>Cartão de crédito</option>
+          <option>Cartão de débito</option>
           <option>Dinheiro</option>
         </select>
       </label>
@@ -74,7 +74,9 @@
   <dialog id="product-dialog" class="checkout-dialog product-dialog">
     <form id="product-builder-form" class="form-grid">
       <div class="dialog-heading full"><h2 id="builder-title">Montar produto</h2><button type="button" id="product-dialog-close" class="icon-button">x</button></div>
+      <p id="builder-subtitle" class="builder-subtitle full"></p>
       <div id="builder-body" class="full product-builder-body"></div>
+      <div id="builder-summary" class="builder-summary full"></div>
       <label class="full">Observação do item<input name="observacao" placeholder="Ex: sem cebola, ponto da carne..."></label>
       <div class="builder-total full"><span>Total do item</span><strong id="builder-total">R$ 0,00</strong></div>
       <button class="btn btn-primary full" type="submit">Adicionar ao carrinho</button>

@@ -110,7 +110,7 @@ export const printOrder = (order, mode = false) => {
     <body>
       <h1>${title} - ${escapeHtml(order.codigo || "")}</h1>
       <p>${escapeHtml(order.clienteNome || "")}<br>${escapeHtml(order.whatsapp || "")}</p>
-      ${delivery ? `<hr><p><strong>Entrega</strong><br>${escapeHtml(deliveryAddress || "Endereco nao informado")}<br>${escapeHtml(address.complemento || "")}<br>${escapeHtml(address.referencia || "")}</p>` : ""}
+      ${delivery ? `<hr><p><strong>Entrega</strong><br>${escapeHtml(deliveryAddress || "Endereço não informado")}<br>${escapeHtml(address.complemento || "")}<br>${escapeHtml(address.referencia || "")}</p>` : ""}
       <hr>${items}<hr>
       ${kitchen ? "" : `<p>Pagamento: ${escapeHtml(order.formaPagamento || "")}<br>Entrega: ${money(order.taxaEntrega || 0)}<br>Total: ${money(order.totalFinal)}</p>`}
       <script>window.print();<\/script>

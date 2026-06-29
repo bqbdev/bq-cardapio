@@ -32,14 +32,15 @@ const state = {
   deliveryRule: ""
 };
 const $ = (selector) => document.querySelector(selector);
+let checkoutLookupTimer = null;
 const businessDays = [
   ["domingo", "Domingo"],
   ["segunda", "Segunda"],
-  ["terca", "Terca"],
+  ["terca", "Terça"],
   ["quarta", "Quarta"],
   ["quinta", "Quinta"],
   ["sexta", "Sexta"],
-  ["sabado", "Sabado"]
+  ["sabado", "Sábado"]
 ];
 
 init();
@@ -241,6 +242,7 @@ function openProductBuilder(product) {
   const flavors = productFlavors(product);
   const addons = availableAddons(product);
   $("#builder-title").textContent = product.nome;
+  $("#builder-subtitle").textContent = builderSubtitle(product, flavors, addons);
   $("#builder-message").textContent = "";
   $("#product-builder-form").reset();
   $("#builder-body").innerHTML = `
@@ -251,10 +253,22 @@ function openProductBuilder(product) {
     input.addEventListener("change", () => {
       enforceFlavorLimit(product);
       updateBuilderTotal();
+      updateBuilderSelectionState(product);
     });
   });
   updateBuilderTotal();
+  updateBuilderSelectionState(product);
   $("#product-dialog").showModal();
+}
+
+function builderSubtitle(product, flavors, addons) {
+  const parts = [];
+  if (product.tipoProduto === "sabores") {
+    parts.push(`Escolha até ${Math.max(1, Number(product.maxSabores || 1))} sabor(es)`);
+    parts.push(priceRuleLabel(product.regraPreco));
+  }
+  if (addons.length) parts.push("Adicionais opcionais");
+  return parts.join(" · ");
 }
 
 function renderFlavorPicker(product, flavors) {
@@ -262,20 +276,28 @@ function renderFlavorPicker(product, flavors) {
   return `
     <section class="builder-section">
       <div class="builder-section-heading">
-        <strong>Escolha até ${max} sabor(es)</strong>
-        <span>${priceRuleLabel(product.regraPreco)}</span>
+        <strong>Sabores</strong>
+        <span id="flavor-counter">0 de ${max}</span>
       </div>
+      <p class="builder-help">${flavorHelpText(product, max)}</p>
       <div class="option-grid">
         ${flavors.map((flavor) => `
           <label class="option-card">
             <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
-            <span>${flavor.nome}</span>
+            <span><b>${flavor.nome}</b>${max > 1 ? "<small>Meia parte disponível</small>" : ""}</span>
             <strong>${money(flavor.preco)}</strong>
           </label>
         `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
       </div>
     </section>
   `;
+}
+
+function flavorHelpText(product, max) {
+  if (product.regraPreco === "maior_valor") return `Para meio a meio, selecione ${max} sabores. O valor da pizza será o maior preço escolhido.`;
+  if (product.regraPreco === "media_sabores") return "O sistema soma os sabores escolhidos e divide pela quantidade.";
+  if (product.regraPreco === "soma_sabores") return "O sistema soma o valor dos sabores escolhidos.";
+  return "O preço base do produto será mantido, independente dos sabores.";
 }
 
 function renderAddonPicker(addons) {
@@ -320,6 +342,32 @@ function updateBuilderTotal() {
   const flavors = selectedBuilderFlavors();
   const addons = selectedBuilderAddons();
   $("#builder-total").textContent = money(calculateConfiguredPrice(state.buildingProduct, flavors, addons));
+  renderBuilderSummary(state.buildingProduct, flavors, addons);
+}
+
+function updateBuilderSelectionState(product) {
+  const max = Math.max(1, Number(product.maxSabores || 1));
+  const flavors = selectedBuilderFlavors();
+  const counter = $("#flavor-counter");
+  if (counter) counter.textContent = `${flavors.length} de ${max}`;
+  document.querySelectorAll("[data-builder-flavor]").forEach((input) => {
+    input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
+  });
+  document.querySelectorAll("[data-builder-addon]").forEach((input) => {
+    input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
+  });
+}
+
+function renderBuilderSummary(product, flavors = [], addons = []) {
+  const target = $("#builder-summary");
+  if (!target) return;
+  const price = calculateConfiguredPrice(product, flavors, addons);
+  target.innerHTML = `
+    <strong>Resumo</strong>
+    <span>${flavors.length ? `Sabores: ${flavors.map((item) => item.nome).join(", ")}` : product.tipoProduto === "sabores" ? "Escolha os sabores" : product.nome}</span>
+    ${addons.length ? `<span>Adicionais: ${addons.map((item) => item.nome).join(", ")}</span>` : ""}
+    <b>${money(price)}</b>
+  `;
 }
 
 function calculateConfiguredPrice(product, flavors = [], addons = []) {
@@ -384,6 +432,12 @@ $("#checkout-open")?.addEventListener("click", () => {
     return;
   }
   renderDeliveryOptions();
+  const form = $("#checkout-form");
+  const savedPhone = localStorage.getItem(clientSessionKey());
+  if (savedPhone && form?.elements.whatsapp && !form.elements.whatsapp.value) {
+    form.elements.whatsapp.value = savedPhone;
+    lookupCheckoutClient(savedPhone, { silent: true });
+  }
   $("#checkout-dialog").showModal();
 });
 
@@ -395,6 +449,15 @@ $("#payment-method")?.addEventListener("change", (event) => {
 
 $("#delivery-type")?.addEventListener("change", updateDeliveryPanel);
 $("#checkout-form")?.elements.bairro?.addEventListener("input", updateDeliveryFee);
+$("#checkout-form")?.elements.whatsapp?.addEventListener("input", (event) => {
+  clearTimeout(checkoutLookupTimer);
+  const phone = normalizePhone(event.target.value);
+  if (phone.length < 10) {
+    setMessage($("#client-lookup-message"), "Digite seu WhatsApp para buscar seu cadastro automaticamente.");
+    return;
+  }
+  checkoutLookupTimer = setTimeout(() => lookupCheckoutClient(phone), 450);
+});
 
 $("#client-login-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -404,21 +467,23 @@ $("#client-login-form")?.addEventListener("submit", (event) => {
   watchClientOrders(whatsapp);
 });
 
-$("#lookup-client")?.addEventListener("click", async () => {
+async function lookupCheckoutClient(whatsappValue, options = {}) {
   const form = $("#checkout-form");
-  const whatsapp = normalizePhone(form.elements.whatsapp.value);
+  const whatsapp = normalizePhone(whatsappValue || form.elements.whatsapp.value);
   if (!whatsapp) return;
+  setMessage($("#client-lookup-message"), "Buscando cadastro...");
   const client = await getClientByWhatsApp(state.estabelecimentoId, whatsapp);
   if (!client) {
-    setMessage($("#checkout-message"), "Cliente novo. Complete o cadastro para finalizar.");
+    if (!options.silent) setMessage($("#client-lookup-message"), "Cliente novo. Complete os dados para finalizar.");
     return;
   }
   ["nome", "cidade", "endereco", "numero", "complemento", "bairro", "referencia"].forEach((key) => {
     form.elements[key].value = client[key] || "";
   });
   updateDeliveryFee();
-  setMessage($("#checkout-message"), "Cliente encontrado. Dados preenchidos automaticamente.");
-});
+  saveClientSession(whatsapp);
+  setMessage($("#client-lookup-message"), "Cadastro encontrado. Dados preenchidos automaticamente.");
+}
 
 $("#checkout-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -536,8 +601,7 @@ function watchClientOrders(whatsapp) {
   state.clientUnsubscribe = onSnapshot(ordersQuery, (snap) => {
     state.clientOrders = snap.docs
       .map((item) => ({ id: item.id, ...item.data() }))
-      .sort((a, b) => timestampMillis(b.criadoEm) - timestampMillis(a.criadoEm))
-      .slice(0, 5);
+      .sort((a, b) => timestampMillis(b.criadoEm) - timestampMillis(a.criadoEm));
     renderClientOrders();
   }, (error) => {
     console.error("Não foi possível acompanhar pedidos:", error);
@@ -558,17 +622,41 @@ function renderClientOrders() {
     target.innerHTML = "<p>Nenhum pedido encontrado para este WhatsApp.</p>";
     return;
   }
-  target.innerHTML = state.clientOrders.map((order) => `
-    <article class="client-order-card">
+  const activeOrders = state.clientOrders.filter((order) => !isFinalOrder(order)).slice(0, 4);
+  const historyOrders = state.clientOrders.filter(isFinalOrder).slice(0, 5);
+  target.innerHTML = `
+    ${activeOrders.length ? activeOrders.map(renderClientOrderCard).join("") : "<p>Nenhum pedido em andamento.</p>"}
+    ${historyOrders.length ? `
+      <details class="client-history">
+        <summary>Histórico (${historyOrders.length})</summary>
+        ${historyOrders.map(renderClientOrderCard).join("")}
+      </details>
+    ` : ""}
+  `;
+}
+
+function renderClientOrderCard(order) {
+  return `
+    <article class="client-order-card ${isFinalOrder(order) ? "is-history" : ""}">
       <div>
         <strong>Pedido ${escapeHtml(order.codigo || order.numeroPedido || order.id)}</strong>
         <span>${escapeHtml(order.status || "Aguardando aprovação")}</span>
       </div>
-      ${renderOrderStatusSteps(order.status)}
+      ${renderCurrentStatus(order.status)}
       <small>${escapeHtml(order.tipoEntrega || "")} - ${money(order.totalFinal)}</small>
       <a class="btn btn-small" href="pedido.html?estabelecimento=${state.estabelecimentoId}&pedido=${order.id}">Ver detalhes</a>
     </article>
-  `).join("");
+  `;
+}
+
+function renderCurrentStatus(status = "") {
+  const label = status || "Aguardando aprovação";
+  const canceled = normalizeStatus(label) === "cancelado";
+  return `<div class="current-status ${canceled ? "is-canceled" : ""}">${escapeHtml(label)}</div>`;
+}
+
+function isFinalOrder(order) {
+  return ["entregue", "cancelado"].includes(normalizeStatus(order.status));
 }
 
 function renderOrderStatusSteps(status = "") {

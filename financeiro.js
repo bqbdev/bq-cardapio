@@ -10,18 +10,18 @@ export function renderFinanceSummary(selector, orders = []) {
   const average = validOrders.length ? gross / validOrders.length : 0;
   const cancelled = orders.filter((order) => order.status === "Cancelado").length;
   const byPayment = validOrders.reduce((acc, order) => {
-    const key = order.formaPagamento || "Nao informado";
+    const key = order.formaPagamento || "Não informado";
     acc[key] = (acc[key] || 0) + Number(order.totalFinal || 0);
     return acc;
   }, {});
   target.innerHTML = [
     ["Total vendido", money(gross)],
     ["Pedidos", validOrders.length],
-    ["Ticket medio", money(average)],
+    ["Ticket médio", money(average)],
     ["Taxas estimadas", money(fees)],
-    ["Liquido estimado", money(net)],
+    ["Líquido estimado", money(net)],
     ["Cancelados", cancelled],
     ["PIX", money(byPayment.PIX || 0)],
-    ["Credito", money(byPayment["Cartao de credito"] || 0)]
+    ["Crédito", money(byPayment["Cartão de crédito"] || byPayment["Cartao de credito"] || 0)]
   ].map(([label, value]) => `<article class="metric-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
 }

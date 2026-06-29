@@ -60,6 +60,13 @@ button, input, select, textarea { font: inherit; }
   background: var(--primary);
   color: #fff;
   letter-spacing: 0;
+  overflow: hidden;
+}
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
 }
 .nav-links { display: flex; align-items: center; gap: 18px; color: var(--muted); font-weight: 650; }
 .btn {
@@ -212,6 +219,15 @@ input, select, textarea {
 .form-message { min-height: 24px; font-weight: 750; }
 .form-message.success { color: var(--ok); }
 .form-message.error { color: var(--danger); }
+.form-hint {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  color: var(--muted);
+  padding: 10px 12px;
+  font-weight: 750;
+}
 .form-grid { position: relative; }
 .form-saving-overlay {
   display: none;
@@ -257,6 +273,7 @@ input, select, textarea {
   height: 100vh;
 }
 .sidebar .brand-mark { background: var(--accent); color: #17201b; }
+.sidebar .brand-mark.has-image { background: #fff; padding: 3px; }
 .sidebar nav { display: grid; gap: 6px; }
 .sidebar nav a { color: rgba(255,255,255,.78); padding: 10px 12px; border-radius: var(--radius); font-weight: 750; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sidebar nav a:hover, .sidebar nav a.active { background: rgba(255,255,255,.08); color: #fff; }
@@ -415,6 +432,16 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   font-weight: 850;
   font-size: .9rem;
 }
+.builder-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 750;
+}
+.builder-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: .92rem;
+}
 .product-builder-body { display: grid; gap: 12px; }
 .option-grid {
   display: grid;
@@ -434,11 +461,27 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   cursor: pointer;
 }
 .option-card input { width: auto; }
-.option-card:has(input:checked) {
+.option-card small {
+  display: block;
+  color: var(--muted);
+  font-size: .78rem;
+  margin-top: 2px;
+}
+.option-card:has(input:checked), .option-card.is-selected {
   border-color: var(--primary);
   background: #f1faf5;
   box-shadow: 0 0 0 2px rgba(20, 108, 67, .1);
 }
+.builder-summary {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+.builder-summary span { color: var(--muted); }
+.builder-summary b { color: var(--primary); font-size: 1.1rem; }
 .builder-total {
   display: flex;
   justify-content: space-between;
@@ -533,6 +576,32 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .client-order-card > div:first-child span {
   color: var(--primary);
   font-weight: 850;
+}
+.current-status {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  min-height: 38px;
+  padding: 8px 12px;
+  font-weight: 900;
+  text-align: center;
+}
+.current-status.is-canceled { background: var(--danger); }
+.client-order-card.is-history {
+  background: var(--bg);
+  box-shadow: none;
+}
+.client-history {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.client-history summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 900;
+  margin-bottom: 8px;
 }
 .client-order-card .status-timeline {
   grid-template-columns: 1fr;

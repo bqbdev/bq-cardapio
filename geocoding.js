@@ -11,7 +11,7 @@ export function establishmentAddressFromForm(form) {
 
 export async function geocodeAddress(address) {
   const cleanAddress = String(address || "").trim();
-  if (!cleanAddress) throw new Error("Informe um endereco completo.");
+  if (!cleanAddress) throw new Error("Informe um endereço completo.");
   const params = new URLSearchParams({
     format: "jsonv2",
     limit: "1",
@@ -21,9 +21,9 @@ export async function geocodeAddress(address) {
   const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
     headers: { Accept: "application/json" }
   });
-  if (!response.ok) throw new Error("Nao foi possivel consultar o endereco.");
+  if (!response.ok) throw new Error("Não foi possível consultar o endereço.");
   const results = await response.json();
-  if (!results.length) throw new Error("Endereco nao encontrado. Confira rua, numero, bairro e cidade.");
+  if (!results.length) throw new Error("Endereço não encontrado. Confira rua, número, bairro e cidade.");
   return {
     latitude: Number(results[0].lat),
     longitude: Number(results[0].lon),

@@ -76,8 +76,8 @@ async function loadAdminData() {
     updateNavigationBadges();
   } catch (error) {
     console.error("Erro ao carregar dados do admin:", error);
-    $("#requests-list").innerHTML = `<p class="form-message error">Nao foi possivel carregar as solicitacoes: ${error.message}</p>`;
-    $("#business-table").innerHTML = "<tr><td colspan='6'>Nao foi possivel carregar os estabelecimentos.</td></tr>";
+    $("#requests-list").innerHTML = `<p class="form-message error">Não foi possível carregar as solicitações: ${error.message}</p>`;
+    $("#business-table").innerHTML = "<tr><td colspan='6'>Não foi possível carregar os estabelecimentos.</td></tr>";
   }
 }
 
@@ -114,7 +114,7 @@ function renderRequests() {
         <button class="btn btn-small" data-reject="${item.id}">Recusar</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhuma solicitacao pendente.</p>";
+  `).join("") || "<p>Nenhuma solicitação pendente.</p>";
   document.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveRequest(button.dataset.approve)));
   document.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => rejectRequest(button.dataset.reject)));
 }
@@ -234,7 +234,7 @@ async function approveRequest(id) {
     entregaTaxaPadrao: 0,
     entregaBairrosTaxas: "",
     entregaBairrosBloqueados: "",
-    mensagem: "Bem-vindo ao nosso cardapio digital.",
+    mensagem: "Bem-vindo ao nosso cardápio digital.",
     logoUrl: ""
   });
   await setDoc(doc(db, `estabelecimentos/${businessRef.id}/taxas`, "padrao"), {
@@ -266,7 +266,7 @@ async function changeStatus(id, status) {
 function sendActivationMessage(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.activationToken) {
-    alert("Este estabelecimento ainda nao tem link de ativacao. Edite ou aprove novamente a solicitacao.");
+    alert("Este estabelecimento ainda não tem link de ativação. Edite ou aprove novamente a solicitação.");
     return;
   }
   const link = activationLink(id, business);
@@ -278,7 +278,7 @@ function sendActivationMessage(id) {
     "",
     link,
     "",
-    "Voce precisara digitar a senha duas vezes para confirmar."
+    "Você precisará digitar a senha duas vezes para confirmar."
   ].join("\n");
   const phone = String(business.whatsapp || "").replace(/\D/g, "");
   const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
@@ -288,7 +288,7 @@ function sendActivationMessage(id) {
 async function sendPasswordReset(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.email) {
-    alert("Este estabelecimento nao tem e-mail cadastrado.");
+    alert("Este estabelecimento não tem e-mail cadastrado.");
     return;
   }
   await sendPasswordResetEmail(auth, business.email);

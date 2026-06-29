@@ -1,6 +1,8 @@
 export function calculatePaymentFee(total, paymentMethod, fees = {}) {
   const value = Number(total || 0);
   const map = {
+    "Cartão de crédito": [fees.creditoPercentual, 0],
+    "Cartão de débito": [fees.debitoPercentual, 0],
     "Cartao de credito": [fees.creditoPercentual, 0],
     "Cartao de debito": [fees.debitoPercentual, 0],
     PIX: [fees.pixPercentual, fees.pixFixo],

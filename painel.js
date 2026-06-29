@@ -89,6 +89,7 @@ $("#business-logo-file")?.addEventListener("change", async (event) => {
   const form = $("#settings-form");
   form.elements.logoUrl.value = base64;
   renderBusinessLogoPreview(base64);
+  renderDashboardLogo(base64);
 });
 $("#use-business-location")?.addEventListener("click", () => {
   if (!navigator.geolocation) {
@@ -107,7 +108,7 @@ $("#use-business-location")?.addEventListener("click", () => {
 $("#geocode-business-address")?.addEventListener("click", async () => {
   try {
     await fillCoordinatesFromAddress($("#settings-form"));
-    alert("Coordenadas preenchidas pelo endereco.");
+    alert("Coordenadas preenchidas pelo endereço.");
   } catch (error) {
     alert(error.message);
   }
@@ -136,7 +137,16 @@ function renderBusinessHeader() {
   $("#business-title").textContent = name;
   $("#business-name-short").textContent = name.split(" ")[0] || "Menu";
   $("#public-menu-link").href = `cardapio.html?estabelecimento=${state.businessId}`;
+  renderDashboardLogo();
   renderRenewalInfo();
+}
+
+function renderDashboardLogo(src = "") {
+  const target = $("#dashboard-logo");
+  if (!target) return;
+  const logo = src || $("#settings-form")?.elements.logoUrl?.value || "";
+  target.innerHTML = logo ? `<img src="${logo}" alt="Logo do estabelecimento">` : "BQ";
+  target.classList.toggle("has-image", Boolean(logo));
 }
 
 function renderRenewalInfo() {
@@ -365,84 +375,125 @@ function printById(id, mode) {
 $("#category-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const data = formToObject(form);
-  const id = data.id || doc(collection(db, "tmp")).id;
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, id), {
-    nome: data.nome,
-    descricao: data.descricao || "",
-    ordem: Number(data.ordem || 0),
-    ativo: Boolean(data.ativo),
-    atualizadoEm: serverTimestamp()
-  }, { merge: true });
-  form.reset();
-  form.elements.ativo.checked = true;
-  await loadCategories();
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, id), {
+      nome: data.nome,
+      descricao: data.descricao || "",
+      ordem: Number(data.ordem || 0),
+      ativo: Boolean(data.ativo),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetCategoryForm(form);
+    await loadCategories();
+    await Promise.all([loadFlavors(), loadProducts(), loadAddons()]);
+  });
 });
 
 $("#flavor-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const data = formToObject(form);
-  const id = data.id || doc(collection(db, "tmp")).id;
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
-    nome: data.nome,
-    preco: numberValue(data.preco),
-    categoriaId: data.categoriaId || "",
-    ordem: Number(data.ordem || 0),
-    disponivel: Boolean(data.disponivel),
-    atualizadoEm: serverTimestamp()
-  }, { merge: true });
-  form.reset();
-  form.elements.disponivel.checked = true;
-  form.elements.ordem.value = 0;
-  await loadFlavors();
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
+      nome: data.nome,
+      preco: numberValue(data.preco),
+      categoriaId: data.categoriaId || "",
+      ordem: Number(data.ordem || 0),
+      disponivel: Boolean(data.disponivel),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetFlavorForm(form);
+    await loadFlavors();
+  });
 });
 
 $("#addon-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const data = formToObject(form);
-  const id = data.id || doc(collection(db, "tmp")).id;
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
-    nome: data.nome,
-    preco: numberValue(data.preco),
-    aplicarEm: data.aplicarEm || "todos",
-    categoriaId: data.aplicarEm === "categoria" ? data.categoriaId || "" : "",
-    produtoId: data.aplicarEm === "produto" ? data.produtoId || "" : "",
-    disponivel: Boolean(data.disponivel),
-    atualizadoEm: serverTimestamp()
-  }, { merge: true });
-  form.reset();
-  form.elements.disponivel.checked = true;
-  await loadAddons();
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
+      nome: data.nome,
+      preco: numberValue(data.preco),
+      aplicarEm: data.aplicarEm || "todos",
+      categoriaId: data.aplicarEm === "categoria" ? data.categoriaId || "" : "",
+      produtoId: data.aplicarEm === "produto" ? data.produtoId || "" : "",
+      disponivel: Boolean(data.disponivel),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetAddonForm(form);
+    await loadAddons();
+  });
 });
 
 $("#product-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const data = formToObject(form);
-  const id = data.id || doc(collection(db, "tmp")).id;
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
-    nome: data.nome,
-    descricao: data.descricao || "",
-    categoriaId: data.categoriaId || "",
-    preco: numberValue(data.preco),
-    tipoProduto: data.tipoProduto || "simples",
-    maxSabores: Math.max(1, Number(data.maxSabores || 1)),
-    regraPreco: data.regraPreco || "fixo",
-    fotoUrl: data.fotoUrl || "",
-    disponivel: Boolean(data.disponivel),
-    destaque: Boolean(data.destaque),
-    permiteObservacoes: Boolean(data.permiteObservacoes),
-    atualizadoEm: serverTimestamp()
-  }, { merge: true });
-  form.reset();
-  form.elements.disponivel.checked = true;
-  form.elements.permiteObservacoes.checked = true;
-  form.elements.maxSabores.value = 1;
-  renderPhotoPreview("");
-  await loadProducts();
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+      nome: data.nome,
+      descricao: data.descricao || "",
+      categoriaId: data.categoriaId || "",
+      preco: numberValue(data.preco),
+      tipoProduto: data.tipoProduto || "simples",
+      maxSabores: Math.max(1, Number(data.maxSabores || 1)),
+      regraPreco: data.regraPreco || "fixo",
+      fotoUrl: data.fotoUrl || "",
+      disponivel: Boolean(data.disponivel),
+      destaque: Boolean(data.destaque),
+      permiteObservacoes: Boolean(data.permiteObservacoes),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetProductForm(form);
+    await loadProducts();
+    await loadAddons();
+  });
 });
+
+function resetCategoryForm(form = $("#category-form")) {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.ordem) form.elements.ordem.value = 0;
+  if (form?.elements.ativo) form.elements.ativo.checked = true;
+}
+
+function resetFlavorForm(form = $("#flavor-form")) {
+  const currentCategory = form?.elements.categoriaId?.value || "";
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.categoriaId && currentCategory) form.elements.categoriaId.value = currentCategory;
+  if (form?.elements.ordem) form.elements.ordem.value = 0;
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+}
+
+function resetAddonForm(form = $("#addon-form")) {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.aplicarEm) form.elements.aplicarEm.value = "todos";
+  if (form?.elements.categoriaId) form.elements.categoriaId.value = "";
+  if (form?.elements.produtoId) form.elements.produtoId.value = "";
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+}
+
+function resetProductForm(form = $("#product-form")) {
+  const currentCategory = form?.elements.categoriaId?.value || "";
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.categoriaId && currentCategory) form.elements.categoriaId.value = currentCategory;
+  if (form?.elements.tipoProduto) form.elements.tipoProduto.value = "simples";
+  if (form?.elements.regraPreco) form.elements.regraPreco.value = "fixo";
+  if (form?.elements.maxSabores) form.elements.maxSabores.value = 1;
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  if (form?.elements.permiteObservacoes) form.elements.permiteObservacoes.checked = true;
+  renderPhotoPreview("");
+  document.querySelectorAll(".product-list-item").forEach((element) => element.classList.remove("editing"));
+}
 
 function fillCategory(id) {
   const item = state.categories.find((category) => category.id === id);
@@ -617,22 +668,18 @@ async function loadSettings() {
     else field.value = value ?? state.business[field.name] ?? "";
   });
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
+  renderDashboardLogo(form.elements.logoUrl?.value || "");
   renderDeliveryFeeRows(form.elements.entregaBairrosTaxas?.value || "");
 }
 
 $("#settings-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  try {
-    setFormUpdating(form, true, "Atualizando...");
+  await runFormSave(form, async () => {
     syncDeliveryFeeRowsToField();
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), formToObject(form), { merge: true });
-    setFormUpdating(form, true, "Atualizações feitas");
-    setTimeout(() => setFormUpdating(form, false), 900);
-  } catch (error) {
-    setFormUpdating(form, false);
-    alert(`Não foi possível salvar: ${error.message}`);
-  }
+    renderDashboardLogo(form.elements.logoUrl?.value || "");
+  }, "Atualizações feitas");
 });
 
 function renderDeliveryFeeRows(rawValue = "") {
@@ -703,6 +750,18 @@ function setFormUpdating(form, active, text = "Atualizando...") {
   form.classList.toggle("is-updating", active);
 }
 
+async function runFormSave(form, action, successText = "Salvo com sucesso") {
+  try {
+    setFormUpdating(form, true, "Atualizando...");
+    await action();
+    setFormUpdating(form, true, successText);
+    setTimeout(() => setFormUpdating(form, false), 900);
+  } catch (error) {
+    setFormUpdating(form, false);
+    alert(`Não foi possível salvar: ${error.message}`);
+  }
+}
+
 function renderBusinessLogoPreview(src) {
   const preview = $("#business-logo-preview");
   if (!preview) return;
@@ -722,14 +781,17 @@ async function loadFees() {
 
 $("#fees-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = formToObject(event.currentTarget);
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/taxas`, "padrao"), {
-    creditoPercentual: numberValue(data.creditoPercentual),
-    debitoPercentual: numberValue(data.debitoPercentual),
-    pixPercentual: numberValue(data.pixPercentual),
-    dinheiroPercentual: numberValue(data.dinheiroPercentual),
-    pixFixo: numberValue(data.pixFixo),
-    dinheiroFixo: numberValue(data.dinheiroFixo),
-    somarAoPedido: Boolean(data.somarAoPedido)
-  }, { merge: true });
+  const form = event.currentTarget;
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/taxas`, "padrao"), {
+      creditoPercentual: numberValue(data.creditoPercentual),
+      debitoPercentual: numberValue(data.debitoPercentual),
+      pixPercentual: numberValue(data.pixPercentual),
+      dinheiroPercentual: numberValue(data.dinheiroPercentual),
+      pixFixo: numberValue(data.pixFixo),
+      dinheiroFixo: numberValue(data.dinheiroFixo),
+      somarAoPedido: Boolean(data.somarAoPedido)
+    }, { merge: true });
+  });
 });

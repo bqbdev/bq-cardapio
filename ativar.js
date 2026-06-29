@@ -40,7 +40,7 @@ form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = formToObject(form);
   if (data.password !== data.passwordConfirm) {
-    setMessage(message, "As senhas nao conferem.", "error");
+    setMessage(message, "As senhas não conferem.", "error");
     return;
   }
   if (data.password.length < 6) {
@@ -67,7 +67,7 @@ form?.addEventListener("submit", async (event) => {
       location.href = "painel.html";
     }, 1200);
   } catch (error) {
-    setMessage(message, `Nao foi possivel ativar: ${error.message}`, "error");
+    setMessage(message, `Não foi possível ativar: ${error.message}`, "error");
   }
 });
 
