@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cardapio - BQ Menu</title>
+  <title>Cardápio - BQ Menu</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="menu-page">
   <header class="menu-header">
     <div id="menu-logo" class="menu-logo">BQ</div>
     <div>
-      <p class="eyebrow">Cardapio digital</p>
+      <p class="eyebrow">Cardápio digital</p>
       <h1 id="menu-business-name">Carregando...</h1>
       <p id="menu-message">Escolha seus itens e finalize pelo WhatsApp.</p>
       <div id="menu-hours" class="menu-hours"></div>
@@ -40,17 +40,17 @@
 
   <dialog id="checkout-dialog" class="checkout-dialog">
     <form id="checkout-form" class="form-grid">
-      <div class="dialog-heading full"><h2>Finalizacao</h2><button type="button" id="checkout-close" class="icon-button">x</button></div>
+      <div class="dialog-heading full"><h2>Finalização</h2><button type="button" id="checkout-close" class="icon-button">x</button></div>
       <label class="full">WhatsApp<input name="whatsapp" required inputmode="tel" placeholder="11999999999"></label>
       <button id="lookup-client" type="button" class="btn btn-small full">Buscar cadastro pelo WhatsApp</button>
       <label>Nome<input name="nome" required></label>
       <label>Cidade<input name="cidade"></label>
-      <label>Endereco<input name="endereco"></label>
-      <label>Numero<input name="numero"></label>
+      <label>Endereço<input name="endereco"></label>
+      <label>Número<input name="numero"></label>
       <label>Complemento<input name="complemento"></label>
       <label>Bairro<input name="bairro" list="delivery-neighborhoods" autocomplete="address-level3"></label>
       <datalist id="delivery-neighborhoods"></datalist>
-      <label class="full">Referencia<input name="referencia"></label>
+      <label class="full">Referência<input name="referencia"></label>
       <label>Tipo
         <select name="tipoEntrega" id="delivery-type" required></select>
       </label>
@@ -66,9 +66,19 @@
         </select>
       </label>
       <label id="change-field" class="full hidden">Troco para quanto?<input name="trocoPara" type="number" step="0.01"></label>
-      <label class="full">Observacao geral<textarea name="observacao" rows="3"></textarea></label>
+      <label class="full">Observação geral<textarea name="observacao" rows="3"></textarea></label>
       <button class="btn btn-primary full" type="submit">Salvar e enviar pelo WhatsApp</button>
       <p id="checkout-message" class="form-message full"></p>
+    </form>
+  </dialog>
+  <dialog id="product-dialog" class="checkout-dialog product-dialog">
+    <form id="product-builder-form" class="form-grid">
+      <div class="dialog-heading full"><h2 id="builder-title">Montar produto</h2><button type="button" id="product-dialog-close" class="icon-button">x</button></div>
+      <div id="builder-body" class="full product-builder-body"></div>
+      <label class="full">Observação do item<input name="observacao" placeholder="Ex: sem cebola, ponto da carne..."></label>
+      <div class="builder-total full"><span>Total do item</span><strong id="builder-total">R$ 0,00</strong></div>
+      <button class="btn btn-primary full" type="submit">Adicionar ao carrinho</button>
+      <p id="builder-message" class="form-message full"></p>
     </form>
   </dialog>
   <script type="module" src="cardapio.js"></script>

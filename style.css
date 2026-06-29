@@ -282,7 +282,7 @@ input, select, textarea {
 .metric-card span { color: var(--muted); font-weight: 750; }
 .metric-card strong { display: block; font-size: 1.7rem; margin-top: 6px; }
 .panel { padding: 18px; }
-.panel-inner { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.panel-inner { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, #fff, var(--bg)); }
 .compact-title { margin: 8px 0 0; }
 .toolbar-row { margin-top: 14px; display: grid; grid-template-columns: minmax(220px, 420px); gap: 12px; }
 .search-field { color: var(--muted); }
@@ -309,7 +309,20 @@ table { width: 100%; border-collapse: collapse; min-width: 760px; }
 th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: 0; }
 .stack-list, .mini-list { display: grid; gap: 10px; margin-top: 14px; }
+.menu-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.menu-admin-grid #product-form { grid-column: 1 / -1; }
 .list-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; display: grid; gap: 8px; }
+.compact-list-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.compact-list-item small { grid-column: 1; color: var(--muted); }
+.compact-list-item .btn { grid-column: 2; grid-row: 1 / span 2; }
 .status-timeline {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -383,6 +396,59 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   gap: 10px;
   align-items: end;
 }
+.builder-section {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--surface-soft);
+  display: grid;
+  gap: 10px;
+}
+.builder-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.builder-section-heading span {
+  color: var(--primary);
+  font-weight: 850;
+  font-size: .9rem;
+}
+.product-builder-body { display: grid; gap: 12px; }
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.option-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 10px;
+  color: var(--text);
+  cursor: pointer;
+}
+.option-card input { width: auto; }
+.option-card:has(input:checked) {
+  border-color: var(--primary);
+  background: #f1faf5;
+  box-shadow: 0 0 0 2px rgba(20, 108, 67, .1);
+}
+.builder-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #fff;
+}
+.builder-total strong { font-size: 1.25rem; }
 
 .menu-page { background: var(--bg); }
 .menu-header {
@@ -489,7 +555,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .delivery-location-panel .form-message { margin: 0; }
 
 @media (max-width: 980px) {
-  .hero, .split, .menu-shell, .two-columns { grid-template-columns: 1fr; }
+  .hero, .split, .menu-shell, .two-columns, .menu-admin-grid { grid-template-columns: 1fr; }
   .phone-preview { justify-self: start; }
   .feature-grid, .pricing-grid, .metric-grid, .metric-grid.tight { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .app-page { grid-template-columns: 1fr; }
@@ -501,7 +567,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .site-header { align-items: flex-start; flex-direction: column; position: static; }
   .nav-links { flex-wrap: wrap; }
   .hero { min-height: auto; }
-  .feature-grid, .pricing-grid, .metric-grid, .metric-grid.tight, .form-grid, .menu-products { grid-template-columns: 1fr; }
+  .feature-grid, .pricing-grid, .metric-grid, .metric-grid.tight, .form-grid, .menu-products, .option-grid { grid-template-columns: 1fr; }
   .product-card { grid-template-columns: minmax(0, 1fr) 104px; padding: 10px; }
   .product-card img, .product-image-fallback { width: 96px; height: 96px; }
   .product-list-item { grid-template-columns: 62px minmax(0, 1fr); }

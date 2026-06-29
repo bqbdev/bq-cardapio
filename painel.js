@@ -19,10 +19,10 @@ import { addMonths, formToObject, money, numberValue, planMonths, printOrder, se
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, categories: [], products: [], orders: [], clients: [], orderSearch: "" };
+const state = { businessId: "", business: null, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "" };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
-const orderStatuses = ["Aguardando aprovacao", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
+const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
   aceitaRetirada: true,
   aceitaEntrega: false,
@@ -44,14 +44,14 @@ onAuthStateChanged(auth, async (user) => {
     state.businessId = businessDoc.id;
     state.business = businessDoc.data();
     if (state.business.status !== "ativo") {
-      alert("Acesso temporariamente bloqueado. Fale com a administracao da plataforma.");
+      alert("Acesso temporariamente bloqueado. Fale com a administração da plataforma.");
       await signOut(auth);
       location.replace("login.html");
       return;
     }
     sessionStorage.setItem("businessId", state.businessId);
     updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() }).catch((error) => {
-      console.warn("Nao foi possivel atualizar ultimo acesso:", error);
+      console.warn("Não foi possível atualizar último acesso:", error);
     });
     renderBusinessHeader();
     await loadPanelData();
@@ -92,7 +92,7 @@ $("#business-logo-file")?.addEventListener("change", async (event) => {
 });
 $("#use-business-location")?.addEventListener("click", () => {
   if (!navigator.geolocation) {
-    alert("Seu navegador nao permite pegar localizacao.");
+    alert("Seu navegador não permite pegar localização.");
     return;
   }
   navigator.geolocation.getCurrentPosition((position) => {
@@ -100,7 +100,7 @@ $("#use-business-location")?.addEventListener("click", () => {
     form.elements.estabelecimentoLatitude.value = position.coords.latitude.toFixed(6);
     form.elements.estabelecimentoLongitude.value = position.coords.longitude.toFixed(6);
   }, () => {
-    alert("Nao foi possivel pegar a localizacao. Verifique a permissao do navegador.");
+    alert("Não foi possível pegar a localização. Verifique a permissão do navegador.");
   }, { enableHighAccuracy: true, timeout: 12000 });
 });
 
@@ -123,7 +123,7 @@ async function findBusinessForUser(uid) {
         return { id: savedSnap.id, data: () => savedSnap.data() };
       }
     } catch (error) {
-      console.warn("Nao foi possivel carregar estabelecimento salvo:", error);
+    console.warn("Não foi possível carregar estabelecimento salvo:", error);
     }
   }
   const snap = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", uid)));
@@ -148,13 +148,18 @@ function renderRenewalInfo() {
 }
 
 async function loadPanelData() {
-  await Promise.all([loadCategories(), loadProducts(), loadOrders(), loadClients(), loadSettings(), loadFees()]);
+  await loadCategories();
+  await loadProducts();
+  await Promise.all([loadFlavors(), loadAddons(), loadOrders(), loadClients(), loadSettings(), loadFees()]);
 }
 
 async function loadCategories() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/categorias`), orderBy("ordem", "asc")));
   state.categories = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  $("#product-category").innerHTML = state.categories.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("");
+  const categoryOptions = state.categories.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("");
+  $("#product-category").innerHTML = categoryOptions;
+  $("#flavor-category").innerHTML = categoryOptions;
+  $("#addon-category").innerHTML = `<option value="">Selecione se aplicar por categoria</option>${categoryOptions}`;
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
       <strong>${item.nome}</strong><small>${item.ativo ? "Ativo" : "Inativo"} - ordem ${item.ordem || 0}</small>
@@ -164,11 +169,38 @@ async function loadCategories() {
   document.querySelectorAll("[data-edit-category]").forEach((button) => button.addEventListener("click", () => fillCategory(button.dataset.editCategory)));
 }
 
+async function loadFlavors() {
+  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/sabores`), orderBy("nome", "asc")));
+  state.flavors = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+  $("#flavors-list").innerHTML = state.flavors.map((item) => `
+    <div class="list-item compact-list-item">
+      <strong>${item.nome}</strong>
+      <small>${money(item.preco)} - ${categoryName(item.categoriaId)} - ${item.disponivel !== false ? "Disponível" : "Indisponível"}</small>
+      <button class="btn btn-small" data-edit-flavor="${item.id}" type="button">Editar</button>
+    </div>
+  `).join("") || "<p>Nenhum sabor cadastrado.</p>";
+  document.querySelectorAll("[data-edit-flavor]").forEach((button) => button.addEventListener("click", () => fillFlavor(button.dataset.editFlavor)));
+}
+
+async function loadAddons() {
+  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/adicionais`), orderBy("nome", "asc")));
+  state.addons = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+  $("#addons-list").innerHTML = state.addons.map((item) => `
+    <div class="list-item compact-list-item">
+      <strong>${item.nome}</strong>
+      <small>${money(item.preco)} - ${addonScopeLabel(item)} - ${item.disponivel !== false ? "Disponível" : "Indisponível"}</small>
+      <button class="btn btn-small" data-edit-addon="${item.id}" type="button">Editar</button>
+    </div>
+  `).join("") || "<p>Nenhum adicional cadastrado.</p>";
+  document.querySelectorAll("[data-edit-addon]").forEach((button) => button.addEventListener("click", () => fillAddon(button.dataset.editAddon)));
+}
+
 async function loadProducts() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/produtos`), orderBy("nome", "asc")));
   state.products = snap.docs
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
+  $("#addon-product").innerHTML = `<option value="">Selecione se aplicar por produto</option>${state.products.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("")}`;
   $("#products-list").innerHTML = state.products.map((item) => `
     <div class="list-item product-list-item ${item.disponivel === false ? "is-disabled" : ""}">
       <div class="product-admin-thumb">
@@ -176,11 +208,12 @@ async function loadProducts() {
       </div>
       <div class="product-admin-info">
         <strong>${item.nome} ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}</strong>
-        <small>${money(item.preco)} - ${item.disponivel !== false ? "Disponivel" : "Indisponivel"}</small>
+        <small>${money(item.preco)} - ${item.disponivel !== false ? "Disponível" : "Indisponível"}</small>
+        <small>${productTypeLabel(item)}${item.tipoProduto === "sabores" ? ` - até ${item.maxSabores || 1} sabor(es)` : ""}</small>
       </div>
       <div class="item-actions">
         <button class="btn btn-small" data-edit-product="${item.id}" type="button">Editar</button>
-        <button class="btn btn-small ${item.disponivel !== false ? "btn-primary" : ""}" data-toggle-product="${item.id}" type="button">${item.disponivel !== false ? "Disponivel" : "Ativar"}</button>
+        <button class="btn btn-small ${item.disponivel !== false ? "btn-primary" : ""}" data-toggle-product="${item.id}" type="button">${item.disponivel !== false ? "Disponível" : "Ativar"}</button>
         <button class="btn btn-small btn-primary" data-highlight-product="${item.id}" type="button">${item.destaque ? "Remover destaque" : "Destacar"}</button>
         <button class="btn btn-small" data-change-photo="${item.id}" type="button">${item.fotoUrl ? "Trocar foto" : "Adicionar foto"}</button>
         <input class="hidden" data-photo-input="${item.id}" type="file" accept="image/*">
@@ -196,6 +229,21 @@ async function loadProducts() {
   document.querySelectorAll("[data-photo-input]").forEach((input) => {
     input.addEventListener("change", () => updateProductPhoto(input.dataset.photoInput, input.files?.[0], input));
   });
+}
+
+function productTypeLabel(product) {
+  if (product.tipoProduto === "sabores") return "Produto com sabores";
+  return "Produto simples";
+}
+
+function categoryName(id) {
+  return state.categories.find((item) => item.id === id)?.nome || "Sem categoria";
+}
+
+function addonScopeLabel(addon) {
+  if (addon.aplicarEm === "categoria") return `Categoria: ${categoryName(addon.categoriaId)}`;
+  if (addon.aplicarEm === "produto") return `Produto: ${state.products.find((item) => item.id === addon.produtoId)?.nome || "não encontrado"}`;
+  return "Todos os produtos";
 }
 
 function loadOrders() {
@@ -226,7 +274,7 @@ async function loadClients() {
 
 function clientAddress(client) {
   const address = [client.endereco, client.numero, client.bairro, client.cidade].filter(Boolean).join(", ");
-  return address || "Endereco ainda nao informado";
+  return address || "Endereço ainda não informado";
 }
 
 function renderOrders() {
@@ -237,7 +285,7 @@ function renderOrders() {
       <span>${order.status || "Novo"} - ${order.tipoEntrega || ""} - ${money(order.totalFinal)}</span>
       ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}</small>` : ""}
       <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
-      <small>${(order.itens || []).map((item) => `${item.quantidade || 1}x ${item.nome}`).join(", ")}</small>
+      <small>${(order.itens || []).map(orderItemSummary).join(", ")}</small>
       ${renderOrderStatusSteps(order.status)}
       <div class="item-actions">
         ${orderStatuses.map((status) => `<button class="btn btn-small ${normalizeStatus(order.status) === normalizeStatus(status) ? "btn-primary" : ""}" data-order-status="${order.id}" data-status-value="${status}" type="button">${status}</button>`).join("")}
@@ -254,13 +302,22 @@ function renderOrders() {
 }
 
 function renderOrderStatusSteps(status = "") {
-  const current = normalizeStatus(status || "Aguardando aprovacao");
+  const current = normalizeStatus(status || "Aguardando aprovação");
   if (current === normalizeStatus("Cancelado")) {
     return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
   }
   const steps = orderStatuses.filter((statusName) => statusName !== "Cancelado");
   const activeIndex = Math.max(0, steps.findIndex((item) => normalizeStatus(item) === current));
   return `<div class="status-timeline">${steps.map((step, index) => `<span class="${index <= activeIndex ? "active" : ""}">${step}</span>`).join("")}</div>`;
+}
+
+function orderItemSummary(item) {
+  const details = [
+    item.sabores?.length ? `sabores: ${item.sabores.map((flavor) => flavor.nome).join("/")}` : "",
+    item.adicionais?.length ? `adicionais: ${item.adicionais.map((addon) => addon.nome).join("/")}` : "",
+    item.observacao ? `obs: ${item.observacao}` : ""
+  ].filter(Boolean).join(" - ");
+  return `${item.quantidade || 1}x ${item.nome}${details ? ` (${details})` : ""}`;
 }
 
 function normalizeStatus(value = "") {
@@ -322,6 +379,44 @@ $("#category-form")?.addEventListener("submit", async (event) => {
   await loadCategories();
 });
 
+$("#flavor-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = formToObject(form);
+  const id = data.id || doc(collection(db, "tmp")).id;
+  await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
+    nome: data.nome,
+    preco: numberValue(data.preco),
+    categoriaId: data.categoriaId || "",
+    ordem: Number(data.ordem || 0),
+    disponivel: Boolean(data.disponivel),
+    atualizadoEm: serverTimestamp()
+  }, { merge: true });
+  form.reset();
+  form.elements.disponivel.checked = true;
+  form.elements.ordem.value = 0;
+  await loadFlavors();
+});
+
+$("#addon-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = formToObject(form);
+  const id = data.id || doc(collection(db, "tmp")).id;
+  await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
+    nome: data.nome,
+    preco: numberValue(data.preco),
+    aplicarEm: data.aplicarEm || "todos",
+    categoriaId: data.aplicarEm === "categoria" ? data.categoriaId || "" : "",
+    produtoId: data.aplicarEm === "produto" ? data.produtoId || "" : "",
+    disponivel: Boolean(data.disponivel),
+    atualizadoEm: serverTimestamp()
+  }, { merge: true });
+  form.reset();
+  form.elements.disponivel.checked = true;
+  await loadAddons();
+});
+
 $("#product-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -332,6 +427,9 @@ $("#product-form")?.addEventListener("submit", async (event) => {
     descricao: data.descricao || "",
     categoriaId: data.categoriaId || "",
     preco: numberValue(data.preco),
+    tipoProduto: data.tipoProduto || "simples",
+    maxSabores: Math.max(1, Number(data.maxSabores || 1)),
+    regraPreco: data.regraPreco || "fixo",
     fotoUrl: data.fotoUrl || "",
     disponivel: Boolean(data.disponivel),
     destaque: Boolean(data.destaque),
@@ -341,6 +439,7 @@ $("#product-form")?.addEventListener("submit", async (event) => {
   form.reset();
   form.elements.disponivel.checked = true;
   form.elements.permiteObservacoes.checked = true;
+  form.elements.maxSabores.value = 1;
   renderPhotoPreview("");
   await loadProducts();
 });
@@ -356,13 +455,41 @@ function fillCategory(id) {
   form.elements.ativo.checked = item.ativo !== false;
 }
 
+function fillFlavor(id) {
+  const item = state.flavors.find((flavor) => flavor.id === id);
+  const form = $("#flavor-form");
+  if (!item) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  form.elements.preco.value = item.preco || 0;
+  form.elements.categoriaId.value = item.categoriaId || "";
+  form.elements.ordem.value = item.ordem || 0;
+  form.elements.disponivel.checked = item.disponivel !== false;
+}
+
+function fillAddon(id) {
+  const item = state.addons.find((addon) => addon.id === id);
+  const form = $("#addon-form");
+  if (!item) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  form.elements.preco.value = item.preco || 0;
+  form.elements.aplicarEm.value = item.aplicarEm || "todos";
+  form.elements.categoriaId.value = item.categoriaId || "";
+  form.elements.produtoId.value = item.produtoId || "";
+  form.elements.disponivel.checked = item.disponivel !== false;
+}
+
 function fillProduct(id) {
   const item = state.products.find((product) => product.id === id);
   const form = $("#product-form");
   if (!item) return;
-  ["id", "nome", "descricao", "categoriaId", "preco", "fotoUrl"].forEach((key) => {
+  ["id", "nome", "descricao", "categoriaId", "preco", "tipoProduto", "maxSabores", "regraPreco", "fotoUrl"].forEach((key) => {
     if (form.elements[key]) form.elements[key].value = key === "id" ? id : item[key] || "";
   });
+  form.elements.tipoProduto.value = item.tipoProduto || "simples";
+  form.elements.maxSabores.value = item.maxSabores || 1;
+  form.elements.regraPreco.value = item.regraPreco || "fixo";
   form.elements.disponivel.checked = item.disponivel !== false;
   form.elements.destaque.checked = Boolean(item.destaque);
   form.elements.permiteObservacoes.checked = item.permiteObservacoes !== false;
@@ -422,7 +549,7 @@ function fileToBase64(file) {
 
 async function imageFileToBase64(file, input, options = {}) {
   if (!file.type.startsWith("image/")) {
-    alert("Selecione uma imagem valida.");
+    alert("Selecione uma imagem válida.");
     if (input) input.value = "";
     return "";
   }
@@ -435,10 +562,10 @@ async function imageFileToBase64(file, input, options = {}) {
     }
     return base64;
   } catch (error) {
-    console.warn("Nao foi possivel compactar a imagem:", error);
+    console.warn("Não foi possível compactar a imagem:", error);
     const base64 = await fileToBase64(file);
     if (base64.length > 750 * 1024) {
-      alert("Nao foi possivel compactar esta imagem. Escolha uma imagem menor para salvar em Base64.");
+      alert("Não foi possível compactar esta imagem. Escolha uma imagem menor para salvar em Base64.");
       if (input) input.value = "";
       return "";
     }
@@ -467,7 +594,7 @@ function compressImageFile(file, options = {}) {
     };
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Imagem invalida"));
+      reject(new Error("Imagem inválida"));
     };
     image.src = objectUrl;
   });
@@ -476,7 +603,7 @@ function compressImageFile(file, options = {}) {
 function renderPhotoPreview(src) {
   const preview = $("#product-photo-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto do produto">` : "Sem foto selecionada";
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da foto do produto">` : "Sem foto selecionada";
 }
 
 async function loadSettings() {
@@ -500,11 +627,11 @@ $("#settings-form")?.addEventListener("submit", async (event) => {
     setFormUpdating(form, true, "Atualizando...");
     syncDeliveryFeeRowsToField();
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), formToObject(form), { merge: true });
-    setFormUpdating(form, true, "Atualizacoes feitas");
+    setFormUpdating(form, true, "Atualizações feitas");
     setTimeout(() => setFormUpdating(form, false), 900);
   } catch (error) {
     setFormUpdating(form, false);
-    alert(`Nao foi possivel salvar: ${error.message}`);
+    alert(`Não foi possível salvar: ${error.message}`);
   }
 });
 
@@ -579,7 +706,7 @@ function setFormUpdating(form, active, text = "Atualizando...") {
 function renderBusinessLogoPreview(src) {
   const preview = $("#business-logo-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Previa do logo do estabelecimento">` : "Sem logo selecionado";
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia do logo do estabelecimento">` : "Sem logo selecionado";
 }
 
 async function loadFees() {

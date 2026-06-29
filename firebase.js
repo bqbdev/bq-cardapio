@@ -70,6 +70,7 @@ export const paths = {
   pedidos: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/pedidos`,
   categorias: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/categorias`,
   produtos: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/produtos`,
+  sabores: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/sabores`,
   adicionais: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/adicionais`,
   financeiro: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/financeiro`,
   configuracoes: (estabelecimentoId) => `estabelecimentos/${estabelecimentoId}/configuracoes`,

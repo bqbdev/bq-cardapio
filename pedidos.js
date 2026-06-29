@@ -23,22 +23,22 @@ if (link) {
 }
 
 if (!estabelecimentoId || !pedidoId) {
-  document.querySelector("#order-summary").textContent = "Nao foi possivel localizar este pedido. Volte ao cardapio e acompanhe pelo WhatsApp cadastrado.";
+  document.querySelector("#order-summary").textContent = "Não foi possível localizar este pedido. Volte ao cardápio e acompanhe pelo WhatsApp cadastrado.";
 } else {
   onSnapshot(doc(db, `estabelecimentos/${estabelecimentoId}/pedidos`, pedidoId), (snap) => {
     if (!snap.exists()) {
-      document.querySelector("#order-summary").textContent = "Pedido nao encontrado.";
+      document.querySelector("#order-summary").textContent = "Pedido não encontrado.";
       return;
     }
     renderOrder({ id: snap.id, ...snap.data() });
   }, (error) => {
-    console.error("Nao foi possivel acompanhar pedido:", error);
-    document.querySelector("#order-summary").textContent = "Nao foi possivel carregar o andamento agora.";
+    console.error("Não foi possível acompanhar pedido:", error);
+    document.querySelector("#order-summary").textContent = "Não foi possível carregar o andamento agora.";
   });
 }
 
 function renderOrder(order) {
-  const status = order.status || "Aguardando aprovacao";
+  const status = order.status || "Aguardando aprovação";
   document.querySelector("#order-title").textContent = `Pedido ${escapeHtml(order.codigo || order.numeroPedido || order.id)}`;
   document.querySelector("#order-summary").innerHTML = `
     <strong>Status atual: ${escapeHtml(status)}</strong>
@@ -61,7 +61,7 @@ function renderOrder(order) {
 
 function renderOrderStatusSteps(status = "") {
   const current = normalizeStatus(status);
-  const steps = ["Aguardando aprovacao", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
+  const steps = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
   if (current === normalizeStatus("Cancelado")) {
     return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
   }

@@ -15,11 +15,11 @@
     <nav>
       <a href="#dashboard">Dashboard</a>
       <a href="#pedidos">Pedidos</a>
-      <a href="#cardapio">Cardapio</a>
+      <a href="#cardapio">Cardápio</a>
       <a href="#clientes">Clientes</a>
       <a href="#financeiro">Financeiro</a>
       <a href="#taxas">Taxas</a>
-      <a href="#configuracoes">Configuracoes</a>
+      <a href="#configuracoes">Configurações</a>
       <a href="#delivery">Delivery em breve</a>
     </nav>
     <button id="logout-btn" class="btn btn-ghost">Sair</button>
@@ -27,15 +27,15 @@
   <main class="app-main">
     <header class="app-topbar">
       <div><p class="eyebrow">Painel</p><h1 id="business-title">Carregando estabelecimento</h1></div>
-      <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardapio</a>
+      <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardápio</a>
     </header>
 
     <section id="dashboard" class="metric-grid">
       <article class="metric-card"><span>Pedidos hoje</span><strong id="orders-today">0</strong></article>
       <article class="metric-card"><span>Vendido hoje</span><strong id="sales-today">R$ 0,00</strong></article>
       <article class="metric-card"><span>Em andamento</span><strong id="orders-open">0</strong></article>
-      <article class="metric-card"><span>Ticket medio</span><strong id="average-ticket">R$ 0,00</strong></article>
-      <article class="metric-card"><span>Proxima renovacao</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
+      <article class="metric-card"><span>Ticket médio</span><strong id="average-ticket">R$ 0,00</strong></article>
+      <article class="metric-card"><span>Próxima renovação</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
     </section>
 
     <section class="soon-band compact-band">
@@ -46,38 +46,82 @@
       <div class="panel-heading"><h2>Pedidos</h2><button id="refresh-orders" class="btn btn-small">Atualizar</button></div>
       <div class="toolbar-row">
         <label class="search-field">Buscar pedido
-          <input id="order-search" type="search" placeholder="Numero, cliente, WhatsApp ou status">
+          <input id="order-search" type="search" placeholder="Número, cliente, WhatsApp ou status">
         </label>
       </div>
       <div id="orders-list" class="stack-list"></div>
     </section>
 
     <section id="cardapio" class="panel">
-      <div class="panel-heading"><h2>Cardapio</h2></div>
-      <div class="two-columns">
+      <div class="panel-heading"><h2>Cardápio</h2></div>
+      <div class="menu-admin-grid">
         <form id="category-form" class="form-grid panel-inner">
           <h3 class="full">Categorias</h3>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
           <label>Ordem<input name="ordem" type="number" value="0"></label>
-          <label class="full">Descricao<textarea name="descricao" rows="2"></textarea></label>
+          <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
           <label class="check-row full"><input name="ativo" type="checkbox" checked> Ativo</label>
           <button class="btn btn-primary full" type="submit">Salvar categoria</button>
           <div id="categories-list" class="full mini-list"></div>
+        </form>
+        <form id="flavor-form" class="form-grid panel-inner">
+          <h3 class="full">Sabores</h3>
+          <input type="hidden" name="id">
+          <label>Nome<input name="nome" required placeholder="Ex: Mussarela"></label>
+          <label>Preço<input name="preco" type="number" step="0.01" required></label>
+          <label>Categoria<select name="categoriaId" id="flavor-category"></select></label>
+          <label>Ordem<input name="ordem" type="number" value="0"></label>
+          <label class="check-row full"><input name="disponivel" type="checkbox" checked> Disponível</label>
+          <button class="btn btn-primary full" type="submit">Salvar sabor</button>
+          <div id="flavors-list" class="full mini-list"></div>
+        </form>
+        <form id="addon-form" class="form-grid panel-inner">
+          <h3 class="full">Adicionais</h3>
+          <input type="hidden" name="id">
+          <label>Nome<input name="nome" required placeholder="Ex: Borda recheada"></label>
+          <label>Preço<input name="preco" type="number" step="0.01" required></label>
+          <label>Aplicar em
+            <select name="aplicarEm" id="addon-scope">
+              <option value="todos">Todos os produtos</option>
+              <option value="categoria">Uma categoria</option>
+              <option value="produto">Um produto específico</option>
+            </select>
+          </label>
+          <label>Categoria<select name="categoriaId" id="addon-category"></select></label>
+          <label class="full">Produto<select name="produtoId" id="addon-product"></select></label>
+          <label class="check-row full"><input name="disponivel" type="checkbox" checked> Disponível</label>
+          <button class="btn btn-primary full" type="submit">Salvar adicional</button>
+          <div id="addons-list" class="full mini-list"></div>
         </form>
         <form id="product-form" class="form-grid panel-inner">
           <h3 class="full">Produtos</h3>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
-          <label>Preco<input name="preco" type="number" step="0.01" required></label>
+          <label>Preço base<input name="preco" type="number" step="0.01" required></label>
           <label>Categoria<select name="categoriaId" id="product-category"></select></label>
+          <label>Tipo
+            <select name="tipoProduto" id="product-type">
+              <option value="simples">Produto simples</option>
+              <option value="sabores">Produto com sabores</option>
+            </select>
+          </label>
+          <label>Máximo de sabores<input name="maxSabores" type="number" min="1" value="1"></label>
+          <label>Regra de preço
+            <select name="regraPreco">
+              <option value="fixo">Preço base do produto</option>
+              <option value="maior_valor">Maior valor prevalece</option>
+              <option value="media_sabores">Somar sabores e dividir</option>
+              <option value="soma_sabores">Somar valores dos sabores</option>
+            </select>
+          </label>
           <input name="fotoUrl" type="hidden">
           <label class="full">Foto do produto em Base64<input id="product-photo-file" type="file" accept="image/*"></label>
           <div id="product-photo-preview" class="image-preview full">Sem foto selecionada</div>
-          <label class="full">Descricao<textarea name="descricao" rows="2"></textarea></label>
-          <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponivel</label>
+          <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
+          <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponível</label>
           <label class="check-row"><input name="destaque" type="checkbox"> Destaque</label>
-          <label class="check-row"><input name="permiteObservacoes" type="checkbox" checked> Observacoes</label>
+          <label class="check-row"><input name="permiteObservacoes" type="checkbox" checked> Observações</label>
           <button class="btn btn-primary full" type="submit">Salvar produto</button>
           <div id="products-list" class="full mini-list"></div>
         </form>
@@ -109,9 +153,9 @@
     </section>
 
     <section id="configuracoes" class="panel">
-      <div class="panel-heading"><h2>Configuracoes</h2></div>
+      <div class="panel-heading"><h2>Configurações</h2></div>
       <form id="settings-form" class="form-grid">
-        <label>Nome publico<input name="nomePublico"></label>
+        <label>Nome público<input name="nomePublico"></label>
         <label>WhatsApp dos pedidos<input name="whatsappPedidos" inputmode="tel"></label>
         <input name="logoUrl" type="hidden">
         <label class="full">Logo do estabelecimento em Base64<input id="business-logo-file" type="file" accept="image/*"></label>
@@ -121,13 +165,13 @@
         <label class="check-row"><input name="aceitaRetirada" type="checkbox"> Retirada</label>
         <label class="check-row"><input name="aceitaEntrega" type="checkbox"> Entrega</label>
         <label class="check-row"><input name="aceitaLocal" type="checkbox"> Comer no local</label>
-        <h3 class="full compact-title">Endereco e taxa de entrega</h3>
-        <label>Endereco do estabelecimento<input name="estabelecimentoEndereco"></label>
-        <label>Numero<input name="estabelecimentoNumero"></label>
+        <h3 class="full compact-title">Endereço e taxa de entrega</h3>
+        <label>Endereço do estabelecimento<input name="estabelecimentoEndereco"></label>
+        <label>Número<input name="estabelecimentoNumero"></label>
         <label>Bairro<input name="estabelecimentoBairro"></label>
         <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
         <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
-        <label>Taxa padrao de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
+        <label>Taxa padrão de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
         <textarea class="hidden" name="entregaBairrosTaxas"></textarea>
         <div class="delivery-fees-editor full">
           <div class="delivery-fees-heading">
@@ -136,8 +180,8 @@
           </div>
           <div id="delivery-fees-rows" class="delivery-fees-rows"></div>
         </div>
-        <label class="full">Bairros que nao atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
-        <h3 class="full compact-title">Horarios de funcionamento</h3>
+        <label class="full">Bairros que não atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
+        <h3 class="full compact-title">Horários de funcionamento</h3>
         <label>Domingo abre<input name="horario_domingo_abre" type="time"></label>
         <label>Domingo fecha<input name="horario_domingo_fecha" type="time"></label>
         <label>Segunda abre<input name="horario_segunda_abre" type="time"></label>
@@ -153,19 +197,19 @@
         <label>Sabado abre<input name="horario_sabado_abre" type="time"></label>
         <label>Sabado fecha<input name="horario_sabado_fecha" type="time"></label>
         <label class="full">Mensagem de boas-vindas<textarea name="mensagem" rows="3"></textarea></label>
-        <button class="btn btn-primary full" type="submit">Salvar configuracoes</button>
+        <button class="btn btn-primary full" type="submit">Salvar configurações</button>
       </form>
     </section>
 
     <section id="delivery" class="panel">
       <div class="panel-heading"><h2>Delivery</h2></div>
-      <p>Em breve voce podera acionar motoboys diretamente pela plataforma.</p>
+      <p>Em breve você poderá acionar motoboys diretamente pela plataforma.</p>
       <div class="feature-grid small">
         <article class="feature-card"><h3>Acionamento de motoboy</h3></article>
         <article class="feature-card"><h3>Rastreamento</h3></article>
-        <article class="feature-card"><h3>Historico de entregas</h3></article>
+        <article class="feature-card"><h3>Histórico de entregas</h3></article>
         <article class="feature-card"><h3>Taxa de entrega</h3></article>
-        <article class="feature-card"><h3>Integracao com Cheguei Delivery</h3></article>
+        <article class="feature-card"><h3>Integração com Cheguei Delivery</h3></article>
       </div>
     </section>
   </main>

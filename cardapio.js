@@ -22,7 +22,10 @@ const state = {
   fees: {},
   categories: [],
   products: [],
+  flavors: [],
+  addons: [],
   cart: [],
+  buildingProduct: null,
   clientOrders: [],
   clientUnsubscribe: null,
   deliveryFee: 0,
@@ -43,11 +46,11 @@ init();
 
 async function init() {
   if (!state.estabelecimentoId) {
-    $("#menu-business-name").textContent = "Cardapio indisponivel";
-    $("#menu-message").textContent = "Informe o estabelecimento no link do cardapio.";
+    $("#menu-business-name").textContent = "Cardápio indisponível";
+    $("#menu-message").textContent = "Informe o estabelecimento no link do cardápio.";
     return;
   }
-  await Promise.all([loadBusiness(), loadSettings(), loadFees(), loadCategories(), loadProducts()]);
+  await Promise.all([loadBusiness(), loadSettings(), loadFees(), loadCategories(), loadProducts(), loadFlavors(), loadAddons()]);
   renderHeader();
   renderCategories();
   renderProducts();
@@ -85,8 +88,21 @@ async function loadProducts() {
     .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
 }
 
+async function loadFlavors() {
+  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/sabores`), orderBy("nome", "asc")));
+  state.flavors = snap.docs
+    .map((item) => ({ id: item.id, ...item.data() }))
+    .filter((item) => item.disponivel !== false)
+    .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0) || String(a.nome || "").localeCompare(String(b.nome || "")));
+}
+
+async function loadAddons() {
+  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/adicionais`), orderBy("nome", "asc")));
+  state.addons = snap.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.disponivel !== false);
+}
+
 function renderHeader() {
-  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "Cardapio";
+  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "Cardápio";
   $("#menu-business-name").textContent = name;
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
   if (state.settings.logoUrl) {
@@ -106,7 +122,7 @@ function renderOpeningHours() {
   const rows = businessDays.map(([key, label]) => {
     const open = state.settings[`horario_${key}_abre`];
     const close = state.settings[`horario_${key}_fecha`];
-    return `<span>${label}: ${open && close ? `${open} as ${close}` : "Fechado"}</span>`;
+    return `<span>${label}: ${open && close ? `${open} às ${close}` : "Fechado"}</span>`;
   }).join("");
   target.innerHTML = `
     <strong class="${openNow ? "status-open" : "status-closed"}">${openNow ? "Aberto agora" : "Fechado agora"}</strong>
@@ -151,32 +167,40 @@ function renderProducts(categoryId = "todos") {
         <strong>${item.nome}</strong>
         ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}
         <p>${item.descricao || ""}</p>
-        <strong>${money(item.preco)}</strong>
-        ${item.permiteObservacoes !== false ? `<input data-note="${item.id}" placeholder="Observacao do item">` : ""}
-        <button class="btn btn-primary" data-add="${item.id}">Adicionar ao carrinho</button>
+        <strong>${productPriceLabel(item)}</strong>
+        <button class="btn btn-primary" data-add="${item.id}">${productNeedsBuilder(item) ? "Montar item" : "Adicionar ao carrinho"}</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhum produto disponivel nesta categoria.</p>";
+  `).join("") || "<p>Nenhum produto disponível nesta categoria.</p>";
   document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => addToCart(button.dataset.add)));
 }
 
 function addToCart(productId) {
   const product = state.products.find((item) => item.id === productId);
   if (!product) return;
-  const note = document.querySelector(`[data-note="${productId}"]`)?.value || "";
-  const existing = state.cart.find((item) => item.id === productId && item.observacao === note);
+  if (productNeedsBuilder(product)) {
+    openProductBuilder(product);
+    return;
+  }
+  const cartItem = buildCartItem(product, [], [], "");
+  const existing = state.cart.find((item) => item.signature === cartItem.signature);
   if (existing) existing.quantidade += 1;
-  else state.cart.push({ id: product.id, nome: product.nome, preco: Number(product.preco || 0), quantidade: 1, observacao: note, adicionais: [] });
+  else state.cart.push(cartItem);
   renderCart();
 }
 
 function renderCart() {
   $("#cart-items").innerHTML = state.cart.map((item, index) => `
     <div class="cart-line">
-      <div><strong>${item.quantidade}x ${item.nome}</strong><small>${item.observacao || ""}</small></div>
+      <div>
+        <strong>${item.quantidade}x ${item.nome}</strong>
+        ${item.sabores?.length ? `<small>Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}</small>` : ""}
+        ${item.adicionais?.length ? `<small>Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}</small>` : ""}
+        <small>${item.observacao || ""}</small>
+      </div>
       <div><strong>${money(item.preco * item.quantidade)}</strong><button class="btn btn-small" data-remove="${index}">Remover</button></div>
     </div>
-  `).join("") || "<p>Seu carrinho esta vazio.</p>";
+  `).join("") || "<p>Seu carrinho está vazio.</p>";
   $("#cart-total").textContent = money(cartSubtotal());
   document.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
     state.cart.splice(Number(button.dataset.remove), 1);
@@ -187,6 +211,172 @@ function renderCart() {
 function cartSubtotal() {
   return state.cart.reduce((sum, item) => sum + item.preco * item.quantidade, 0);
 }
+
+function productNeedsBuilder(product) {
+  return product.tipoProduto === "sabores" || availableAddons(product).length > 0 || product.permiteObservacoes !== false;
+}
+
+function productPriceLabel(product) {
+  if (product.tipoProduto === "sabores") {
+    const flavors = productFlavors(product);
+    if (flavors.length) return `A partir de ${money(Math.min(...flavors.map((item) => Number(item.preco || 0))))}`;
+  }
+  return money(product.preco);
+}
+
+function productFlavors(product) {
+  return state.flavors.filter((item) => item.categoriaId === product.categoriaId);
+}
+
+function availableAddons(product) {
+  return state.addons.filter((addon) => {
+    if (addon.aplicarEm === "categoria") return addon.categoriaId === product.categoriaId;
+    if (addon.aplicarEm === "produto") return addon.produtoId === product.id;
+    return addon.aplicarEm === "todos" || !addon.aplicarEm;
+  });
+}
+
+function openProductBuilder(product) {
+  state.buildingProduct = product;
+  const flavors = productFlavors(product);
+  const addons = availableAddons(product);
+  $("#builder-title").textContent = product.nome;
+  $("#builder-message").textContent = "";
+  $("#product-builder-form").reset();
+  $("#builder-body").innerHTML = `
+    ${product.tipoProduto === "sabores" ? renderFlavorPicker(product, flavors) : ""}
+    ${addons.length ? renderAddonPicker(addons) : ""}
+  `;
+  document.querySelectorAll("[data-builder-option]").forEach((input) => {
+    input.addEventListener("change", () => {
+      enforceFlavorLimit(product);
+      updateBuilderTotal();
+    });
+  });
+  updateBuilderTotal();
+  $("#product-dialog").showModal();
+}
+
+function renderFlavorPicker(product, flavors) {
+  const max = Math.max(1, Number(product.maxSabores || 1));
+  return `
+    <section class="builder-section">
+      <div class="builder-section-heading">
+        <strong>Escolha até ${max} sabor(es)</strong>
+        <span>${priceRuleLabel(product.regraPreco)}</span>
+      </div>
+      <div class="option-grid">
+        ${flavors.map((flavor) => `
+          <label class="option-card">
+            <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
+            <span>${flavor.nome}</span>
+            <strong>${money(flavor.preco)}</strong>
+          </label>
+        `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
+      </div>
+    </section>
+  `;
+}
+
+function renderAddonPicker(addons) {
+  return `
+    <section class="builder-section">
+      <div class="builder-section-heading"><strong>Adicionais</strong><span>Opcional</span></div>
+      <div class="option-grid">
+        ${addons.map((addon) => `
+          <label class="option-card">
+            <input data-builder-option data-builder-addon value="${addon.id}" type="checkbox">
+            <span>${addon.nome}</span>
+            <strong>+ ${money(addon.preco)}</strong>
+          </label>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function enforceFlavorLimit(product) {
+  const max = Math.max(1, Number(product.maxSabores || 1));
+  const checked = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
+  if (checked.length <= max) return;
+  checked.at(-1).checked = false;
+  setMessage($("#builder-message"), `Escolha no máximo ${max} sabor(es).`, "error");
+}
+
+function selectedBuilderFlavors() {
+  return Array.from(document.querySelectorAll("[data-builder-flavor]:checked"))
+    .map((input) => state.flavors.find((flavor) => flavor.id === input.value))
+    .filter(Boolean);
+}
+
+function selectedBuilderAddons() {
+  return Array.from(document.querySelectorAll("[data-builder-addon]:checked"))
+    .map((input) => state.addons.find((addon) => addon.id === input.value))
+    .filter(Boolean);
+}
+
+function updateBuilderTotal() {
+  if (!state.buildingProduct) return;
+  const flavors = selectedBuilderFlavors();
+  const addons = selectedBuilderAddons();
+  $("#builder-total").textContent = money(calculateConfiguredPrice(state.buildingProduct, flavors, addons));
+}
+
+function calculateConfiguredPrice(product, flavors = [], addons = []) {
+  const addonTotal = addons.reduce((sum, addon) => sum + Number(addon.preco || 0), 0);
+  if (product.tipoProduto !== "sabores" || !flavors.length) return Number(product.preco || 0) + addonTotal;
+  const flavorPrices = flavors.map((flavor) => Number(flavor.preco || 0));
+  let base = Number(product.preco || 0);
+  if (product.regraPreco === "maior_valor") base = Math.max(...flavorPrices);
+  if (product.regraPreco === "media_sabores") base = flavorPrices.reduce((sum, value) => sum + value, 0) / flavorPrices.length;
+  if (product.regraPreco === "soma_sabores") base = flavorPrices.reduce((sum, value) => sum + value, 0);
+  return base + addonTotal;
+}
+
+function buildCartItem(product, flavors = [], addons = [], observacao = "") {
+  const preco = calculateConfiguredPrice(product, flavors, addons);
+  const flavorIds = flavors.map((item) => item.id).sort();
+  const addonIds = addons.map((item) => item.id).sort();
+  return {
+    id: product.id,
+    nome: product.nome,
+    preco,
+    quantidade: 1,
+    observacao,
+    sabores: flavors.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
+    adicionais: addons.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
+    regraPreco: product.regraPreco || "fixo",
+    signature: [product.id, flavorIds.join(","), addonIds.join(","), observacao].join("|")
+  };
+}
+
+function priceRuleLabel(rule = "fixo") {
+  if (rule === "maior_valor") return "Maior valor prevalece";
+  if (rule === "media_sabores") return "Somar e dividir";
+  if (rule === "soma_sabores") return "Somar sabores";
+  return "Preço base";
+}
+
+$("#product-dialog-close")?.addEventListener("click", () => $("#product-dialog").close());
+
+$("#product-builder-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const product = state.buildingProduct;
+  if (!product) return;
+  const flavors = selectedBuilderFlavors();
+  const addons = selectedBuilderAddons();
+  if (product.tipoProduto === "sabores" && !flavors.length) {
+    setMessage($("#builder-message"), "Escolha pelo menos um sabor.", "error");
+    return;
+  }
+  const observacao = event.currentTarget.elements.observacao.value.trim();
+  const cartItem = buildCartItem(product, flavors, addons, observacao);
+  const existing = state.cart.find((item) => item.signature === cartItem.signature);
+  if (existing) existing.quantidade += 1;
+  else state.cart.push(cartItem);
+  renderCart();
+  $("#product-dialog").close();
+});
 
 $("#checkout-open")?.addEventListener("click", () => {
   if (!state.cart.length) {
@@ -264,7 +454,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       cidade: data.cidade || "",
       referencia: data.referencia || ""
     },
-    status: "Aguardando aprovacao",
+    status: "Aguardando aprovação",
     subtotal,
     taxaConfigurada: paymentFee,
     taxaEntrega: deliveryFee,
@@ -284,7 +474,14 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
 });
 
 function buildWhatsAppMessage(order) {
-  const items = order.itens.map((item) => `- ${item.quantidade}x ${item.nome} (${money(item.preco * item.quantidade)})${item.observacao ? `\n  Obs: ${item.observacao}` : ""}`).join("\n");
+  const items = order.itens.map((item) => {
+    const details = [
+      item.sabores?.length ? `  Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}` : "",
+      item.adicionais?.length ? `  Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}` : "",
+      item.observacao ? `  Obs: ${item.observacao}` : ""
+    ].filter(Boolean).join("\n");
+    return `- ${item.quantidade}x ${item.nome} (${money(item.preco * item.quantidade)})${details ? `\n${details}` : ""}`;
+  }).join("\n");
   const address = order.tipoEntrega === "Entrega"
     ? `${order.endereco.endereco}, ${order.endereco.numero} - ${order.endereco.bairro}. ${order.endereco.referencia || ""}`
     : order.tipoEntrega;
@@ -299,7 +496,7 @@ function buildWhatsAppMessage(order) {
     "",
     `Pagamento: ${order.formaPagamento}`,
     order.trocoPara ? `Troco para: ${money(order.trocoPara)}` : "",
-    order.observacoes ? `Observacoes: ${order.observacoes}` : "",
+    order.observacoes ? `Observações: ${order.observacoes}` : "",
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
@@ -343,8 +540,8 @@ function watchClientOrders(whatsapp) {
       .slice(0, 5);
     renderClientOrders();
   }, (error) => {
-    console.error("Nao foi possivel acompanhar pedidos:", error);
-    $("#client-orders-list").innerHTML = "<p>Nao foi possivel carregar seus pedidos agora.</p>";
+    console.error("Não foi possível acompanhar pedidos:", error);
+    $("#client-orders-list").innerHTML = "<p>Não foi possível carregar seus pedidos agora.</p>";
   });
 }
 
@@ -365,7 +562,7 @@ function renderClientOrders() {
     <article class="client-order-card">
       <div>
         <strong>Pedido ${escapeHtml(order.codigo || order.numeroPedido || order.id)}</strong>
-        <span>${escapeHtml(order.status || "Aguardando aprovacao")}</span>
+        <span>${escapeHtml(order.status || "Aguardando aprovação")}</span>
       </div>
       ${renderOrderStatusSteps(order.status)}
       <small>${escapeHtml(order.tipoEntrega || "")} - ${money(order.totalFinal)}</small>
@@ -376,7 +573,7 @@ function renderClientOrders() {
 
 function renderOrderStatusSteps(status = "") {
   const current = normalizeStatus(status);
-  const steps = ["Aguardando aprovacao", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
+  const steps = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
   if (current === normalizeStatus("Cancelado")) {
     return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
   }
@@ -449,8 +646,8 @@ function updateDeliveryFee() {
   const blockedAreas = parseBlockedAreas(state.settings.entregaBairrosBloqueados);
   if (blockedAreas.includes(normalizedBairro)) {
     state.deliveryFee = 0;
-    state.deliveryRule = `Bairro nao atendido: ${bairro}`;
-    setMessage($("#delivery-fee-message"), "Este bairro nao esta na area de entrega.", "error");
+    state.deliveryRule = `Bairro não atendido: ${bairro}`;
+    setMessage($("#delivery-fee-message"), "Este bairro não está na área de entrega.", "error");
     return false;
   }
   const specialFees = parseAreaFees(state.settings.entregaBairrosTaxas);
@@ -458,7 +655,7 @@ function updateDeliveryFee() {
   const hasSpecialFee = Boolean(matchedKey);
   const fee = hasSpecialFee ? specialFees[matchedKey].valor : configNumber(state.settings.entregaTaxaPadrao);
   state.deliveryFee = Math.max(0, fee);
-  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${specialFees[matchedKey].label}` : "Taxa padrao";
+  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${specialFees[matchedKey].label}` : "Taxa padrão";
   setMessage($("#delivery-fee-message"), `Taxa de entrega: ${money(state.deliveryFee)} (${state.deliveryRule}).`);
   return true;
 }
