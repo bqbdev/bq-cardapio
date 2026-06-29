@@ -2,6 +2,7 @@ import {
   auth,
   db,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   doc,
   updateDoc,
   serverTimestamp
@@ -46,7 +47,7 @@ form?.addEventListener("submit", async (event) => {
     return;
   }
   try {
-    const credential = await createUserWithEmailAndPassword(auth, email, data.password);
+    const credential = await createOrSignInActivationUser(email, data.password);
     await updateDoc(doc(db, "estabelecimentos", estabelecimentoId), {
       uid: credential.user.uid,
       status: "ativo",
@@ -58,9 +59,17 @@ form?.addEventListener("submit", async (event) => {
       location.href = "painel.html";
     }, 1200);
   } catch (error) {
-    const alreadyExists = String(error.code || "").includes("email-already-in-use");
-    setMessage(message, alreadyExists
-      ? "Este e-mail ja possui uma conta. Fale com o administrador para reenviar ou ajustar o acesso."
-      : `Nao foi possivel ativar: ${error.message}`, "error");
+    setMessage(message, `Nao foi possivel ativar: ${error.message}`, "error");
   }
 });
+
+async function createOrSignInActivationUser(email, password) {
+  try {
+    return await createUserWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    if (String(error.code || "").includes("email-already-in-use")) {
+      return signInWithEmailAndPassword(auth, email, password);
+    }
+    throw error;
+  }
+}

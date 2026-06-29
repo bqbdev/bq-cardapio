@@ -3,9 +3,9 @@ import {
   db,
   collection,
   doc,
-  addDoc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   serverTimestamp,
@@ -32,9 +32,12 @@ if (signupForm) {
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = formToObject(signupForm);
+    const emailNormalizado = normalizeEmail(data.email);
     try {
-      await addDoc(collection(db, "solicitacoes_estabelecimentos"), {
+      await setDoc(doc(db, "solicitacoes_estabelecimentos", emailNormalizado), {
         ...data,
+        email: emailNormalizado,
+        emailNormalizado,
         whatsapp: normalizePhone(data.whatsapp),
         status: "pendente",
         dataCadastro: serverTimestamp()
@@ -42,7 +45,10 @@ if (signupForm) {
       signupForm.reset();
       setMessage(signupMessage, "Cadastro enviado com sucesso. Aguarde aprovacao da equipe.");
     } catch (error) {
-      setMessage(signupMessage, `Nao foi possivel enviar: ${error.message}`, "error");
+      const duplicate = String(error.code || "").includes("permission-denied");
+      setMessage(signupMessage, duplicate
+        ? "Ja existe uma solicitacao com este e-mail. Aguarde a aprovacao ou fale com o suporte."
+        : `Nao foi possivel enviar: ${error.message}`, "error");
     }
   });
 }
@@ -73,4 +79,8 @@ if (loginForm) {
       setMessage(loginMessage, `Falha no login: ${error.message}`, "error");
     }
   });
+}
+
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase().replace(/\//g, "-");
 }
