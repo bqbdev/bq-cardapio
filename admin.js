@@ -231,9 +231,9 @@ async function approveRequest(id) {
     aceitaRetirada: true,
     aceitaEntrega: false,
     aceitaLocal: true,
-    entregaTaxaBase: 0,
-    entregaValorKm: 0,
-    entregaRaioMaximoKm: 0,
+    entregaTaxaPadrao: 0,
+    entregaBairrosTaxas: "",
+    entregaBairrosBloqueados: "",
     mensagem: "Bem-vindo ao nosso cardapio digital.",
     logoUrl: ""
   });

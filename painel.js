@@ -226,7 +226,7 @@ function renderOrders() {
     <article class="list-item">
       <strong>Pedido ${order.numeroPedido || order.codigo || order.id} - ${order.clienteNome || ""}</strong>
       <span>${order.status || "Novo"} - ${order.tipoEntrega || ""} - ${money(order.totalFinal)}</span>
-      ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)} - ${Number(order.distanciaEntregaKm || 0).toFixed(1)} km</small>` : ""}
+      ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}</small>` : ""}
       <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
       <small>${(order.itens || []).map((item) => `${item.quantidade || 1}x ${item.nome}`).join(", ")}</small>
       <div class="item-actions">

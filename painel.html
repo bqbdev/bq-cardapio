@@ -127,13 +127,9 @@
         <label>Bairro<input name="estabelecimentoBairro"></label>
         <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
         <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
-        <label>Latitude do estabelecimento<input name="estabelecimentoLatitude" type="number" step="0.000001"></label>
-        <label>Longitude do estabelecimento<input name="estabelecimentoLongitude" type="number" step="0.000001"></label>
-        <button id="geocode-business-address" class="btn btn-small full" type="button">Buscar coordenadas pelo endereco</button>
-        <button id="use-business-location" class="btn btn-small full" type="button">Usar localizacao atual do estabelecimento</button>
-        <label>Taxa base da entrega<input name="entregaTaxaBase" type="number" step="0.01" placeholder="Ex: 5.00"></label>
-        <label>Valor por km<input name="entregaValorKm" type="number" step="0.01" placeholder="Ex: 2.00"></label>
-        <label>Raio maximo em km<input name="entregaRaioMaximoKm" type="number" step="0.1" placeholder="Ex: 8"></label>
+        <label>Taxa padrao de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
+        <label class="full">Bairros com taxa diferente<textarea name="entregaBairrosTaxas" rows="4" placeholder="Centro=5&#10;Jardim Alto=8&#10;Zona Rural=15"></textarea></label>
+        <label class="full">Bairros que nao atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
         <h3 class="full compact-title">Horarios de funcionamento</h3>
         <label>Domingo abre<input name="horario_domingo_abre" type="time"></label>
         <label>Domingo fecha<input name="horario_domingo_fecha" type="time"></label>

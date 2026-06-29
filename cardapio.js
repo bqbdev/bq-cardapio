@@ -21,9 +21,8 @@ const state = {
   categories: [],
   products: [],
   cart: [],
-  clientCoords: null,
-  deliveryDistanceKm: 0,
-  deliveryFee: 0
+  deliveryFee: 0,
+  deliveryRule: ""
 };
 const $ = (selector) => document.querySelector(selector);
 const businessDays = [
@@ -199,23 +198,7 @@ $("#payment-method")?.addEventListener("change", (event) => {
 });
 
 $("#delivery-type")?.addEventListener("change", updateDeliveryPanel);
-
-$("#use-client-location")?.addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    setMessage($("#delivery-fee-message"), "Seu navegador nao permite pegar localizacao.", "error");
-    return;
-  }
-  setMessage($("#delivery-fee-message"), "Buscando sua localizacao...");
-  navigator.geolocation.getCurrentPosition((position) => {
-    state.clientCoords = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude
-    };
-    updateDeliveryFee();
-  }, () => {
-    setMessage($("#delivery-fee-message"), "Nao foi possivel pegar a localizacao. Verifique a permissao do navegador.", "error");
-  }, { enableHighAccuracy: true, timeout: 12000 });
-});
+$("#checkout-form")?.elements.bairro?.addEventListener("input", updateDeliveryFee);
 
 $("#lookup-client")?.addEventListener("click", async () => {
   const form = $("#checkout-form");
@@ -229,6 +212,7 @@ $("#lookup-client")?.addEventListener("click", async () => {
   ["nome", "cidade", "endereco", "numero", "complemento", "bairro", "referencia"].forEach((key) => {
     form.elements[key].value = client[key] || "";
   });
+  updateDeliveryFee();
   setMessage($("#checkout-message"), "Cliente encontrado. Dados preenchidos automaticamente.");
 });
 
@@ -238,7 +222,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const data = formToObject(form);
   const subtotal = cartSubtotal();
   if (data.tipoEntrega === "Entrega" && !updateDeliveryFee()) {
-    setMessage($("#checkout-message"), "Para entrega, use sua localizacao para calcular a taxa antes de finalizar.", "error");
+    setMessage($("#checkout-message"), "Confira o bairro para calcular a entrega antes de finalizar.", "error");
     return;
   }
   const paymentFee = calculatePaymentFee(subtotal, data.formaPagamento, state.fees);
@@ -269,8 +253,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     subtotal,
     taxaConfigurada: paymentFee,
     taxaEntrega: deliveryFee,
-    distanciaEntregaKm: state.deliveryDistanceKm,
-    clienteLocalizacao: state.clientCoords,
+    regraTaxaEntrega: state.deliveryRule,
     totalFinal,
     numeroPedido,
     codigo,
@@ -303,7 +286,7 @@ function buildWhatsAppMessage(order) {
     order.trocoPara ? `Troco para: ${money(order.trocoPara)}` : "",
     order.observacoes ? `Observacoes: ${order.observacoes}` : "",
     `Subtotal: ${money(order.subtotal)}`,
-    order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)} (${Number(order.distanciaEntregaKm || 0).toFixed(1)} km)` : "",
+    order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`
   ].filter(Boolean).join("\n");
@@ -332,7 +315,7 @@ function updateDeliveryPanel() {
   $("#delivery-location-panel")?.classList.toggle("hidden", !isDelivery);
   if (!isDelivery) {
     state.deliveryFee = 0;
-    state.deliveryDistanceKm = 0;
+    state.deliveryRule = "";
     setMessage($("#delivery-fee-message"), "");
     return;
   }
@@ -341,34 +324,29 @@ function updateDeliveryPanel() {
 
 function updateDeliveryFee() {
   if ($("#delivery-type")?.value !== "Entrega") return true;
-  const origin = businessCoords();
-  if (!origin) {
-    setMessage($("#delivery-fee-message"), "O estabelecimento ainda precisa salvar a latitude e longitude nas configuracoes.", "error");
+  const form = $("#checkout-form");
+  const bairro = form?.elements.bairro?.value || "";
+  if (!bairro.trim()) {
+    state.deliveryFee = 0;
+    state.deliveryRule = "";
+    setMessage($("#delivery-fee-message"), "Informe o bairro para calcular a entrega.", "error");
     return false;
   }
-  if (!state.clientCoords) {
-    setMessage($("#delivery-fee-message"), "Clique em usar minha localizacao para calcular a entrega.", "error");
+  const normalizedBairro = normalizeAreaName(bairro);
+  const blockedAreas = parseBlockedAreas(state.settings.entregaBairrosBloqueados);
+  if (blockedAreas.includes(normalizedBairro)) {
+    state.deliveryFee = 0;
+    state.deliveryRule = `Bairro nao atendido: ${bairro}`;
+    setMessage($("#delivery-fee-message"), "Este bairro nao esta na area de entrega.", "error");
     return false;
   }
-  const distance = calculateDistanceKm(origin, state.clientCoords);
-  const maxDistance = configNumber(state.settings.entregaRaioMaximoKm);
-  if (maxDistance && distance > maxDistance) {
-    setMessage($("#delivery-fee-message"), `Endereco fora do raio de entrega (${distance.toFixed(1)} km).`, "error");
-    return false;
-  }
-  const base = configNumber(state.settings.entregaTaxaBase);
-  const perKm = configNumber(state.settings.entregaValorKm);
-  state.deliveryDistanceKm = distance;
-  state.deliveryFee = Math.max(0, base + distance * perKm);
-  setMessage($("#delivery-fee-message"), `Entrega calculada: ${money(state.deliveryFee)} para ${distance.toFixed(1)} km.`);
+  const specialFees = parseAreaFees(state.settings.entregaBairrosTaxas);
+  const hasSpecialFee = Object.prototype.hasOwnProperty.call(specialFees, normalizedBairro);
+  const fee = hasSpecialFee ? specialFees[normalizedBairro] : configNumber(state.settings.entregaTaxaPadrao);
+  state.deliveryFee = Math.max(0, fee);
+  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${bairro}` : "Taxa padrao";
+  setMessage($("#delivery-fee-message"), `Taxa de entrega: ${money(state.deliveryFee)} (${state.deliveryRule}).`);
   return true;
-}
-
-function businessCoords() {
-  const latitude = configNumber(state.settings.estabelecimentoLatitude || state.business.latitude, null);
-  const longitude = configNumber(state.settings.estabelecimentoLongitude || state.business.longitude, null);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-  return { latitude, longitude };
 }
 
 function configNumber(value, fallback = 0) {
@@ -377,16 +355,28 @@ function configNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function calculateDistanceKm(origin, destination) {
-  const earthRadiusKm = 6371;
-  const dLat = toRadians(destination.latitude - origin.latitude);
-  const dLon = toRadians(destination.longitude - origin.longitude);
-  const lat1 = toRadians(origin.latitude);
-  const lat2 = toRadians(destination.latitude);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function parseAreaFees(text = "") {
+  return String(text || "").split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .reduce((acc, line) => {
+      const [name, value] = line.split(/[=:;]/);
+      const normalizedName = normalizeAreaName(name);
+      if (normalizedName) acc[normalizedName] = configNumber(value);
+      return acc;
+    }, {});
 }
 
-function toRadians(value) {
-  return value * Math.PI / 180;
+function parseBlockedAreas(text = "") {
+  return String(text || "").split(/[\n,;]/)
+    .map((item) => normalizeAreaName(item))
+    .filter(Boolean);
+}
+
+function normalizeAreaName(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }
