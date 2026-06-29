@@ -85,18 +85,29 @@ export const escapeHtml = (value = "") => String(value).replace(/[&<>"']/g, (cha
   "'": "&#039;"
 }[char]));
 
-export const printOrder = (order, kitchen = false) => {
+export const printOrder = (order, mode = false) => {
+  const kitchen = mode === true || mode === "cozinha";
+  const delivery = mode === "motoboy";
   const items = (order.itens || []).map((item) => `
     <div><strong>${escapeHtml(item.nome)}</strong> x ${item.quantidade || 1}<br>${escapeHtml(item.observacao || "")}</div>
   `).join("");
+  const address = order.endereco || {};
+  const deliveryAddress = [
+    address.endereco,
+    address.numero,
+    address.bairro,
+    address.cidade
+  ].filter(Boolean).join(", ");
+  const title = delivery ? "Motoboy" : kitchen ? "Cozinha" : "Cliente";
   const html = `
     <html><head><title>Pedido ${order.codigo}</title>
     <style>body{font-family:monospace;width:280px;margin:0;padding:10px}hr{border:0;border-top:1px dashed #000}h1{font-size:18px}</style></head>
     <body>
-      <h1>${kitchen ? "Cozinha" : "Cliente"} - ${escapeHtml(order.codigo || "")}</h1>
+      <h1>${title} - ${escapeHtml(order.codigo || "")}</h1>
       <p>${escapeHtml(order.clienteNome || "")}<br>${escapeHtml(order.whatsapp || "")}</p>
+      ${delivery ? `<hr><p><strong>Entrega</strong><br>${escapeHtml(deliveryAddress || "Endereco nao informado")}<br>${escapeHtml(address.complemento || "")}<br>${escapeHtml(address.referencia || "")}</p>` : ""}
       <hr>${items}<hr>
-      ${kitchen ? "" : `<p>Pagamento: ${escapeHtml(order.formaPagamento || "")}<br>Total: ${money(order.totalFinal)}</p>`}
+      ${kitchen ? "" : `<p>Pagamento: ${escapeHtml(order.formaPagamento || "")}<br>Entrega: ${money(order.taxaEntrega || 0)}<br>Total: ${money(order.totalFinal)}</p>`}
       <script>window.print();<\/script>
     </body></html>`;
   const win = window.open("", "_blank", "width=360,height=640");

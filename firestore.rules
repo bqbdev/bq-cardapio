@@ -82,7 +82,7 @@ service cloud.firestore {
       }
 
       match /pedidos/{pedidoId} {
-        allow read: if isAdmin() || isBusinessOwner(estabelecimentoId);
+        allow read: if true;
         allow create: if true;
         allow update, delete: if isAdmin() || isBusinessOwner(estabelecimentoId);
       }

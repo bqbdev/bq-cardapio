@@ -9,6 +9,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  onSnapshot,
   query,
   where,
   orderBy,
@@ -20,6 +21,8 @@ import { fillCoordinatesFromAddress } from "./geocoding.js";
 
 const state = { businessId: "", business: null, categories: [], products: [], orders: [], clients: [], orderSearch: "" };
 const $ = (selector) => document.querySelector(selector);
+let unsubscribeOrders = null;
+const orderStatuses = ["Aguardando aprovacao", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
   aceitaRetirada: true,
   aceitaEntrega: false,
@@ -195,12 +198,17 @@ async function loadProducts() {
   });
 }
 
-async function loadOrders() {
-  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/pedidos`), orderBy("criadoEm", "desc")));
-  state.orders = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  renderOrders();
-  renderDashboard();
-  renderFinanceSummary("#finance-summary", state.orders);
+function loadOrders() {
+  if (unsubscribeOrders) unsubscribeOrders();
+  return new Promise((resolve, reject) => {
+    unsubscribeOrders = onSnapshot(query(collection(db, `estabelecimentos/${state.businessId}/pedidos`), orderBy("criadoEm", "desc")), (snap) => {
+      state.orders = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+      renderOrders();
+      renderDashboard();
+      renderFinanceSummary("#finance-summary", state.orders);
+      resolve();
+    }, reject);
+  });
 }
 
 async function loadClients() {
@@ -230,16 +238,37 @@ function renderOrders() {
       ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}</small>` : ""}
       <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
       <small>${(order.itens || []).map((item) => `${item.quantidade || 1}x ${item.nome}`).join(", ")}</small>
+      ${renderOrderStatusSteps(order.status)}
       <div class="item-actions">
-        ${["Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"].map((status) => `<button class="btn btn-small" data-order-status="${order.id}" data-status-value="${status}" type="button">${status}</button>`).join("")}
+        ${orderStatuses.map((status) => `<button class="btn btn-small ${normalizeStatus(order.status) === normalizeStatus(status) ? "btn-primary" : ""}" data-order-status="${order.id}" data-status-value="${status}" type="button">${status}</button>`).join("")}
         <button class="btn btn-small" data-print-client="${order.id}" type="button">Imprimir cliente</button>
         <button class="btn btn-small" data-print-kitchen="${order.id}" type="button">Imprimir cozinha</button>
+        <button class="btn btn-small" data-print-delivery="${order.id}" type="button">Imprimir motoboy</button>
       </div>
     </article>
   `).join("") || "<p>Nenhum pedido encontrado.</p>";
   document.querySelectorAll("[data-order-status]").forEach((button) => button.addEventListener("click", () => updateOrderStatus(button.dataset.orderStatus, button.dataset.statusValue)));
   document.querySelectorAll("[data-print-client]").forEach((button) => button.addEventListener("click", () => printById(button.dataset.printClient, false)));
   document.querySelectorAll("[data-print-kitchen]").forEach((button) => button.addEventListener("click", () => printById(button.dataset.printKitchen, true)));
+  document.querySelectorAll("[data-print-delivery]").forEach((button) => button.addEventListener("click", () => printById(button.dataset.printDelivery, "motoboy")));
+}
+
+function renderOrderStatusSteps(status = "") {
+  const current = normalizeStatus(status || "Aguardando aprovacao");
+  if (current === normalizeStatus("Cancelado")) {
+    return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
+  }
+  const steps = orderStatuses.filter((statusName) => statusName !== "Cancelado");
+  const activeIndex = Math.max(0, steps.findIndex((item) => normalizeStatus(item) === current));
+  return `<div class="status-timeline">${steps.map((step, index) => `<span class="${index <= activeIndex ? "active" : ""}">${step}</span>`).join("")}</div>`;
+}
+
+function normalizeStatus(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function filteredOrders() {
@@ -269,12 +298,11 @@ function renderDashboard() {
 
 async function updateOrderStatus(id, status) {
   await updateDoc(doc(db, `estabelecimentos/${state.businessId}/pedidos`, id), { status });
-  await loadOrders();
 }
 
-function printById(id, kitchen) {
+function printById(id, mode) {
   const order = state.orders.find((item) => item.id === id);
-  if (order) printOrder(order, kitchen);
+  if (order) printOrder(order, mode);
 }
 
 $("#category-form")?.addEventListener("submit", async (event) => {

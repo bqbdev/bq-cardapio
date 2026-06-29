@@ -5,7 +5,9 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  onSnapshot,
   query,
+  where,
   orderBy,
   serverTimestamp
 } from "./firebase.js";
@@ -21,6 +23,8 @@ const state = {
   categories: [],
   products: [],
   cart: [],
+  clientOrders: [],
+  clientUnsubscribe: null,
   deliveryFee: 0,
   deliveryRule: ""
 };
@@ -50,6 +54,7 @@ async function init() {
   renderCart();
   renderDeliveryOptions();
   renderNeighborhoodOptions();
+  restoreClientSession();
 }
 
 async function loadBusiness() {
@@ -201,6 +206,14 @@ $("#payment-method")?.addEventListener("change", (event) => {
 $("#delivery-type")?.addEventListener("change", updateDeliveryPanel);
 $("#checkout-form")?.elements.bairro?.addEventListener("input", updateDeliveryFee);
 
+$("#client-login-form")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const whatsapp = normalizePhone(event.currentTarget.elements.whatsapp.value);
+  if (!whatsapp) return;
+  saveClientSession(whatsapp);
+  watchClientOrders(whatsapp);
+});
+
 $("#lookup-client")?.addEventListener("click", async () => {
   const form = $("#checkout-form");
   const whatsapp = normalizePhone(form.elements.whatsapp.value);
@@ -232,6 +245,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const numeroPedido = generateOrderNumber();
   const codigo = `#${numeroPedido}`;
   const cleanPhone = await upsertClient(state.estabelecimentoId, data, totalFinal);
+  saveClientSession(cleanPhone);
   const order = {
     estabelecimentoId: state.estabelecimentoId,
     clienteId: cleanPhone,
@@ -250,7 +264,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       cidade: data.cidade || "",
       referencia: data.referencia || ""
     },
-    status: "Novo",
+    status: "Aguardando aprovacao",
     subtotal,
     taxaConfigurada: paymentFee,
     taxaEntrega: deliveryFee,
@@ -291,6 +305,91 @@ function buildWhatsAppMessage(order) {
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`
   ].filter(Boolean).join("\n");
+}
+
+function restoreClientSession() {
+  const savedPhone = localStorage.getItem(clientSessionKey());
+  const form = $("#client-login-form");
+  if (savedPhone && form?.elements.whatsapp) {
+    form.elements.whatsapp.value = savedPhone;
+    watchClientOrders(savedPhone);
+  } else {
+    renderClientOrders();
+  }
+}
+
+function saveClientSession(whatsapp) {
+  const cleanPhone = normalizePhone(whatsapp);
+  if (!cleanPhone) return;
+  localStorage.setItem(clientSessionKey(), cleanPhone);
+}
+
+function clientSessionKey() {
+  return `bqClientPhone:${state.estabelecimentoId}`;
+}
+
+function watchClientOrders(whatsapp) {
+  const cleanPhone = normalizePhone(whatsapp);
+  if (!cleanPhone) return;
+  if (state.clientUnsubscribe) state.clientUnsubscribe();
+  const ordersQuery = query(
+    collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`),
+    where("clienteId", "==", cleanPhone)
+  );
+  state.clientUnsubscribe = onSnapshot(ordersQuery, (snap) => {
+    state.clientOrders = snap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => timestampMillis(b.criadoEm) - timestampMillis(a.criadoEm))
+      .slice(0, 5);
+    renderClientOrders();
+  }, (error) => {
+    console.error("Nao foi possivel acompanhar pedidos:", error);
+    $("#client-orders-list").innerHTML = "<p>Nao foi possivel carregar seus pedidos agora.</p>";
+  });
+}
+
+function timestampMillis(value) {
+  if (value?.toMillis) return value.toMillis();
+  const date = value ? new Date(value) : new Date(0);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function renderClientOrders() {
+  const target = $("#client-orders-list");
+  if (!target) return;
+  if (!state.clientOrders.length) {
+    target.innerHTML = "<p>Nenhum pedido encontrado para este WhatsApp.</p>";
+    return;
+  }
+  target.innerHTML = state.clientOrders.map((order) => `
+    <article class="client-order-card">
+      <div>
+        <strong>Pedido ${escapeHtml(order.codigo || order.numeroPedido || order.id)}</strong>
+        <span>${escapeHtml(order.status || "Aguardando aprovacao")}</span>
+      </div>
+      ${renderOrderStatusSteps(order.status)}
+      <small>${escapeHtml(order.tipoEntrega || "")} - ${money(order.totalFinal)}</small>
+      <a class="btn btn-small" href="pedido.html?estabelecimento=${state.estabelecimentoId}&pedido=${order.id}">Ver detalhes</a>
+    </article>
+  `).join("");
+}
+
+function renderOrderStatusSteps(status = "") {
+  const current = normalizeStatus(status);
+  const steps = ["Aguardando aprovacao", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
+  if (current === normalizeStatus("Cancelado")) {
+    return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
+  }
+  const activeIndex = Math.max(0, steps.findIndex((item) => normalizeStatus(item) === current));
+  return `<div class="status-timeline">${steps.map((step, index) => `<span class="${index <= activeIndex ? "active" : ""}">${step}</span>`).join("")}</div>`;
+}
+
+function normalizeStatus(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }
 
 function generateOrderNumber() {
