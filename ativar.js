@@ -4,10 +4,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   doc,
+  getDoc,
   updateDoc,
-  serverTimestamp
+  Timestamp
 } from "./firebase.js";
-import { formToObject, setMessage } from "./utils.js";
+import { addMonths, formToObject, planMonths, setMessage } from "./utils.js";
 
 const params = new URLSearchParams(location.search);
 const estabelecimentoId = params.get("estabelecimento") || "";
@@ -48,10 +49,16 @@ form?.addEventListener("submit", async (event) => {
   }
   try {
     const credential = await createOrSignInActivationUser(email, data.password);
+    const businessSnap = await getDoc(doc(db, "estabelecimentos", estabelecimentoId));
+    const currentBusiness = businessSnap.data() || {};
+    const activationDate = new Date();
+    const renewalDate = addMonths(activationDate, planMonths(params.get("plano") || ""));
     await updateDoc(doc(db, "estabelecimentos", estabelecimentoId), {
       uid: credential.user.uid,
       status: "ativo",
-      dataAtivacao: serverTimestamp(),
+      dataAtivacao: currentBusiness.dataAtivacao || Timestamp.fromDate(activationDate),
+      dataInicio: currentBusiness.dataInicio || Timestamp.fromDate(activationDate),
+      proximoVencimento: currentBusiness.proximoVencimento || Timestamp.fromDate(renewalDate),
       activationTokenConfirm: token
     });
     sessionStorage.setItem("businessId", estabelecimentoId);

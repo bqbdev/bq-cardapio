@@ -31,6 +31,29 @@ export const toDateInput = (value) => {
 
 export const fromDateInput = (value) => value ? Timestamp.fromDate(new Date(`${value}T12:00:00`)) : null;
 
+export const toBrazilDate = (value) => {
+  if (!value) return "";
+  const date = value.toDate ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("pt-BR");
+};
+
+export const addMonths = (value, months = 1) => {
+  const date = value?.toDate ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date();
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+};
+
+export const planMonths = (plan = "") => {
+  const normalized = String(plan).toLowerCase();
+  if (normalized.includes("anual")) return 12;
+  if (normalized.includes("semestral")) return 6;
+  if (normalized.includes("trimestral")) return 3;
+  return 1;
+};
+
 export const setMessage = (element, text, type = "success") => {
   if (!element) return;
   element.textContent = text;

@@ -46,6 +46,11 @@ button, input, select, textarea { font: inherit; }
   gap: 10px;
   font-weight: 800;
 }
+.brand-logo {
+  width: 72px;
+  max-height: 42px;
+  object-fit: contain;
+}
 .brand-mark {
   display: grid;
   place-items: center;
@@ -88,13 +93,20 @@ button, input, select, textarea { font: inherit; }
   min-height: calc(100vh - 78px);
 }
 .hero h1 {
-  font-size: clamp(3rem, 8vw, 6.5rem);
-  line-height: .95;
+  font-size: clamp(2.6rem, 6vw, 5.4rem);
+  line-height: 1;
   margin: 0 0 18px;
   letter-spacing: 0;
 }
+.hero-logo {
+  width: min(420px, 100%);
+  display: block;
+  margin-bottom: 18px;
+}
 .hero-copy { color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.32rem); max-width: 680px; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.hero-proof { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; color: var(--primary); font-weight: 850; }
+.hero-proof span { background: var(--surface-soft); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; }
 .eyebrow { color: var(--primary); font-size: .78rem; font-weight: 850; text-transform: uppercase; letter-spacing: 0; margin: 0 0 8px; }
 
 .phone-preview {
@@ -241,6 +253,25 @@ input, select, textarea {
 .metric-card strong { display: block; font-size: 1.7rem; margin-top: 6px; }
 .panel { padding: 18px; }
 .panel-inner { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.toolbar-row { margin-top: 14px; display: grid; grid-template-columns: minmax(220px, 420px); gap: 12px; }
+.search-field { color: var(--muted); }
+.image-preview {
+  min-height: 120px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 10px;
+}
+.image-preview img {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: var(--radius);
+  object-fit: contain;
+}
 .two-columns { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; align-items: start; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 760px; }

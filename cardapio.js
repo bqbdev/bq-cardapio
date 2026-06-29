@@ -11,7 +11,7 @@ import {
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
 import { getClientByWhatsApp, upsertClient } from "./clientes.js";
-import { formToObject, money, normalizePhone, orderCode, requireParam, setMessage, whatsappLink } from "./utils.js";
+import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappLink } from "./utils.js";
 
 const state = {
   estabelecimentoId: requireParam("estabelecimento"),
@@ -61,7 +61,10 @@ async function loadCategories() {
 
 async function loadProducts() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/produtos`), orderBy("nome", "asc")));
-  state.products = snap.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.disponivel !== false);
+  state.products = snap.docs
+    .map((item) => ({ id: item.id, ...item.data() }))
+    .filter((item) => item.disponivel !== false)
+    .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
 }
 
 function renderHeader() {
@@ -91,6 +94,7 @@ function renderProducts(categoryId = "todos") {
       ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}">` : `<div class="product-image-fallback">BQ</div>`}
       <div class="product-body">
         <strong>${item.nome}</strong>
+        ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}
         <p>${item.descricao || ""}</p>
         <strong>${money(item.preco)}</strong>
         ${item.permiteObservacoes !== false ? `<input data-note="${item.id}" placeholder="Observacao do item">` : ""}
@@ -165,7 +169,8 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const subtotal = cartSubtotal();
   const fee = calculatePaymentFee(subtotal, data.formaPagamento, state.fees);
   const totalFinal = subtotal + (state.fees.somarAoPedido ? fee : 0);
-  const codigo = orderCode();
+  const numeroPedido = generateOrderNumber();
+  const codigo = `#${numeroPedido}`;
   const cleanPhone = await upsertClient(state.estabelecimentoId, data, totalFinal);
   const order = {
     estabelecimentoId: state.estabelecimentoId,
@@ -189,6 +194,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     subtotal,
     taxaConfigurada: fee,
     totalFinal,
+    numeroPedido,
     codigo,
     criadoEm: serverTimestamp()
   };
@@ -222,4 +228,8 @@ function buildWhatsAppMessage(order) {
     order.taxaConfigurada ? `Taxa estimada: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`
   ].filter(Boolean).join("\n");
+}
+
+function generateOrderNumber() {
+  return Date.now().toString().slice(-6);
 }

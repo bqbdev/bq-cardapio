@@ -14,10 +14,10 @@ import {
   orderBy,
   serverTimestamp
 } from "./firebase.js";
-import { formToObject, money, numberValue, printOrder, setMessage, todayStart } from "./utils.js";
+import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, todayStart, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
 
-const state = { businessId: "", business: null, categories: [], products: [], orders: [], clients: [] };
+const state = { businessId: "", business: null, categories: [], products: [], orders: [], clients: [], orderSearch: "" };
 const $ = (selector) => document.querySelector(selector);
 
 onAuthStateChanged(auth, async (user) => {
@@ -59,6 +59,46 @@ $("#logout-btn")?.addEventListener("click", async () => {
   location.replace("login.html");
 });
 $("#refresh-orders")?.addEventListener("click", loadOrders);
+$("#order-search")?.addEventListener("input", (event) => {
+  state.orderSearch = event.target.value.trim().toLowerCase();
+  renderOrders();
+});
+$("#product-photo-file")?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("Selecione uma imagem valida.");
+    event.target.value = "";
+    return;
+  }
+  if (file.size > 750 * 1024) {
+    alert("Escolha uma imagem menor que 750 KB para salvar em Base64 no Firestore.");
+    event.target.value = "";
+    return;
+  }
+  const base64 = await fileToBase64(file);
+  const form = $("#product-form");
+  form.elements.fotoUrl.value = base64;
+  renderPhotoPreview(base64);
+});
+$("#business-logo-file")?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    alert("Selecione uma imagem valida.");
+    event.target.value = "";
+    return;
+  }
+  if (file.size > 750 * 1024) {
+    alert("Escolha uma imagem menor que 750 KB para salvar em Base64 no Firestore.");
+    event.target.value = "";
+    return;
+  }
+  const base64 = await fileToBase64(file);
+  const form = $("#settings-form");
+  form.elements.logoUrl.value = base64;
+  renderBusinessLogoPreview(base64);
+});
 
 async function findBusinessForUser(uid) {
   const savedBusinessId = sessionStorage.getItem("businessId");
@@ -82,6 +122,15 @@ function renderBusinessHeader() {
   $("#business-title").textContent = name;
   $("#business-name-short").textContent = name.split(" ")[0] || "Menu";
   $("#public-menu-link").href = `cardapio.html?estabelecimento=${state.businessId}`;
+  renderRenewalInfo();
+}
+
+function renderRenewalInfo() {
+  const plan = state.business.plano || "Essencial";
+  const activationDate = state.business.dataAtivacao || state.business.dataInicio || new Date();
+  const renewalDate = state.business.proximoVencimento || addMonths(activationDate, planMonths(plan));
+  $("#next-renewal").textContent = toBrazilDate(renewalDate) || "--/--/----";
+  $("#renewal-plan").textContent = `Plano ${plan}`;
 }
 
 async function loadPanelData() {
@@ -103,14 +152,21 @@ async function loadCategories() {
 
 async function loadProducts() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/produtos`), orderBy("nome", "asc")));
-  state.products = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+  state.products = snap.docs
+    .map((item) => ({ id: item.id, ...item.data() }))
+    .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
   $("#products-list").innerHTML = state.products.map((item) => `
     <div class="list-item">
-      <strong>${item.nome}</strong><small>${money(item.preco)} - ${item.disponivel ? "Disponivel" : "Indisponivel"}</small>
-      <button class="btn btn-small" data-edit-product="${item.id}" type="button">Editar</button>
+      <strong>${item.nome} ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}</strong>
+      <small>${money(item.preco)} - ${item.disponivel ? "Disponivel" : "Indisponivel"}</small>
+      <div class="item-actions">
+        <button class="btn btn-small" data-edit-product="${item.id}" type="button">Editar</button>
+        <button class="btn btn-small btn-primary" data-highlight-product="${item.id}" type="button">${item.destaque ? "Remover destaque" : "Destacar"}</button>
+      </div>
     </div>
   `).join("") || "<p>Nenhum produto cadastrado.</p>";
   document.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", () => fillProduct(button.dataset.editProduct)));
+  document.querySelectorAll("[data-highlight-product]").forEach((button) => button.addEventListener("click", () => toggleProductHighlight(button.dataset.highlightProduct)));
 }
 
 async function loadOrders() {
@@ -130,10 +186,12 @@ async function loadClients() {
 }
 
 function renderOrders() {
-  $("#orders-list").innerHTML = state.orders.map((order) => `
+  const orders = filteredOrders();
+  $("#orders-list").innerHTML = orders.map((order) => `
     <article class="list-item">
-      <strong>${order.codigo || order.id} - ${order.clienteNome || ""}</strong>
+      <strong>Pedido ${order.numeroPedido || order.codigo || order.id} - ${order.clienteNome || ""}</strong>
       <span>${order.status || "Novo"} - ${order.tipoEntrega || ""} - ${money(order.totalFinal)}</span>
+      <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
       <small>${(order.itens || []).map((item) => `${item.quantidade || 1}x ${item.nome}`).join(", ")}</small>
       <div class="item-actions">
         ${["Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"].map((status) => `<button class="btn btn-small" data-order-status="${order.id}" data-status-value="${status}" type="button">${status}</button>`).join("")}
@@ -145,6 +203,20 @@ function renderOrders() {
   document.querySelectorAll("[data-order-status]").forEach((button) => button.addEventListener("click", () => updateOrderStatus(button.dataset.orderStatus, button.dataset.statusValue)));
   document.querySelectorAll("[data-print-client]").forEach((button) => button.addEventListener("click", () => printById(button.dataset.printClient, false)));
   document.querySelectorAll("[data-print-kitchen]").forEach((button) => button.addEventListener("click", () => printById(button.dataset.printKitchen, true)));
+}
+
+function filteredOrders() {
+  if (!state.orderSearch) return state.orders;
+  return state.orders.filter((order) => [
+    order.numeroPedido,
+    order.codigo,
+    order.id,
+    order.clienteNome,
+    order.whatsapp,
+    order.status,
+    order.formaPagamento,
+    order.tipoEntrega
+  ].some((value) => String(value || "").toLowerCase().includes(state.orderSearch)));
 }
 
 function renderDashboard() {
@@ -204,6 +276,7 @@ $("#product-form")?.addEventListener("submit", async (event) => {
   form.reset();
   form.elements.disponivel.checked = true;
   form.elements.permiteObservacoes.checked = true;
+  renderPhotoPreview("");
   await loadProducts();
 });
 
@@ -228,6 +301,32 @@ function fillProduct(id) {
   form.elements.disponivel.checked = item.disponivel !== false;
   form.elements.destaque.checked = Boolean(item.destaque);
   form.elements.permiteObservacoes.checked = item.permiteObservacoes !== false;
+  renderPhotoPreview(item.fotoUrl || "");
+}
+
+async function toggleProductHighlight(id) {
+  const product = state.products.find((item) => item.id === id);
+  if (!product) return;
+  await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+    destaque: !Boolean(product.destaque),
+    atualizadoEm: serverTimestamp()
+  });
+  await loadProducts();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoPreview(src) {
+  const preview = $("#product-photo-preview");
+  if (!preview) return;
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto do produto">` : "Sem foto selecionada";
 }
 
 async function loadSettings() {
@@ -237,6 +336,7 @@ async function loadSettings() {
   ["nomePublico", "whatsappPedidos", "logoUrl", "cidade", "mensagem"].forEach((key) => {
     if (form.elements[key]) form.elements[key].value = data[key] || state.business[key] || "";
   });
+  renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
 }
 
 $("#settings-form")?.addEventListener("submit", async (event) => {
@@ -244,6 +344,12 @@ $("#settings-form")?.addEventListener("submit", async (event) => {
   await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), formToObject(event.currentTarget), { merge: true });
   setMessage(null, "Salvo.");
 });
+
+function renderBusinessLogoPreview(src) {
+  const preview = $("#business-logo-preview");
+  if (!preview) return;
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa do logo do estabelecimento">` : "Sem logo selecionado";
+}
 
 async function loadFees() {
   const snap = await getDoc(doc(db, `estabelecimentos/${state.businessId}/taxas`, "padrao"));

@@ -35,6 +35,7 @@
       <article class="metric-card"><span>Vendido hoje</span><strong id="sales-today">R$ 0,00</strong></article>
       <article class="metric-card"><span>Em andamento</span><strong id="orders-open">0</strong></article>
       <article class="metric-card"><span>Ticket medio</span><strong id="average-ticket">R$ 0,00</strong></article>
+      <article class="metric-card"><span>Proxima renovacao</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
     </section>
 
     <section class="soon-band compact-band">
@@ -43,6 +44,11 @@
 
     <section id="pedidos" class="panel">
       <div class="panel-heading"><h2>Pedidos</h2><button id="refresh-orders" class="btn btn-small">Atualizar</button></div>
+      <div class="toolbar-row">
+        <label class="search-field">Buscar pedido
+          <input id="order-search" type="search" placeholder="Numero, cliente, WhatsApp ou status">
+        </label>
+      </div>
       <div id="orders-list" class="stack-list"></div>
     </section>
 
@@ -65,7 +71,9 @@
           <label>Nome<input name="nome" required></label>
           <label>Preco<input name="preco" type="number" step="0.01" required></label>
           <label>Categoria<select name="categoriaId" id="product-category"></select></label>
-          <label>Foto URL<input name="fotoUrl" placeholder="https://..."></label>
+          <input name="fotoUrl" type="hidden">
+          <label class="full">Foto do produto em Base64<input id="product-photo-file" type="file" accept="image/*"></label>
+          <div id="product-photo-preview" class="image-preview full">Sem foto selecionada</div>
           <label class="full">Descricao<textarea name="descricao" rows="2"></textarea></label>
           <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponivel</label>
           <label class="check-row"><input name="destaque" type="checkbox"> Destaque</label>
@@ -105,7 +113,9 @@
       <form id="settings-form" class="form-grid">
         <label>Nome publico<input name="nomePublico"></label>
         <label>WhatsApp dos pedidos<input name="whatsappPedidos" inputmode="tel"></label>
-        <label>Logo URL<input name="logoUrl"></label>
+        <input name="logoUrl" type="hidden">
+        <label class="full">Logo do estabelecimento em Base64<input id="business-logo-file" type="file" accept="image/*"></label>
+        <div id="business-logo-preview" class="image-preview full">Sem logo selecionado</div>
         <label>Cidade<input name="cidade"></label>
         <label class="full">Mensagem de boas-vindas<textarea name="mensagem" rows="3"></textarea></label>
         <button class="btn btn-primary full" type="submit">Salvar configuracoes</button>

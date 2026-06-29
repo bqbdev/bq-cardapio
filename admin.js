@@ -11,9 +11,10 @@ import {
   updateDoc,
   query,
   orderBy,
+  sendPasswordResetEmail,
   serverTimestamp
 } from "./firebase.js";
-import { formToObject, money, fromDateInput, toDateInput, setMessage } from "./utils.js";
+import { formToObject, money, fromDateInput, toBrazilDate, toDateInput, setMessage } from "./utils.js";
 
 const state = { businesses: [], requests: [] };
 const $ = (selector) => document.querySelector(selector);
@@ -140,7 +141,7 @@ function renderDueDates() {
     <article class="list-item">
       <strong>${item.nomeEstabelecimento || ""}</strong>
       <span>Status: ${item.status || "-"} - Plano: ${item.plano || "-"}</span>
-      <small>Vencimento: ${toDateInput(item.proximoVencimento) || "-"} - Mensalidade: ${money(item.valorMensalidade || 0)}</small>
+      <small>Vencimento: ${toBrazilDate(item.proximoVencimento) || "-"} - Mensalidade: ${money(item.valorMensalidade || 0)}</small>
       <div class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}" type="button">Editar</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="vencido" type="button">Marcar vencido</button>
@@ -157,11 +158,13 @@ function renderBusinesses() {
       <td><strong>${item.nomeEstabelecimento || ""}</strong><br><small>${item.responsavel || ""}</small></td>
       <td>${item.plano || "-"}</td>
       <td><span class="pill">${item.status || "pendente"}</span></td>
-      <td>${toDateInput(item.proximoVencimento) || "-"}</td>
+      <td>${toBrazilDate(item.proximoVencimento) || "-"}</td>
       <td>${item.metodoPagamento || "-"}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
         ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem ativacao</button>` : ""}
+        <button class="btn btn-small" data-password-reset="${item.id}">Reset senha</button>
+        <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="ativo">Ativar</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="bloqueado">Bloquear</button>
       </td>
@@ -169,6 +172,8 @@ function renderBusinesses() {
   `).join("") || "<tr><td colspan='6'>Nenhum estabelecimento cadastrado.</td></tr>";
   document.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
   document.querySelectorAll("[data-activation]").forEach((button) => button.addEventListener("click", () => sendActivationMessage(button.dataset.activation)));
+  document.querySelectorAll("[data-password-reset]").forEach((button) => button.addEventListener("click", () => sendPasswordReset(button.dataset.passwordReset)));
+  document.querySelectorAll("[data-access-reset]").forEach((button) => button.addEventListener("click", () => resetBusinessAccess(button.dataset.accessReset)));
   document.querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
 }
 
@@ -260,13 +265,42 @@ function sendActivationMessage(id) {
   window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 }
 
+async function sendPasswordReset(id) {
+  const business = state.businesses.find((item) => item.id === id);
+  if (!business?.email) {
+    alert("Este estabelecimento nao tem e-mail cadastrado.");
+    return;
+  }
+  await sendPasswordResetEmail(auth, business.email);
+  alert(`E-mail de redefinicao de senha enviado para ${business.email}.`);
+}
+
+async function resetBusinessAccess(id) {
+  const business = state.businesses.find((item) => item.id === id);
+  if (!business) return;
+  const newEmail = prompt("Informe o novo e-mail de acesso do estabelecimento:", business.email || "");
+  if (!newEmail) return;
+  const activationToken = generateActivationToken();
+  await updateDoc(doc(db, "estabelecimentos", id), {
+    email: newEmail.trim().toLowerCase(),
+    uid: "",
+    status: "aguardando_ativacao",
+    activationToken,
+    activationTokenConfirm: "",
+    ultimoAcesso: null
+  });
+  await loadAdminData();
+  sendActivationMessage(id);
+}
+
 function activationLink(id, business) {
   const base = `${location.origin}${location.pathname.replace(/admin\.html$/, "")}ativar.html`;
   const params = new URLSearchParams({
     estabelecimento: id,
     token: business.activationToken,
     email: business.email || "",
-    nome: business.nomeEstabelecimento || "estabelecimento"
+    nome: business.nomeEstabelecimento || "estabelecimento",
+    plano: business.plano || "Essencial"
   });
   return `${base}?${params.toString()}`;
 }
