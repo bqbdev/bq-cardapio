@@ -19,6 +19,15 @@
         <label>E-mail<input name="email" required type="email"></label>
         <label>CNPJ ou CPF<input name="documento" required></label>
         <label>Cidade<input name="cidade" required></label>
+        <label>Endereco do estabelecimento<input name="estabelecimentoEndereco" required></label>
+        <label>Numero<input name="estabelecimentoNumero" required></label>
+        <label>Bairro<input name="estabelecimentoBairro" required></label>
+        <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
+        <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
+        <label>Latitude do estabelecimento<input name="estabelecimentoLatitude" type="number" step="0.000001"></label>
+        <label>Longitude do estabelecimento<input name="estabelecimentoLongitude" type="number" step="0.000001"></label>
+        <button id="signup-geocode" class="btn btn-small full" type="button">Buscar coordenadas pelo endereco</button>
+        <button id="signup-location" class="btn btn-small full" type="button">Usar localizacao atual do estabelecimento</button>
         <label>Segmento
           <select name="segmento" required>
             <option value="">Selecione</option>

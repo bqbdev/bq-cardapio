@@ -16,9 +16,15 @@ import {
 } from "./firebase.js";
 import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, todayStart, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
+import { fillCoordinatesFromAddress } from "./geocoding.js";
 
 const state = { businessId: "", business: null, categories: [], products: [], orders: [], clients: [], orderSearch: "" };
 const $ = (selector) => document.querySelector(selector);
+const defaultSettings = {
+  aceitaRetirada: true,
+  aceitaEntrega: false,
+  aceitaLocal: true
+};
 
 onAuthStateChanged(auth, async (user) => {
   try {
@@ -66,17 +72,8 @@ $("#order-search")?.addEventListener("input", (event) => {
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    alert("Selecione uma imagem valida.");
-    event.target.value = "";
-    return;
-  }
-  if (file.size > 750 * 1024) {
-    alert("Escolha uma imagem menor que 750 KB para salvar em Base64 no Firestore.");
-    event.target.value = "";
-    return;
-  }
-  const base64 = await fileToBase64(file);
+  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+  if (!base64) return;
   const form = $("#product-form");
   form.elements.fotoUrl.value = base64;
   renderPhotoPreview(base64);
@@ -84,20 +81,33 @@ $("#product-photo-file")?.addEventListener("change", async (event) => {
 $("#business-logo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    alert("Selecione uma imagem valida.");
-    event.target.value = "";
-    return;
-  }
-  if (file.size > 750 * 1024) {
-    alert("Escolha uma imagem menor que 750 KB para salvar em Base64 no Firestore.");
-    event.target.value = "";
-    return;
-  }
-  const base64 = await fileToBase64(file);
+  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 512, quality: 0.86 });
+  if (!base64) return;
   const form = $("#settings-form");
   form.elements.logoUrl.value = base64;
   renderBusinessLogoPreview(base64);
+});
+$("#use-business-location")?.addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    alert("Seu navegador nao permite pegar localizacao.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition((position) => {
+    const form = $("#settings-form");
+    form.elements.estabelecimentoLatitude.value = position.coords.latitude.toFixed(6);
+    form.elements.estabelecimentoLongitude.value = position.coords.longitude.toFixed(6);
+  }, () => {
+    alert("Nao foi possivel pegar a localizacao. Verifique a permissao do navegador.");
+  }, { enableHighAccuracy: true, timeout: 12000 });
+});
+
+$("#geocode-business-address")?.addEventListener("click", async () => {
+  try {
+    await fillCoordinatesFromAddress($("#settings-form"));
+    alert("Coordenadas preenchidas pelo endereco.");
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
 async function findBusinessForUser(uid) {
@@ -156,17 +166,32 @@ async function loadProducts() {
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
   $("#products-list").innerHTML = state.products.map((item) => `
-    <div class="list-item">
-      <strong>${item.nome} ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}</strong>
-      <small>${money(item.preco)} - ${item.disponivel ? "Disponivel" : "Indisponivel"}</small>
+    <div class="list-item product-list-item ${item.disponivel === false ? "is-disabled" : ""}">
+      <div class="product-admin-thumb">
+        ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}">` : "<span>Sem foto</span>"}
+      </div>
+      <div class="product-admin-info">
+        <strong>${item.nome} ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}</strong>
+        <small>${money(item.preco)} - ${item.disponivel !== false ? "Disponivel" : "Indisponivel"}</small>
+      </div>
       <div class="item-actions">
         <button class="btn btn-small" data-edit-product="${item.id}" type="button">Editar</button>
+        <button class="btn btn-small ${item.disponivel !== false ? "btn-primary" : ""}" data-toggle-product="${item.id}" type="button">${item.disponivel !== false ? "Disponivel" : "Ativar"}</button>
         <button class="btn btn-small btn-primary" data-highlight-product="${item.id}" type="button">${item.destaque ? "Remover destaque" : "Destacar"}</button>
+        <button class="btn btn-small" data-change-photo="${item.id}" type="button">${item.fotoUrl ? "Trocar foto" : "Adicionar foto"}</button>
+        <input class="hidden" data-photo-input="${item.id}" type="file" accept="image/*">
       </div>
     </div>
   `).join("") || "<p>Nenhum produto cadastrado.</p>";
   document.querySelectorAll("[data-edit-product]").forEach((button) => button.addEventListener("click", () => fillProduct(button.dataset.editProduct)));
+  document.querySelectorAll("[data-toggle-product]").forEach((button) => button.addEventListener("click", () => toggleProductAvailability(button.dataset.toggleProduct)));
   document.querySelectorAll("[data-highlight-product]").forEach((button) => button.addEventListener("click", () => toggleProductHighlight(button.dataset.highlightProduct)));
+  document.querySelectorAll("[data-change-photo]").forEach((button) => {
+    button.addEventListener("click", () => document.querySelector(`[data-photo-input="${button.dataset.changePhoto}"]`)?.click());
+  });
+  document.querySelectorAll("[data-photo-input]").forEach((input) => {
+    input.addEventListener("change", () => updateProductPhoto(input.dataset.photoInput, input.files?.[0], input));
+  });
 }
 
 async function loadOrders() {
@@ -181,8 +206,18 @@ async function loadClients() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.businessId}/clientes`), orderBy("ultimaCompra", "desc")));
   state.clients = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
   $("#clients-list").innerHTML = state.clients.slice(0, 12).map((item) => `
-    <article class="list-item"><strong>${item.nome || item.id}</strong><span>${item.whatsapp || item.id}</span><small>${item.totalCompras || 0} compras - ${money(item.valorTotalComprado)}</small></article>
+    <article class="list-item">
+      <strong>${item.nome || item.id}</strong>
+      <span>${item.whatsapp || item.id}</span>
+      <small>${clientAddress(item)}</small>
+      <small>${item.totalCompras || 0} compras - ${money(item.valorTotalComprado)}</small>
+    </article>
   `).join("") || "<p>Nenhum cliente ainda.</p>";
+}
+
+function clientAddress(client) {
+  const address = [client.endereco, client.numero, client.bairro, client.cidade].filter(Boolean).join(", ");
+  return address || "Endereco ainda nao informado";
 }
 
 function renderOrders() {
@@ -191,6 +226,7 @@ function renderOrders() {
     <article class="list-item">
       <strong>Pedido ${order.numeroPedido || order.codigo || order.id} - ${order.clienteNome || ""}</strong>
       <span>${order.status || "Novo"} - ${order.tipoEntrega || ""} - ${money(order.totalFinal)}</span>
+      ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)} - ${Number(order.distanciaEntregaKm || 0).toFixed(1)} km</small>` : ""}
       <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
       <small>${(order.itens || []).map((item) => `${item.quantidade || 1}x ${item.nome}`).join(", ")}</small>
       <div class="item-actions">
@@ -302,6 +338,8 @@ function fillProduct(id) {
   form.elements.destaque.checked = Boolean(item.destaque);
   form.elements.permiteObservacoes.checked = item.permiteObservacoes !== false;
   renderPhotoPreview(item.fotoUrl || "");
+  document.querySelectorAll(".product-list-item").forEach((element) => element.classList.remove("editing"));
+  document.querySelector(`[data-edit-product="${id}"]`)?.closest(".product-list-item")?.classList.add("editing");
 }
 
 async function toggleProductHighlight(id) {
@@ -314,12 +352,95 @@ async function toggleProductHighlight(id) {
   await loadProducts();
 }
 
+async function toggleProductAvailability(id) {
+  const product = state.products.find((item) => item.id === id);
+  if (!product) return;
+  const scrollTop = window.scrollY;
+  await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+    disponivel: product.disponivel === false,
+    atualizadoEm: serverTimestamp()
+  });
+  await loadProducts();
+  window.scrollTo({ top: scrollTop });
+}
+
+async function updateProductPhoto(id, file, input) {
+  if (!file) return;
+  const base64 = await imageFileToBase64(file, input, { maxDimension: 900, quality: 0.82 });
+  if (!base64) return;
+  const scrollTop = window.scrollY;
+  await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+    fotoUrl: base64,
+    atualizadoEm: serverTimestamp()
+  });
+  const form = $("#product-form");
+  if (form.elements.id.value === id) {
+    form.elements.fotoUrl.value = base64;
+    renderPhotoPreview(base64);
+  }
+  await loadProducts();
+  window.scrollTo({ top: scrollTop });
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+}
+
+async function imageFileToBase64(file, input, options = {}) {
+  if (!file.type.startsWith("image/")) {
+    alert("Selecione uma imagem valida.");
+    if (input) input.value = "";
+    return "";
+  }
+  try {
+    const base64 = await compressImageFile(file, options);
+    if (base64.length > 750 * 1024) {
+      alert("A imagem foi comprimida, mas ainda ficou pesada. Escolha uma imagem menor para salvar no perfil.");
+      if (input) input.value = "";
+      return "";
+    }
+    return base64;
+  } catch (error) {
+    console.warn("Nao foi possivel compactar a imagem:", error);
+    const base64 = await fileToBase64(file);
+    if (base64.length > 750 * 1024) {
+      alert("Nao foi possivel compactar esta imagem. Escolha uma imagem menor para salvar em Base64.");
+      if (input) input.value = "";
+      return "";
+    }
+    return base64;
+  }
+}
+
+function compressImageFile(file, options = {}) {
+  const maxDimension = options.maxDimension || 900;
+  const quality = options.quality || 0.82;
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    image.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(objectUrl);
+      resolve(canvas.toDataURL("image/webp", quality));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Imagem invalida"));
+    };
+    image.src = objectUrl;
   });
 }
 
@@ -333,8 +454,11 @@ async function loadSettings() {
   const snap = await getDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"));
   const data = snap.data() || {};
   const form = $("#settings-form");
-  ["nomePublico", "whatsappPedidos", "logoUrl", "cidade", "mensagem"].forEach((key) => {
-    if (form.elements[key]) form.elements[key].value = data[key] || state.business[key] || "";
+  Array.from(form.elements).forEach((field) => {
+    if (!field.name || field.type === "file") return;
+    const value = data[field.name] ?? defaultSettings[field.name];
+    if (field.type === "checkbox") field.checked = Boolean(value);
+    else field.value = value ?? state.business[field.name] ?? "";
   });
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
 }

@@ -13,6 +13,7 @@
       <p class="eyebrow">Cardapio digital</p>
       <h1 id="menu-business-name">Carregando...</h1>
       <p id="menu-message">Escolha seus itens e finalize pelo WhatsApp.</p>
+      <div id="menu-hours" class="menu-hours"></div>
     </div>
   </header>
   <main class="menu-shell">
@@ -41,13 +42,12 @@
       <label>Bairro<input name="bairro"></label>
       <label class="full">Referencia<input name="referencia"></label>
       <label>Tipo
-        <select name="tipoEntrega" required>
-          <option>Retirada</option>
-          <option>Consumo no local</option>
-          <option>Entrega propria do estabelecimento</option>
-          <option disabled>Delivery pela plataforma - Em breve na plataforma</option>
-        </select>
+        <select name="tipoEntrega" id="delivery-type" required></select>
       </label>
+      <div id="delivery-location-panel" class="delivery-location-panel full hidden">
+        <button id="use-client-location" type="button" class="btn btn-small full">Usar minha localizacao para calcular entrega</button>
+        <p id="delivery-fee-message" class="form-message"></p>
+      </div>
       <label>Pagamento
         <select name="formaPagamento" id="payment-method" required>
           <option>PIX</option>

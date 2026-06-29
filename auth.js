@@ -12,11 +12,36 @@ import {
   signInWithEmailAndPassword
 } from "./firebase.js";
 import { formToObject, normalizePhone, setMessage } from "./utils.js";
+import { fillCoordinatesFromAddress } from "./geocoding.js";
 
 const signupForm = document.querySelector("#signup-request-form");
 const signupMessage = document.querySelector("#signup-message");
 const loginForm = document.querySelector("#login-form");
 const loginMessage = document.querySelector("#login-message");
+
+document.querySelector("#signup-location")?.addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    setMessage(signupMessage, "Seu navegador nao permite pegar localizacao.", "error");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition((position) => {
+    signupForm.elements.estabelecimentoLatitude.value = position.coords.latitude.toFixed(6);
+    signupForm.elements.estabelecimentoLongitude.value = position.coords.longitude.toFixed(6);
+    setMessage(signupMessage, "Localizacao preenchida.");
+  }, () => {
+    setMessage(signupMessage, "Nao foi possivel pegar a localizacao. Verifique a permissao do navegador.", "error");
+  }, { enableHighAccuracy: true, timeout: 12000 });
+});
+
+document.querySelector("#signup-geocode")?.addEventListener("click", async () => {
+  try {
+    setMessage(signupMessage, "Buscando coordenadas pelo endereco...");
+    await fillCoordinatesFromAddress(signupForm);
+    setMessage(signupMessage, "Coordenadas preenchidas pelo endereco.");
+  } catch (error) {
+    setMessage(signupMessage, error.message, "error");
+  }
+});
 
 document.querySelectorAll("[data-toggle-password]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -34,6 +59,11 @@ if (signupForm) {
     const data = formToObject(signupForm);
     const emailNormalizado = normalizeEmail(data.email);
     try {
+      if (!data.estabelecimentoLatitude || !data.estabelecimentoLongitude) {
+        const result = await fillCoordinatesFromAddress(signupForm);
+        data.estabelecimentoLatitude = String(result.latitude);
+        data.estabelecimentoLongitude = String(result.longitude);
+      }
       await setDoc(doc(db, "solicitacoes_estabelecimentos", emailNormalizado), {
         ...data,
         email: emailNormalizado,
