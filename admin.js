@@ -10,7 +10,6 @@ import {
   setDoc,
   updateDoc,
   query,
-  where,
   orderBy,
   serverTimestamp
 } from "./firebase.js";
@@ -49,15 +48,31 @@ $("#refresh-admin")?.addEventListener("click", loadAdminData);
 $("#close-editor")?.addEventListener("click", () => $("#business-editor").classList.add("hidden"));
 
 async function loadAdminData() {
-  const [businessSnap, requestSnap] = await Promise.all([
-    getDocs(query(collection(db, "estabelecimentos"), orderBy("dataCriacao", "desc"))),
-    getDocs(query(collection(db, "solicitacoes_estabelecimentos"), where("status", "==", "pendente"), orderBy("dataCadastro", "desc")))
-  ]);
-  state.businesses = businessSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  state.requests = requestSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-  renderMetrics();
-  renderRequests();
-  renderBusinesses();
+  try {
+    const [businessSnap, requestSnap] = await Promise.all([
+      getDocs(query(collection(db, "estabelecimentos"), orderBy("dataCriacao", "desc"))),
+      getDocs(collection(db, "solicitacoes_estabelecimentos"))
+    ]);
+    state.businesses = businessSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    state.requests = requestSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .filter((item) => String(item.status || "").toLowerCase() === "pendente")
+      .sort((a, b) => dateMillis(b.dataCadastro) - dateMillis(a.dataCadastro));
+    renderMetrics();
+    renderRequests();
+    renderBusinesses();
+  } catch (error) {
+    console.error("Erro ao carregar dados do admin:", error);
+    $("#requests-list").innerHTML = `<p class="form-message error">Nao foi possivel carregar as solicitacoes: ${error.message}</p>`;
+    $("#business-table").innerHTML = "<tr><td colspan='6'>Nao foi possivel carregar os estabelecimentos.</td></tr>";
+  }
+}
+
+function dateMillis(value) {
+  if (!value) return 0;
+  if (value.toMillis) return value.toMillis();
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function renderMetrics() {
