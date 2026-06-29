@@ -26,13 +26,12 @@ onAuthStateChanged(auth, async (user) => {
       location.replace("login.html");
       return;
     }
-    const snap = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", user.uid)));
-    if (snap.empty) {
+    const businessDoc = await findBusinessForUser(user.uid);
+    if (!businessDoc) {
       await signOut(auth);
       location.replace("login.html");
       return;
     }
-    const businessDoc = snap.docs[0];
     state.businessId = businessDoc.id;
     state.business = businessDoc.data();
     if (state.business.status !== "ativo") {
@@ -41,7 +40,10 @@ onAuthStateChanged(auth, async (user) => {
       location.replace("login.html");
       return;
     }
-    await updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() });
+    sessionStorage.setItem("businessId", state.businessId);
+    updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() }).catch((error) => {
+      console.warn("Nao foi possivel atualizar ultimo acesso:", error);
+    });
     renderBusinessHeader();
     await loadPanelData();
     document.body.classList.remove("protected-loading");
@@ -57,6 +59,23 @@ $("#logout-btn")?.addEventListener("click", async () => {
   location.replace("login.html");
 });
 $("#refresh-orders")?.addEventListener("click", loadOrders);
+
+async function findBusinessForUser(uid) {
+  const savedBusinessId = sessionStorage.getItem("businessId");
+  if (savedBusinessId) {
+    try {
+      const savedSnap = await getDoc(doc(db, "estabelecimentos", savedBusinessId));
+      if (savedSnap.exists() && savedSnap.data().uid === uid) {
+        return { id: savedSnap.id, data: () => savedSnap.data() };
+      }
+    } catch (error) {
+      console.warn("Nao foi possivel carregar estabelecimento salvo:", error);
+    }
+  }
+  const snap = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", uid)));
+  if (snap.empty) return null;
+  return snap.docs[0];
+}
 
 function renderBusinessHeader() {
   const name = state.business.nomeEstabelecimento || "Meu estabelecimento";

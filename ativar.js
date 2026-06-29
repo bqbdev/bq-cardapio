@@ -54,6 +54,7 @@ form?.addEventListener("submit", async (event) => {
       dataAtivacao: serverTimestamp(),
       activationTokenConfirm: token
     });
+    sessionStorage.setItem("businessId", estabelecimentoId);
     setMessage(message, "Conta ativada com sucesso. Redirecionando para o painel...");
     setTimeout(() => {
       location.href = "painel.html";

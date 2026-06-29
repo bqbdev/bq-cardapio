@@ -74,6 +74,7 @@ if (loginForm) {
         setMessage(loginMessage, "Acesso temporariamente bloqueado. Fale com a administracao da plataforma.", "error");
         return;
       }
+      sessionStorage.setItem("businessId", businesses.docs[0].id);
       location.href = "painel.html";
     } catch (error) {
       setMessage(loginMessage, `Falha no login: ${error.message}`, "error");
