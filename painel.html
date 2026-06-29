@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel do estabelecimento - BQ Menu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="app-page">
+  <aside class="sidebar">
+    <a class="brand" href="painel.html"><span class="brand-mark">BQ</span><span id="business-name-short">Menu</span></a>
+    <nav>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#pedidos">Pedidos</a>
+      <a href="#cardapio">Cardapio</a>
+      <a href="#clientes">Clientes</a>
+      <a href="#financeiro">Financeiro</a>
+      <a href="#taxas">Taxas</a>
+      <a href="#configuracoes">Configuracoes</a>
+      <a href="#delivery">Delivery em breve</a>
+    </nav>
+    <button id="logout-btn" class="btn btn-ghost">Sair</button>
+  </aside>
+  <main class="app-main">
+    <header class="app-topbar">
+      <div><p class="eyebrow">Painel</p><h1 id="business-title">Carregando estabelecimento</h1></div>
+      <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardapio</a>
+    </header>
+
+    <section id="dashboard" class="metric-grid">
+      <article class="metric-card"><span>Pedidos hoje</span><strong id="orders-today">0</strong></article>
+      <article class="metric-card"><span>Vendido hoje</span><strong id="sales-today">R$ 0,00</strong></article>
+      <article class="metric-card"><span>Em andamento</span><strong id="orders-open">0</strong></article>
+      <article class="metric-card"><span>Ticket medio</span><strong id="average-ticket">R$ 0,00</strong></article>
+    </section>
+
+    <section class="soon-band compact-band">
+      <div><p class="eyebrow">Delivery integrado em breve na plataforma</p><h2>Acionamento de motoboys futuramente pelo painel</h2></div>
+    </section>
+
+    <section id="pedidos" class="panel">
+      <div class="panel-heading"><h2>Pedidos</h2><button id="refresh-orders" class="btn btn-small">Atualizar</button></div>
+      <div id="orders-list" class="stack-list"></div>
+    </section>
+
+    <section id="cardapio" class="panel">
+      <div class="panel-heading"><h2>Cardapio</h2></div>
+      <div class="two-columns">
+        <form id="category-form" class="form-grid panel-inner">
+          <h3 class="full">Categorias</h3>
+          <input type="hidden" name="id">
+          <label>Nome<input name="nome" required></label>
+          <label>Ordem<input name="ordem" type="number" value="0"></label>
+          <label class="full">Descricao<textarea name="descricao" rows="2"></textarea></label>
+          <label class="check-row full"><input name="ativo" type="checkbox" checked> Ativo</label>
+          <button class="btn btn-primary full" type="submit">Salvar categoria</button>
+          <div id="categories-list" class="full mini-list"></div>
+        </form>
+        <form id="product-form" class="form-grid panel-inner">
+          <h3 class="full">Produtos</h3>
+          <input type="hidden" name="id">
+          <label>Nome<input name="nome" required></label>
+          <label>Preco<input name="preco" type="number" step="0.01" required></label>
+          <label>Categoria<select name="categoriaId" id="product-category"></select></label>
+          <label>Foto URL<input name="fotoUrl" placeholder="https://..."></label>
+          <label class="full">Descricao<textarea name="descricao" rows="2"></textarea></label>
+          <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponivel</label>
+          <label class="check-row"><input name="destaque" type="checkbox"> Destaque</label>
+          <label class="check-row"><input name="permiteObservacoes" type="checkbox" checked> Observacoes</label>
+          <button class="btn btn-primary full" type="submit">Salvar produto</button>
+          <div id="products-list" class="full mini-list"></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="clientes" class="panel">
+      <div class="panel-heading"><h2>Clientes recentes</h2></div>
+      <div id="clients-list" class="stack-list"></div>
+    </section>
+
+    <section id="financeiro" class="panel">
+      <div class="panel-heading"><h2>Financeiro</h2></div>
+      <div id="finance-summary" class="metric-grid tight"></div>
+    </section>
+
+    <section id="taxas" class="panel">
+      <div class="panel-heading"><h2>Taxas por forma de pagamento</h2></div>
+      <form id="fees-form" class="form-grid">
+        <label>Credito %<input name="creditoPercentual" type="number" step="0.01"></label>
+        <label>Debito %<input name="debitoPercentual" type="number" step="0.01"></label>
+        <label>PIX %<input name="pixPercentual" type="number" step="0.01"></label>
+        <label>Dinheiro %<input name="dinheiroPercentual" type="number" step="0.01"></label>
+        <label>PIX valor fixo<input name="pixFixo" type="number" step="0.01"></label>
+        <label>Dinheiro valor fixo<input name="dinheiroFixo" type="number" step="0.01"></label>
+        <label class="check-row full"><input name="somarAoPedido" type="checkbox"> Somar taxa ao pedido</label>
+        <button class="btn btn-primary full" type="submit">Salvar taxas</button>
+      </form>
+    </section>
+
+    <section id="configuracoes" class="panel">
+      <div class="panel-heading"><h2>Configuracoes</h2></div>
+      <form id="settings-form" class="form-grid">
+        <label>Nome publico<input name="nomePublico"></label>
+        <label>WhatsApp dos pedidos<input name="whatsappPedidos" inputmode="tel"></label>
+        <label>Logo URL<input name="logoUrl"></label>
+        <label>Cidade<input name="cidade"></label>
+        <label class="full">Mensagem de boas-vindas<textarea name="mensagem" rows="3"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Salvar configuracoes</button>
+      </form>
+    </section>
+
+    <section id="delivery" class="panel">
+      <div class="panel-heading"><h2>Delivery</h2></div>
+      <p>Em breve voce podera acionar motoboys diretamente pela plataforma.</p>
+      <div class="feature-grid small">
+        <article class="feature-card"><h3>Acionamento de motoboy</h3></article>
+        <article class="feature-card"><h3>Rastreamento</h3></article>
+        <article class="feature-card"><h3>Historico de entregas</h3></article>
+        <article class="feature-card"><h3>Taxa de entrega</h3></article>
+        <article class="feature-card"><h3>Integracao com Cheguei Delivery</h3></article>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="painel.js"></script>
+</body>
+</html>

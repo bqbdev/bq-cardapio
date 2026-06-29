@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin SaaS - BQ Menu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="app-page">
+  <aside class="sidebar">
+    <a class="brand" href="admin.html"><span class="brand-mark">BQ</span><span>Admin</span></a>
+    <nav>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#solicitacoes">Solicitacoes</a>
+      <a href="#estabelecimentos">Estabelecimentos</a>
+      <a href="#vencimentos">Vencimentos</a>
+    </nav>
+    <button id="logout-btn" class="btn btn-ghost">Sair</button>
+  </aside>
+  <main class="app-main">
+    <header class="app-topbar">
+      <div><p class="eyebrow">Painel geral</p><h1>Administracao da plataforma</h1></div>
+      <span id="admin-user" class="pill">Carregando...</span>
+    </header>
+
+    <section id="dashboard" class="metric-grid">
+      <article class="metric-card"><span>Total</span><strong id="metric-total">0</strong></article>
+      <article class="metric-card"><span>Ativos</span><strong id="metric-ativos">0</strong></article>
+      <article class="metric-card"><span>Bloqueados</span><strong id="metric-bloqueados">0</strong></article>
+      <article class="metric-card"><span>Pendentes</span><strong id="metric-pendentes">0</strong></article>
+      <article class="metric-card"><span>Vencidos</span><strong id="metric-vencidos">0</strong></article>
+      <article class="metric-card"><span>Receita prevista</span><strong id="metric-receita">R$ 0,00</strong></article>
+    </section>
+
+    <section id="solicitacoes" class="panel">
+      <div class="panel-heading"><h2>Solicitacoes pendentes</h2><span id="requests-count" class="pill">0</span></div>
+      <div id="requests-list" class="stack-list"></div>
+    </section>
+
+    <section id="estabelecimentos" class="panel">
+      <div class="panel-heading"><h2>Estabelecimentos</h2><button id="refresh-admin" class="btn btn-small">Atualizar</button></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Plano</th><th>Status</th><th>Vencimento</th><th>Pagamento</th><th>Acoes</th></tr></thead>
+          <tbody id="business-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="business-editor" class="panel hidden">
+      <div class="panel-heading"><h2>Editar estabelecimento</h2><button id="close-editor" class="btn btn-small">Fechar</button></div>
+      <form id="business-form" class="form-grid">
+        <input type="hidden" name="id">
+        <label>Nome<input name="nomeEstabelecimento" required></label>
+        <label>Responsavel<input name="responsavel"></label>
+        <label>WhatsApp<input name="whatsapp"></label>
+        <label>E-mail<input name="email" type="email"></label>
+        <label>UID do usuario Auth<input name="uid" placeholder="UID criado no Firebase Authentication"></label>
+        <label>Documento<input name="documento"></label>
+        <label>Cidade<input name="cidade"></label>
+        <label>Segmento<input name="segmento"></label>
+        <label>Plano<input name="plano" placeholder="Profissional"></label>
+        <label>Mensalidade<input name="valorMensalidade" type="number" step="0.01"></label>
+        <label>Metodo de pagamento
+          <select name="metodoPagamento"><option>PIX</option><option>Dinheiro</option><option>Cartao de credito</option><option>Cartao de debito</option><option>Cortesia</option><option>Outro</option></select>
+        </label>
+        <label>Inicio<input name="dataInicio" type="date"></label>
+        <label>Proximo vencimento<input name="proximoVencimento" type="date"></label>
+        <label>Status
+          <select name="status"><option>ativo</option><option>bloqueado</option><option>pendente</option><option>vencido</option><option>cancelado</option></select>
+        </label>
+        <label class="full">Observacoes internas<textarea name="observacoesInternas" rows="3"></textarea></label>
+        <button class="btn btn-primary full" type="submit">Salvar alteracoes</button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

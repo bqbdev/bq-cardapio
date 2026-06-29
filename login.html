@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar - BQ Menu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-panel compact">
+      <a class="brand" href="index.html"><span class="brand-mark">BQ</span><span>BQ Menu</span></a>
+      <h1>Acessar painel</h1>
+      <p>Entre como admin geral ou estabelecimento aprovado.</p>
+      <form id="login-form" class="form-grid">
+        <label class="full">E-mail<input name="email" type="email" required></label>
+        <label class="full">Senha<input name="password" type="password" required></label>
+        <button class="btn btn-primary full" type="submit">Entrar</button>
+      </form>
+      <p id="login-message" class="form-message" role="status"></p>
+      <a class="muted-link" href="cadastro.html">Ainda nao tem acesso? Solicite cadastro</a>
+    </section>
+  </main>
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
