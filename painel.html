@@ -128,7 +128,14 @@
         <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
         <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
         <label>Taxa padrao de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
-        <label class="full">Bairros com taxa diferente<textarea name="entregaBairrosTaxas" rows="4" placeholder="Centro=5&#10;Jardim Alto=8&#10;Zona Rural=15"></textarea></label>
+        <textarea class="hidden" name="entregaBairrosTaxas"></textarea>
+        <div class="delivery-fees-editor full">
+          <div class="delivery-fees-heading">
+            <strong>Bairros com taxa diferente</strong>
+            <button id="add-delivery-fee-row" class="btn btn-small" type="button">Adicionar bairro</button>
+          </div>
+          <div id="delivery-fees-rows" class="delivery-fees-rows"></div>
+        </div>
         <label class="full">Bairros que nao atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
         <h3 class="full compact-title">Horarios de funcionamento</h3>
         <label>Domingo abre<input name="horario_domingo_abre" type="time"></label>

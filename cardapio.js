@@ -49,6 +49,7 @@ async function init() {
   renderProducts();
   renderCart();
   renderDeliveryOptions();
+  renderNeighborhoodOptions();
 }
 
 async function loadBusiness() {
@@ -310,6 +311,19 @@ function renderDeliveryOptions() {
   updateDeliveryPanel();
 }
 
+function renderNeighborhoodOptions() {
+  const list = $("#delivery-neighborhoods");
+  if (!list) return;
+  const specialFees = parseAreaFees(state.settings.entregaBairrosTaxas);
+  const blockedAreas = parseBlockedAreasWithLabel(state.settings.entregaBairrosBloqueados);
+  const names = [
+    ...Object.values(specialFees).map((item) => item.label),
+    ...blockedAreas.map((item) => item.label)
+  ].filter(Boolean);
+  const uniqueNames = Array.from(new Set(names));
+  list.innerHTML = uniqueNames.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
+}
+
 function updateDeliveryPanel() {
   const isDelivery = $("#delivery-type")?.value === "Entrega";
   $("#delivery-location-panel")?.classList.toggle("hidden", !isDelivery);
@@ -341,10 +355,11 @@ function updateDeliveryFee() {
     return false;
   }
   const specialFees = parseAreaFees(state.settings.entregaBairrosTaxas);
-  const hasSpecialFee = Object.prototype.hasOwnProperty.call(specialFees, normalizedBairro);
-  const fee = hasSpecialFee ? specialFees[normalizedBairro] : configNumber(state.settings.entregaTaxaPadrao);
+  const matchedKey = findAreaKey(specialFees, normalizedBairro);
+  const hasSpecialFee = Boolean(matchedKey);
+  const fee = hasSpecialFee ? specialFees[matchedKey].valor : configNumber(state.settings.entregaTaxaPadrao);
   state.deliveryFee = Math.max(0, fee);
-  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${bairro}` : "Taxa padrao";
+  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${specialFees[matchedKey].label}` : "Taxa padrao";
   setMessage($("#delivery-fee-message"), `Taxa de entrega: ${money(state.deliveryFee)} (${state.deliveryRule}).`);
   return true;
 }
@@ -362,15 +377,26 @@ function parseAreaFees(text = "") {
     .reduce((acc, line) => {
       const [name, value] = line.split(/[=:;]/);
       const normalizedName = normalizeAreaName(name);
-      if (normalizedName) acc[normalizedName] = configNumber(value);
+      if (normalizedName) acc[normalizedName] = { label: name.trim(), valor: configNumber(value) };
       return acc;
     }, {});
 }
 
 function parseBlockedAreas(text = "") {
+  return parseBlockedAreasWithLabel(text).map((item) => item.key);
+}
+
+function parseBlockedAreasWithLabel(text = "") {
   return String(text || "").split(/[\n,;]/)
-    .map((item) => normalizeAreaName(item))
-    .filter(Boolean);
+    .map((item) => ({ key: normalizeAreaName(item), label: item.trim() }))
+    .filter((item) => item.key);
+}
+
+function findAreaKey(areaMap, inputKey) {
+  const keys = Object.keys(areaMap);
+  return keys.find((key) => key === inputKey)
+    || keys.find((key) => key.includes(inputKey) || inputKey.includes(key))
+    || "";
 }
 
 function normalizeAreaName(value = "") {
@@ -378,5 +404,16 @@ function normalizeAreaName(value = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/\bjd\b/g, "jardim");
+}
+
+function escapeHtml(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#039;"
+  }[char]));
 }

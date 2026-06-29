@@ -109,6 +109,7 @@ $("#geocode-business-address")?.addEventListener("click", async () => {
     alert(error.message);
   }
 });
+$("#add-delivery-fee-row")?.addEventListener("click", () => addDeliveryFeeRow());
 
 async function findBusinessForUser(uid) {
   const savedBusinessId = sessionStorage.getItem("businessId");
@@ -461,13 +462,91 @@ async function loadSettings() {
     else field.value = value ?? state.business[field.name] ?? "";
   });
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
+  renderDeliveryFeeRows(form.elements.entregaBairrosTaxas?.value || "");
 }
 
 $("#settings-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), formToObject(event.currentTarget), { merge: true });
-  setMessage(null, "Salvo.");
+  const form = event.currentTarget;
+  try {
+    setFormUpdating(form, true, "Atualizando...");
+    syncDeliveryFeeRowsToField();
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), formToObject(form), { merge: true });
+    setFormUpdating(form, true, "Atualizacoes feitas");
+    setTimeout(() => setFormUpdating(form, false), 900);
+  } catch (error) {
+    setFormUpdating(form, false);
+    alert(`Nao foi possivel salvar: ${error.message}`);
+  }
 });
+
+function renderDeliveryFeeRows(rawValue = "") {
+  const rows = parseDeliveryFeeLines(rawValue);
+  const container = $("#delivery-fees-rows");
+  if (!container) return;
+  container.innerHTML = "";
+  (rows.length ? rows : [{ bairro: "", valor: "" }]).forEach((row) => addDeliveryFeeRow(row));
+}
+
+function addDeliveryFeeRow(row = { bairro: "", valor: "" }) {
+  const container = $("#delivery-fees-rows");
+  if (!container) return;
+  const element = document.createElement("div");
+  element.className = "delivery-fee-row";
+  element.innerHTML = `
+    <label>Bairro<input data-delivery-area="bairro" value="${escapeAttr(row.bairro || "")}" placeholder="Ex: Centro"></label>
+    <label>Valor<input data-delivery-area="valor" type="number" step="0.01" value="${escapeAttr(row.valor || "")}" placeholder="Ex: 5.00"></label>
+    <button class="btn btn-small" type="button" data-remove-delivery-row>Remover</button>
+  `;
+  element.querySelector("[data-remove-delivery-row]").addEventListener("click", () => {
+    element.remove();
+    if (!container.children.length) addDeliveryFeeRow();
+  });
+  container.appendChild(element);
+}
+
+function syncDeliveryFeeRowsToField() {
+  const form = $("#settings-form");
+  const rows = Array.from(document.querySelectorAll(".delivery-fee-row")).map((row) => {
+    const bairro = row.querySelector("[data-delivery-area='bairro']")?.value.trim();
+    const valor = row.querySelector("[data-delivery-area='valor']")?.value.trim();
+    return bairro && valor ? `${bairro}=${valor}` : "";
+  }).filter(Boolean);
+  if (form?.elements.entregaBairrosTaxas) form.elements.entregaBairrosTaxas.value = rows.join("\n");
+}
+
+function parseDeliveryFeeLines(rawValue = "") {
+  return String(rawValue || "").split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [bairro, valor] = line.split(/[=:;]/);
+      return { bairro: bairro?.trim() || "", valor: valor?.trim() || "" };
+    })
+    .filter((row) => row.bairro || row.valor);
+}
+
+function escapeAttr(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
+
+function setFormUpdating(form, active, text = "Atualizando...") {
+  if (!form) return;
+  let overlay = form.querySelector(".form-saving-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "form-saving-overlay";
+    form.appendChild(overlay);
+  }
+  overlay.textContent = text;
+  form.classList.toggle("is-updating", active);
+}
 
 function renderBusinessLogoPreview(src) {
   const preview = $("#business-logo-preview");

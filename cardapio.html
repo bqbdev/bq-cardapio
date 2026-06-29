@@ -39,7 +39,8 @@
       <label>Endereco<input name="endereco"></label>
       <label>Numero<input name="numero"></label>
       <label>Complemento<input name="complemento"></label>
-      <label>Bairro<input name="bairro"></label>
+      <label>Bairro<input name="bairro" list="delivery-neighborhoods" autocomplete="address-level3"></label>
+      <datalist id="delivery-neighborhoods"></datalist>
       <label class="full">Referencia<input name="referencia"></label>
       <label>Tipo
         <select name="tipoEntrega" id="delivery-type" required></select>
