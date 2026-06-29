@@ -17,6 +17,7 @@ import { formToObject, money, fromDateInput, toDateInput, setMessage } from "./u
 
 const state = { businesses: [], requests: [] };
 const $ = (selector) => document.querySelector(selector);
+const adminViews = ["dashboard", "solicitacoes", "estabelecimentos", "vencimentos"];
 
 onAuthStateChanged(auth, async (user) => {
   try {
@@ -32,6 +33,7 @@ onAuthStateChanged(auth, async (user) => {
     }
     $("#admin-user").textContent = user.email || "Admin";
     await loadAdminData();
+    showAdminView(currentView());
     document.body.classList.remove("protected-loading");
   } catch (error) {
     console.error("Falha ao verificar admin:", error);
@@ -45,7 +47,15 @@ $("#logout-btn")?.addEventListener("click", async () => {
   location.replace("login.html");
 });
 $("#refresh-admin")?.addEventListener("click", loadAdminData);
-$("#close-editor")?.addEventListener("click", () => $("#business-editor").classList.add("hidden"));
+$("#close-editor")?.addEventListener("click", closeEditor);
+document.querySelectorAll("[data-admin-view]").forEach((link) => {
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const view = link.dataset.adminView;
+    history.replaceState(null, "", `#${view}`);
+    showAdminView(view);
+  });
+});
 
 async function loadAdminData() {
   try {
@@ -61,6 +71,8 @@ async function loadAdminData() {
     renderMetrics();
     renderRequests();
     renderBusinesses();
+    renderDueDates();
+    updateNavigationBadges();
   } catch (error) {
     console.error("Erro ao carregar dados do admin:", error);
     $("#requests-list").innerHTML = `<p class="form-message error">Nao foi possivel carregar as solicitacoes: ${error.message}</p>`;
@@ -84,7 +96,7 @@ function renderMetrics() {
   $("#metric-total").textContent = total;
   $("#metric-ativos").textContent = count("ativo");
   $("#metric-bloqueados").textContent = count("bloqueado");
-  $("#metric-pendentes").textContent = count("pendente");
+  $("#metric-pendentes").textContent = state.requests.length;
   $("#metric-vencidos").textContent = count("vencido");
   $("#metric-receita").textContent = money(receita);
 }
@@ -104,6 +116,39 @@ function renderRequests() {
   `).join("") || "<p>Nenhuma solicitacao pendente.</p>";
   document.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveRequest(button.dataset.approve)));
   document.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => rejectRequest(button.dataset.reject)));
+}
+
+function updateNavigationBadges() {
+  const badge = $("#requests-nav-badge");
+  if (!badge) return;
+  badge.textContent = state.requests.length;
+  badge.classList.toggle("hidden", state.requests.length === 0);
+}
+
+function renderDueDates() {
+  const now = new Date();
+  const soon = new Date();
+  soon.setDate(now.getDate() + 15);
+  const dueBusinesses = state.businesses
+    .filter((item) => {
+      const millis = dateMillis(item.proximoVencimento);
+      return millis && millis <= soon.getTime();
+    })
+    .sort((a, b) => dateMillis(a.proximoVencimento) - dateMillis(b.proximoVencimento));
+  $("#due-count").textContent = dueBusinesses.length;
+  $("#due-list").innerHTML = dueBusinesses.map((item) => `
+    <article class="list-item">
+      <strong>${item.nomeEstabelecimento || ""}</strong>
+      <span>Status: ${item.status || "-"} - Plano: ${item.plano || "-"}</span>
+      <small>Vencimento: ${toDateInput(item.proximoVencimento) || "-"} - Mensalidade: ${money(item.valorMensalidade || 0)}</small>
+      <div class="item-actions">
+        <button class="btn btn-small" data-edit="${item.id}" type="button">Editar</button>
+        <button class="btn btn-small" data-status="${item.id}" data-value="vencido" type="button">Marcar vencido</button>
+      </div>
+    </article>
+  `).join("") || "<p>Nenhum vencimento nos proximos 15 dias.</p>";
+  $("#due-list").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
+  $("#due-list").querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
 }
 
 function renderBusinesses() {
@@ -211,6 +256,13 @@ function openEditor(id) {
     if (form.elements[key]) form.elements[key].value = value || "";
   });
   $("#business-editor").classList.remove("hidden");
+  showAdminView("estabelecimentos");
+}
+
+function closeEditor() {
+  const form = $("#business-form");
+  if (form) form.reset();
+  $("#business-editor").classList.add("hidden");
 }
 
 $("#business-form")?.addEventListener("submit", async (event) => {
@@ -226,6 +278,23 @@ $("#business-form")?.addEventListener("submit", async (event) => {
     proximoVencimento: fromDateInput(data.proximoVencimento)
   });
   setMessage(form.querySelector(".form-message"), "Salvo.");
-  $("#business-editor").classList.add("hidden");
+  closeEditor();
   await loadAdminData();
 });
+
+function currentView() {
+  const hashView = location.hash.replace("#", "");
+  return adminViews.includes(hashView) ? hashView : "dashboard";
+}
+
+function showAdminView(view) {
+  const safeView = adminViews.includes(view) ? view : "dashboard";
+  document.querySelectorAll(".admin-view").forEach((section) => {
+    const matchesView = section.dataset.view === safeView;
+    const isEditor = section.id === "business-editor";
+    section.classList.toggle("hidden", !matchesView || (isEditor && !section.querySelector("[name='id']")?.value));
+  });
+  document.querySelectorAll("[data-admin-view]").forEach((link) => {
+    link.classList.toggle("active", link.dataset.adminView === safeView);
+  });
+}

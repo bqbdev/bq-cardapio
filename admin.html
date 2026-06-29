@@ -13,10 +13,10 @@
   <aside class="sidebar">
     <a class="brand" href="admin.html"><span class="brand-mark">BQ</span><span>Admin</span></a>
     <nav>
-      <a href="#dashboard">Dashboard</a>
-      <a href="#solicitacoes">Solicitacoes</a>
-      <a href="#estabelecimentos">Estabelecimentos</a>
-      <a href="#vencimentos">Vencimentos</a>
+      <a class="admin-nav-link" href="#dashboard" data-admin-view="dashboard">Dashboard</a>
+      <a class="admin-nav-link" href="#solicitacoes" data-admin-view="solicitacoes">Solicitacoes <span id="requests-nav-badge" class="nav-badge hidden">0</span></a>
+      <a class="admin-nav-link" href="#estabelecimentos" data-admin-view="estabelecimentos">Estabelecimentos</a>
+      <a class="admin-nav-link" href="#vencimentos" data-admin-view="vencimentos">Vencimentos</a>
     </nav>
     <button id="logout-btn" class="btn btn-ghost">Sair</button>
   </aside>
@@ -26,7 +26,7 @@
       <span id="admin-user" class="pill">Carregando...</span>
     </header>
 
-    <section id="dashboard" class="metric-grid">
+    <section id="dashboard" class="metric-grid admin-view" data-view="dashboard">
       <article class="metric-card"><span>Total</span><strong id="metric-total">0</strong></article>
       <article class="metric-card"><span>Ativos</span><strong id="metric-ativos">0</strong></article>
       <article class="metric-card"><span>Bloqueados</span><strong id="metric-bloqueados">0</strong></article>
@@ -35,12 +35,12 @@
       <article class="metric-card"><span>Receita prevista</span><strong id="metric-receita">R$ 0,00</strong></article>
     </section>
 
-    <section id="solicitacoes" class="panel">
+    <section id="solicitacoes" class="panel admin-view" data-view="solicitacoes">
       <div class="panel-heading"><h2>Solicitacoes pendentes</h2><span id="requests-count" class="pill">0</span></div>
       <div id="requests-list" class="stack-list"></div>
     </section>
 
-    <section id="estabelecimentos" class="panel">
+    <section id="estabelecimentos" class="panel admin-view" data-view="estabelecimentos">
       <div class="panel-heading"><h2>Estabelecimentos</h2><button id="refresh-admin" class="btn btn-small">Atualizar</button></div>
       <div class="table-wrap">
         <table>
@@ -50,7 +50,7 @@
       </div>
     </section>
 
-    <section id="business-editor" class="panel hidden">
+    <section id="business-editor" class="panel admin-view hidden" data-view="estabelecimentos">
       <div class="panel-heading"><h2>Editar estabelecimento</h2><button id="close-editor" class="btn btn-small">Fechar</button></div>
       <form id="business-form" class="form-grid">
         <input type="hidden" name="id">
@@ -75,6 +75,11 @@
         <label class="full">Observacoes internas<textarea name="observacoesInternas" rows="3"></textarea></label>
         <button class="btn btn-primary full" type="submit">Salvar alteracoes</button>
       </form>
+    </section>
+
+    <section id="vencimentos" class="panel admin-view" data-view="vencimentos">
+      <div class="panel-heading"><h2>Proximos vencimentos</h2><span id="due-count" class="pill">0</span></div>
+      <div id="due-list" class="stack-list"></div>
     </section>
   </main>
   <script type="module" src="admin.js"></script>

@@ -197,8 +197,20 @@ input, select, textarea {
 }
 .sidebar .brand-mark { background: var(--accent); color: #17201b; }
 .sidebar nav { display: grid; gap: 6px; }
-.sidebar nav a { color: rgba(255,255,255,.78); padding: 10px 12px; border-radius: var(--radius); font-weight: 750; }
-.sidebar nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sidebar nav a { color: rgba(255,255,255,.78); padding: 10px 12px; border-radius: var(--radius); font-weight: 750; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sidebar nav a:hover, .sidebar nav a.active { background: rgba(255,255,255,.08); color: #fff; }
+.nav-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--danger);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 900;
+}
 .sidebar .btn { margin-top: auto; color: #fff; border-color: rgba(255,255,255,.25); }
 .app-main { padding: clamp(16px, 3vw, 34px); display: grid; gap: 18px; align-content: start; }
 .app-topbar, .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
