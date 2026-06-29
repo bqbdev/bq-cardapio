@@ -167,6 +167,23 @@ input, select, textarea {
 .form-message.error { color: var(--danger); }
 
 .app-page { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+.protected-page.protected-loading {
+  display: block;
+  min-height: 100vh;
+}
+.protected-loading .sidebar,
+.protected-loading .app-main {
+  display: none;
+}
+.auth-check-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+.protected-page:not(.protected-loading) .auth-check-screen {
+  display: none;
+}
 .sidebar {
   background: #17201b;
   color: #fff;

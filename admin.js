@@ -20,20 +20,31 @@ const state = { businesses: [], requests: [] };
 const $ = (selector) => document.querySelector(selector);
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    location.href = "login.html";
-    return;
+  try {
+    if (!user) {
+      location.replace("login.html");
+      return;
+    }
+    const adminSnap = await getDoc(doc(db, "admins", user.uid));
+    if (!adminSnap.exists()) {
+      await signOut(auth);
+      location.replace("login.html");
+      return;
+    }
+    $("#admin-user").textContent = user.email || "Admin";
+    await loadAdminData();
+    document.body.classList.remove("protected-loading");
+  } catch (error) {
+    console.error("Falha ao verificar admin:", error);
+    await signOut(auth);
+    location.replace("login.html");
   }
-  const adminSnap = await getDoc(doc(db, "admins", user.uid));
-  if (!adminSnap.exists()) {
-    location.href = "painel.html";
-    return;
-  }
-  $("#admin-user").textContent = user.email || "Admin";
-  await loadAdminData();
 });
 
-$("#logout-btn")?.addEventListener("click", () => signOut(auth));
+$("#logout-btn")?.addEventListener("click", async () => {
+  await signOut(auth);
+  location.replace("login.html");
+});
 $("#refresh-admin")?.addEventListener("click", loadAdminData);
 $("#close-editor")?.addEventListener("click", () => $("#business-editor").classList.add("hidden"));
 

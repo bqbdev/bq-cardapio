@@ -21,30 +21,41 @@ const state = { businessId: "", business: null, categories: [], products: [], or
 const $ = (selector) => document.querySelector(selector);
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    location.href = "login.html";
-    return;
-  }
-  const snap = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", user.uid)));
-  if (snap.empty) {
-    location.href = "login.html";
-    return;
-  }
-  const businessDoc = snap.docs[0];
-  state.businessId = businessDoc.id;
-  state.business = businessDoc.data();
-  if (state.business.status !== "ativo") {
-    alert("Acesso temporariamente bloqueado. Fale com a administracao da plataforma.");
+  try {
+    if (!user) {
+      location.replace("login.html");
+      return;
+    }
+    const snap = await getDocs(query(collection(db, "estabelecimentos"), where("uid", "==", user.uid)));
+    if (snap.empty) {
+      await signOut(auth);
+      location.replace("login.html");
+      return;
+    }
+    const businessDoc = snap.docs[0];
+    state.businessId = businessDoc.id;
+    state.business = businessDoc.data();
+    if (state.business.status !== "ativo") {
+      alert("Acesso temporariamente bloqueado. Fale com a administracao da plataforma.");
+      await signOut(auth);
+      location.replace("login.html");
+      return;
+    }
+    await updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() });
+    renderBusinessHeader();
+    await loadPanelData();
+    document.body.classList.remove("protected-loading");
+  } catch (error) {
+    console.error("Falha ao verificar estabelecimento:", error);
     await signOut(auth);
-    location.href = "login.html";
-    return;
+    location.replace("login.html");
   }
-  await updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() });
-  renderBusinessHeader();
-  await loadPanelData();
 });
 
-$("#logout-btn")?.addEventListener("click", () => signOut(auth));
+$("#logout-btn")?.addEventListener("click", async () => {
+  await signOut(auth);
+  location.replace("login.html");
+});
 $("#refresh-orders")?.addEventListener("click", loadOrders);
 
 function renderBusinessHeader() {
