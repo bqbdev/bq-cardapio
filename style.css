@@ -160,6 +160,25 @@ input, select, textarea {
   color: var(--text);
   outline-color: var(--primary);
 }
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+}
+.password-field input {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.password-toggle {
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-soft);
+  color: var(--primary);
+  padding: 0 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
 .check-row { display: flex; align-items: center; gap: 8px; color: var(--text); }
 .check-row input { width: auto; }
 .form-message { min-height: 24px; font-weight: 750; }

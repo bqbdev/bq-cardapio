@@ -51,10 +51,10 @@ Ao logar com esse usuario, o sistema redireciona para `admin.html`.
 1. O estabelecimento preenche `cadastro.html`.
 2. O admin aprova em `admin.html`.
 3. O sistema cria o documento em `estabelecimentos` e as configuracoes iniciais.
-4. Crie manualmente o usuario do estabelecimento no Firebase Authentication.
-5. Copie o UID do usuario criado e preencha o campo `UID do usuario Auth` no editor do estabelecimento em `admin.html`.
+4. Ao aprovar, o admin recebe uma mensagem pronta de WhatsApp com o link de ativacao.
+5. O estabelecimento acessa `ativar.html`, digita a senha duas vezes e o sistema cria o usuario no Firebase Authentication.
 
-Esse passo manual evita expor criacao de usuarios privilegiada no front-end. Para automatizar depois, use Cloud Functions com Admin SDK.
+Esse fluxo nao exige que o admin crie manualmente o usuario do estabelecimento.
 
 ## Link publico do cardapio
 

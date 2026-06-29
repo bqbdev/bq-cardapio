@@ -18,6 +18,16 @@ const signupMessage = document.querySelector("#signup-message");
 const loginForm = document.querySelector("#login-form");
 const loginMessage = document.querySelector("#login-message");
 
+document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const field = button.closest(".password-field")?.querySelector("input");
+    if (!field) return;
+    const show = field.type === "password";
+    field.type = show ? "text" : "password";
+    button.textContent = show ? "Ocultar" : "Mostrar";
+  });
+});
+
 if (signupForm) {
   signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();

@@ -20,6 +20,16 @@ service cloud.firestore {
         && businessDoc(estabelecimentoId).data.status == "ativo";
     }
 
+    function canActivateBusiness() {
+      return signedIn()
+        && resource.data.status == "aguardando_ativacao"
+        && resource.data.uid == ""
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == "ativo"
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.activationTokenConfirm == resource.data.activationToken;
+    }
+
     match /admins/{adminId} {
       allow read, write: if isAdmin();
     }
@@ -31,7 +41,8 @@ service cloud.firestore {
 
     match /estabelecimentos/{estabelecimentoId} {
       allow read: if isAdmin() || isBusinessOwner(estabelecimentoId) || resource.data.status == "ativo";
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || canActivateBusiness();
 
       match /configuracoes/{configId} {
         allow read: if true;

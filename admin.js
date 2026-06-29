@@ -161,12 +161,14 @@ function renderBusinesses() {
       <td>${item.metodoPagamento || "-"}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
+        ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem ativacao</button>` : ""}
         <button class="btn btn-small" data-status="${item.id}" data-value="ativo">Ativar</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="bloqueado">Bloquear</button>
       </td>
     </tr>
   `).join("") || "<tr><td colspan='6'>Nenhum estabelecimento cadastrado.</td></tr>";
   document.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
+  document.querySelectorAll("[data-activation]").forEach((button) => button.addEventListener("click", () => sendActivationMessage(button.dataset.activation)));
   document.querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
 }
 
@@ -174,6 +176,7 @@ async function approveRequest(id) {
   const request = state.requests.find((item) => item.id === id);
   if (!request) return;
   const businessRef = doc(collection(db, "estabelecimentos"));
+  const activationToken = generateActivationToken();
   await setDoc(businessRef, {
     nomeEstabelecimento: request.nomeEstabelecimento,
     responsavel: request.responsavel,
@@ -187,11 +190,14 @@ async function approveRequest(id) {
     metodoPagamento: "PIX",
     dataInicio: serverTimestamp(),
     proximoVencimento: null,
-    status: "ativo",
+    status: "aguardando_ativacao",
     observacoesInternas: request.observacao || "",
     dataCriacao: serverTimestamp(),
     ultimoAcesso: null,
     uid: "",
+    activationToken,
+    activationTokenConfirm: "",
+    dataAtivacao: null,
     slug: businessRef.id
   });
   await updateDoc(doc(db, "solicitacoes_estabelecimentos", id), {
@@ -216,6 +222,7 @@ async function approveRequest(id) {
     somarAoPedido: false
   });
   await loadAdminData();
+  sendActivationMessage(businessRef.id);
 }
 
 async function rejectRequest(id) {
@@ -229,6 +236,45 @@ async function rejectRequest(id) {
 async function changeStatus(id, status) {
   await updateDoc(doc(db, "estabelecimentos", id), { status });
   await loadAdminData();
+}
+
+function sendActivationMessage(id) {
+  const business = state.businesses.find((item) => item.id === id);
+  if (!business?.activationToken) {
+    alert("Este estabelecimento ainda nao tem link de ativacao. Edite ou aprove novamente a solicitacao.");
+    return;
+  }
+  const link = activationLink(id, business);
+  const message = [
+    `Ola, ${business.responsavel || business.nomeEstabelecimento || ""}!`,
+    "",
+    `Sua conta no BQ Menu foi aprovada.`,
+    `Para ativar o painel do estabelecimento ${business.nomeEstabelecimento || ""}, acesse o link abaixo e crie sua senha:`,
+    "",
+    link,
+    "",
+    "Voce precisara digitar a senha duas vezes para confirmar."
+  ].join("\n");
+  const phone = String(business.whatsapp || "").replace(/\D/g, "");
+  const whatsappUrl = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+}
+
+function activationLink(id, business) {
+  const base = `${location.origin}${location.pathname.replace(/admin\.html$/, "")}ativar.html`;
+  const params = new URLSearchParams({
+    estabelecimento: id,
+    token: business.activationToken,
+    email: business.email || "",
+    nome: business.nomeEstabelecimento || "estabelecimento"
+  });
+  return `${base}?${params.toString()}`;
+}
+
+function generateActivationToken() {
+  const bytes = new Uint32Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (item) => item.toString(36)).join("");
 }
 
 function openEditor(id) {

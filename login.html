@@ -14,7 +14,12 @@
       <p>Entre como admin geral ou estabelecimento aprovado.</p>
       <form id="login-form" class="form-grid">
         <label class="full">E-mail<input name="email" type="email" required></label>
-        <label class="full">Senha<input name="password" type="password" required></label>
+        <label class="full">Senha
+          <span class="password-field">
+            <input name="password" type="password" required>
+            <button class="password-toggle" type="button" data-toggle-password>Mostrar</button>
+          </span>
+        </label>
         <button class="btn btn-primary full" type="submit">Entrar</button>
       </form>
       <p id="login-message" class="form-message" role="status"></p>
