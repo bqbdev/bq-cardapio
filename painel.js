@@ -146,7 +146,13 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
       permiteObservacoes: true,
       atualizadoEm: serverTimestamp()
     }, { merge: true });
-    await Promise.all(parseBulkLines(data.sabores, 0).map((item, index) => setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, doc(collection(db, "tmp")).id), {
+    const existingPizzaFlavors = flavorsFromProducts(data.categoriaOrigemId);
+    const typedFlavors = parseBulkLines(data.sabores, 0);
+    const flavorsToCreate = uniqueByName([...existingPizzaFlavors, ...typedFlavors]);
+    if (!flavorsToCreate.length) {
+      throw new Error("Escolha uma categoria com pizzas cadastradas ou digite pelo menos um sabor.");
+    }
+    await Promise.all(flavorsToCreate.map((item, index) => setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, doc(collection(db, "tmp")).id), {
       nome: item.nome,
       preco: item.valor,
       categoriaId,
@@ -167,6 +173,7 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
     form.elements.categoriaNome.value = "Pizzas";
     form.elements.produtoNome.value = "Pizza Meio a Meio";
     form.elements.maxSabores.value = 2;
+    if (form.elements.categoriaOrigemId) form.elements.categoriaOrigemId.value = "";
     await loadCategories();
     await loadProducts();
     await Promise.all([loadFlavors(), loadAddons()]);
@@ -227,6 +234,9 @@ async function loadCategories() {
   const categoryOptions = state.categories.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("");
   $("#product-category").innerHTML = categoryOptions;
   $("#flavor-category").innerHTML = categoryOptions;
+  if ($("#pizza-source-category")) {
+    $("#pizza-source-category").innerHTML = `<option value="">Não puxar automaticamente</option>${categoryOptions}`;
+  }
   $("#addon-category").innerHTML = `<option value="">Selecione se aplicar por categoria</option>${categoryOptions}`;
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
@@ -327,6 +337,31 @@ function parseBulkLines(text = "", defaultValue = 0) {
       };
     })
     .filter((item) => item.nome);
+}
+
+function flavorsFromProducts(categoryId = "") {
+  if (!categoryId) return [];
+  return state.products
+    .filter((product) => product.categoriaId === categoryId && product.disponivel !== false)
+    .map((product) => ({
+      nome: product.nome || "",
+      valor: numberValue(product.preco)
+    }))
+    .filter((item) => item.nome);
+}
+
+function uniqueByName(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = String(item.nome || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function pizzaSizesFromQuickForm(data) {

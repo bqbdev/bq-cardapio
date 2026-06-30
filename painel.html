@@ -67,7 +67,13 @@
           <label>Preço média<input name="precoMedia" type="number" step="0.01" placeholder="Ex: 49.90"></label>
           <label>Preço grande<input name="precoGrande" type="number" step="0.01" placeholder="Ex: 59.90"></label>
           <label>Máximo de sabores<input name="maxSabores" type="number" min="1" value="2"></label>
-          <label class="full">Sabores em lote<textarea name="sabores" rows="5" placeholder="Mussarela&#10;Calabresa&#10;Portuguesa&#10;Quatro Queijos"></textarea></label>
+          <label class="full">Puxar sabores de uma categoria já cadastrada
+            <select name="categoriaOrigemId" id="pizza-source-category">
+              <option value="">Não puxar automaticamente</option>
+            </select>
+          </label>
+          <p class="form-hint full">Se escolher uma categoria, o sistema usa os produtos dela como sabores e pega o preço de cada produto. Exemplo: Mussarela R$ 49,90 vira sabor Mussarela por R$ 49,90.</p>
+          <label class="full">Ou digite sabores em lote<textarea name="sabores" rows="5" placeholder="Mussarela=49.90&#10;Calabresa=52.90&#10;Portuguesa=54.90&#10;Quatro Queijos=54.90"></textarea></label>
           <label class="full">Bordas ou adicionais em lote<textarea name="adicionais" rows="3" placeholder="Borda catupiry=7&#10;Borda cheddar=7"></textarea></label>
           <button class="btn btn-primary full" type="submit">Criar módulo de pizza</button>
         </form>

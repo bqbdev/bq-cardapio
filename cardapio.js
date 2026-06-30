@@ -317,7 +317,11 @@ function renderPizzaBuilderTop(product) {
   const max = Math.max(1, Number(product.maxSabores || 2));
   return `
     <section class="pizza-builder-hero">
-      ${product.fotoUrl ? `<img src="${product.fotoUrl}" alt="${product.nome}">` : `<div class="pizza-illustration">Pizza</div>`}
+      ${product.fotoUrl ? `<img src="${product.fotoUrl}" alt="${product.nome}">` : `
+        <div class="pizza-illustration" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      `}
     </section>
     ${sizes.length ? `
       <section class="builder-section">
@@ -359,13 +363,13 @@ function renderFlavorPicker(product, flavors) {
         <strong>Sabores</strong>
         <span id="flavor-counter">0 de ${max}</span>
       </div>
-      <p class="builder-help">${flavorHelpText(product, max)}</p>
+      <p id="builder-flavor-help" class="builder-help">${flavorHelpText(product, max)}</p>
       <div class="option-grid">
         ${flavors.map((flavor) => `
-          <label class="option-card">
+          <label class="option-card flavor-option-card">
             <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
             <span><b>${flavor.nome}</b>${max > 1 ? "<small>Meia parte disponível</small>" : ""}</span>
-            <strong>${product.pizzaMode && !Number(flavor.preco || 0) ? "Escolher" : money(flavor.preco)}</strong>
+            <strong>${product.pizzaMode && !Number(flavor.preco || 0) ? "Selecionar" : money(flavor.preco)}</strong>
           </label>
         `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
       </div>
@@ -431,6 +435,8 @@ function updateBuilderSelectionState(product) {
   const flavors = selectedBuilderFlavors();
   const counter = $("#flavor-counter");
   if (counter) counter.textContent = `${flavors.length} de ${max}`;
+  const help = $("#builder-flavor-help");
+  if (help) help.textContent = flavorHelpText(product, max);
   document.querySelectorAll("[data-builder-flavor]").forEach((input) => {
     input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
   });
