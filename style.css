@@ -557,6 +557,21 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   border-color: rgba(20, 108, 67, .18);
   background: #fff;
 }
+.pizza-source-panel {
+  border: 1px solid rgba(20, 108, 67, .18);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+.pizza-source-panel > strong {
+  font-size: 1.05rem;
+}
+.pizza-source-panel > p {
+  color: var(--muted);
+  margin: 0;
+}
 .list-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; display: grid; gap: 8px; }
 .compact-list-item {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -720,6 +735,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   border-radius: 12px;
   box-shadow: none;
   padding: 12px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
 }
 .flavor-option-card input {
   width: 18px;
@@ -739,6 +755,15 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .flavor-option-card:has(input:checked) strong {
   background: var(--primary);
   color: #fff;
+}
+.flavor-option-card.is-disabled {
+  opacity: .48;
+  background: var(--bg);
+  cursor: not-allowed;
+}
+.flavor-option-card.is-disabled strong {
+  color: var(--muted);
+  background: #eef0ef;
 }
 .option-card input { width: auto; }
 .option-card small {

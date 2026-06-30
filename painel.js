@@ -134,7 +134,7 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
       nome: data.produtoNome || "Pizza Meio a Meio",
       descricao: "Escolha o tamanho e os sabores da sua pizza.",
       categoriaId,
-      preco: tamanhos[0]?.preco || 0,
+      preco: numberValue(data.precoBase),
       tipoProduto: "sabores",
       maxSabores: Math.max(1, Number(data.maxSabores || 2)),
       regraPreco: "maior_valor",
@@ -146,7 +146,7 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
       permiteObservacoes: true,
       atualizadoEm: serverTimestamp()
     }, { merge: true });
-    const existingPizzaFlavors = flavorsFromProducts(data.categoriaOrigemId);
+    const existingPizzaFlavors = flavorsFromSizeCategories(data);
     const typedFlavors = parseBulkLines(data.sabores, 0);
     const flavorsToCreate = uniqueByName([...existingPizzaFlavors, ...typedFlavors]);
     if (!flavorsToCreate.length) {
@@ -155,6 +155,7 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
     await Promise.all(flavorsToCreate.map((item, index) => setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, doc(collection(db, "tmp")).id), {
       nome: item.nome,
       preco: item.valor,
+      precosPorTamanho: item.precosPorTamanho || {},
       categoriaId,
       ordem: index,
       disponivel: true,
@@ -173,7 +174,10 @@ $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
     form.elements.categoriaNome.value = "Pizzas";
     form.elements.produtoNome.value = "Pizza Meio a Meio";
     form.elements.maxSabores.value = 2;
-    if (form.elements.categoriaOrigemId) form.elements.categoriaOrigemId.value = "";
+    if (form.elements.precoBase) form.elements.precoBase.value = 0;
+    ["categoriaPequenaId", "categoriaMediaId", "categoriaGrandeId"].forEach((key) => {
+      if (form.elements[key]) form.elements[key].value = "";
+    });
     await loadCategories();
     await loadProducts();
     await Promise.all([loadFlavors(), loadAddons()]);
@@ -234,9 +238,9 @@ async function loadCategories() {
   const categoryOptions = state.categories.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("");
   $("#product-category").innerHTML = categoryOptions;
   $("#flavor-category").innerHTML = categoryOptions;
-  if ($("#pizza-source-category")) {
-    $("#pizza-source-category").innerHTML = `<option value="">Não puxar automaticamente</option>${categoryOptions}`;
-  }
+  ["#pizza-source-small", "#pizza-source-medium", "#pizza-source-large"].forEach((selector) => {
+    if ($(selector)) $(selector).innerHTML = `<option value="">Não usar</option>${categoryOptions}`;
+  });
   renderAddonCategoryChecks();
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
@@ -372,38 +376,54 @@ function parseBulkLines(text = "", defaultValue = 0) {
     .filter((item) => item.nome);
 }
 
-function flavorsFromProducts(categoryId = "") {
-  if (!categoryId) return [];
-  return state.products
-    .filter((product) => product.categoriaId === categoryId && product.disponivel !== false)
-    .map((product) => ({
-      nome: product.nome || "",
-      valor: numberValue(product.preco)
-    }))
-    .filter((item) => item.nome);
+function flavorsFromSizeCategories(data = {}) {
+  const sources = [
+    { nome: "Pequena", categoriaId: data.categoriaPequenaId },
+    { nome: "Média", categoriaId: data.categoriaMediaId },
+    { nome: "Grande", categoriaId: data.categoriaGrandeId }
+  ].filter((item) => item.categoriaId);
+  const map = new Map();
+  sources.forEach((source) => {
+    state.products
+      .filter((product) => product.categoriaId === source.categoriaId && product.disponivel !== false)
+      .forEach((product) => {
+        const key = normalizeName(product.nome);
+        if (!key) return;
+        const current = map.get(key) || { nome: product.nome, valor: numberValue(product.preco), precosPorTamanho: {} };
+        current.precosPorTamanho[source.nome] = numberValue(product.preco);
+        const validPrices = Object.values(current.precosPorTamanho).filter((value) => value > 0);
+        current.valor = validPrices.length ? Math.min(...validPrices) : 0;
+        map.set(key, current);
+      });
+  });
+  return Array.from(map.values());
 }
 
 function uniqueByName(items = []) {
   const seen = new Set();
   return items.filter((item) => {
-    const key = String(item.nome || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
+    const key = normalizeName(item.nome);
     if (!key || seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 }
 
+function normalizeName(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function pizzaSizesFromQuickForm(data) {
   const sizes = [
-    { nome: "Pequena", preco: numberValue(data.precoPequena) },
-    { nome: "Média", preco: numberValue(data.precoMedia) },
-    { nome: "Grande", preco: numberValue(data.precoGrande) }
-  ].filter((item) => item.preco > 0);
-  return sizes.length ? sizes : [{ nome: "Grande", preco: 0 }];
+    { nome: "Pequena", preco: numberValue(data.precoBase), categoriaOrigemId: data.categoriaPequenaId || "" },
+    { nome: "Média", preco: numberValue(data.precoBase), categoriaOrigemId: data.categoriaMediaId || "" },
+    { nome: "Grande", preco: numberValue(data.precoBase), categoriaOrigemId: data.categoriaGrandeId || "" }
+  ].filter((item) => item.categoriaOrigemId);
+  return sizes.length ? sizes : [{ nome: "Grande", preco: numberValue(data.precoBase), categoriaOrigemId: "" }];
 }
 
 function parsePizzaSizes(text = "") {

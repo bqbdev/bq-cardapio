@@ -221,15 +221,19 @@ function productNeedsBuilder(product) {
 }
 
 function productPriceLabel(product) {
-  const sizes = pizzaSizes(product);
-  if (product.pizzaMode && sizes.length) {
-    return `A partir de ${money(Math.min(...sizes.map((item) => Number(item.preco || 0))))}`;
-  }
   if (product.tipoProduto === "sabores") {
     const flavors = productFlavors(product);
-    if (flavors.length) return `A partir de ${money(Math.min(...flavors.map((item) => Number(item.preco || 0))))}`;
+    const prices = flavors.flatMap((item) => flavorPriceList(item)).filter((value) => value > 0);
+    if (prices.length) return `A partir de ${money(Math.min(...prices))}`;
   }
   return money(product.preco);
+}
+
+function flavorPriceList(flavor) {
+  if (flavor?.precosPorTamanho && typeof flavor.precosPorTamanho === "object") {
+    return Object.values(flavor.precosPorTamanho).map(Number);
+  }
+  return [Number(flavor?.preco || 0)];
 }
 
 function pizzaSizes(product) {
@@ -246,6 +250,20 @@ function selectedFlavorLimit(product) {
 
 function productFlavors(product) {
   return state.flavors.filter((item) => item.categoriaId === product.categoriaId);
+}
+
+function flavorPriceForSelection(flavor) {
+  const sizeName = state.builderPizzaSize?.nome;
+  if (sizeName && flavor?.precosPorTamanho && Object.prototype.hasOwnProperty.call(flavor.precosPorTamanho, sizeName)) {
+    return Number(flavor.precosPorTamanho[sizeName] || 0);
+  }
+  return Number(flavor.preco || 0);
+}
+
+function flavorAvailableForSelection(flavor) {
+  const sizeName = state.builderPizzaSize?.nome;
+  if (!sizeName || !flavor?.precosPorTamanho || !Object.keys(flavor.precosPorTamanho).length) return true;
+  return Object.prototype.hasOwnProperty.call(flavor.precosPorTamanho, sizeName);
 }
 
 function availableAddons(product) {
@@ -279,6 +297,10 @@ function openProductBuilder(product) {
   document.querySelectorAll("[data-builder-size]").forEach((input) => {
     input.addEventListener("change", () => {
       state.builderPizzaSize = pizzaSizes(product).find((item) => item.nome === input.value) || pizzaSizes(product)[0] || null;
+      document.querySelectorAll("[data-builder-flavor]").forEach((flavorInput) => {
+        const flavor = state.flavors.find((item) => item.id === flavorInput.value);
+        if (flavor && !flavorAvailableForSelection(flavor)) flavorInput.checked = false;
+      });
       updateBuilderTotal();
       updateBuilderSelectionState(product);
     });
@@ -372,7 +394,7 @@ function renderFlavorPicker(product, flavors) {
           <label class="option-card flavor-option-card">
             <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
             <span><b>${flavor.nome}</b>${max > 1 ? "<small>Disponível para meio a meio</small>" : "<small>Pizza inteira</small>"}</span>
-            <strong>${product.pizzaMode && !Number(flavor.preco || 0) ? "Selecionar" : money(flavor.preco)}</strong>
+            <strong data-flavor-price="${flavor.id}">${money(flavorPriceForSelection(flavor))}</strong>
           </label>
         `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
       </div>
@@ -441,7 +463,15 @@ function updateBuilderSelectionState(product) {
   const help = $("#builder-flavor-help");
   if (help) help.textContent = flavorHelpText(product, max);
   document.querySelectorAll("[data-builder-flavor]").forEach((input) => {
-    input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
+    const flavor = state.flavors.find((item) => item.id === input.value);
+    const available = !flavor || flavorAvailableForSelection(flavor);
+    input.disabled = !available;
+    if (!available) input.checked = false;
+    const card = input.closest(".option-card");
+    card?.classList.toggle("is-selected", input.checked);
+    card?.classList.toggle("is-disabled", !available);
+    const priceTarget = document.querySelector(`[data-flavor-price="${input.value}"]`);
+    if (priceTarget && flavor) priceTarget.textContent = available ? money(flavorPriceForSelection(flavor)) : "Indisponível";
   });
   document.querySelectorAll("[data-builder-addon]").forEach((input) => {
     input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
@@ -465,7 +495,7 @@ function calculateConfiguredPrice(product, flavors = [], addons = []) {
   const addonTotal = addons.reduce((sum, addon) => sum + Number(addon.preco || 0), 0);
   const sizeBase = product.pizzaMode ? Number(state.builderPizzaSize?.preco || 0) : Number(product.preco || 0);
   if (product.tipoProduto !== "sabores" || !flavors.length) return sizeBase + addonTotal;
-  const flavorPrices = flavors.map((flavor) => Number(flavor.preco || 0));
+  const flavorPrices = flavors.map(flavorPriceForSelection);
   const hasFlavorPrices = flavorPrices.some((value) => value > 0);
   let base = sizeBase;
   if (product.pizzaMode && hasFlavorPrices) base = Math.max(...flavorPrices);
@@ -486,7 +516,7 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
     quantidade: 1,
     observacao,
     tamanho: product.pizzaMode && state.builderPizzaSize ? { nome: state.builderPizzaSize.nome, preco: Number(state.builderPizzaSize.preco || 0) } : null,
-    sabores: flavors.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
+    sabores: flavors.map((item) => ({ id: item.id, nome: item.nome, preco: flavorPriceForSelection(item) })),
     adicionais: addons.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
     regraPreco: product.regraPreco || "fixo",
     signature: [product.id, state.builderPizzaSize?.nome || "", flavorIds.join(","), addonIds.join(","), observacao].join("|")
