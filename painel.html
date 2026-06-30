@@ -55,6 +55,22 @@
     <section id="cardapio" class="panel">
       <div class="panel-heading"><h2>Cardápio</h2></div>
       <div class="menu-admin-grid">
+        <form id="pizza-quick-form" class="form-grid panel-inner pizza-module">
+          <div class="full">
+            <p class="eyebrow">Módulo pizzaria</p>
+            <h3>Montagem rápida de pizza</h3>
+            <p class="form-hint">Cadastre uma pizza montável, seus tamanhos e vários sabores de uma vez. Depois você pode editar cada item normalmente.</p>
+          </div>
+          <label>Nome da categoria<input name="categoriaNome" value="Pizzas" required></label>
+          <label>Nome do produto<input name="produtoNome" value="Pizza Meio a Meio" required></label>
+          <label>Preço pequena<input name="precoPequena" type="number" step="0.01" placeholder="Ex: 39.90"></label>
+          <label>Preço média<input name="precoMedia" type="number" step="0.01" placeholder="Ex: 49.90"></label>
+          <label>Preço grande<input name="precoGrande" type="number" step="0.01" placeholder="Ex: 59.90"></label>
+          <label>Máximo de sabores<input name="maxSabores" type="number" min="1" value="2"></label>
+          <label class="full">Sabores em lote<textarea name="sabores" rows="5" placeholder="Mussarela&#10;Calabresa&#10;Portuguesa&#10;Quatro Queijos"></textarea></label>
+          <label class="full">Bordas ou adicionais em lote<textarea name="adicionais" rows="3" placeholder="Borda catupiry=7&#10;Borda cheddar=7"></textarea></label>
+          <button class="btn btn-primary full" type="submit">Criar módulo de pizza</button>
+        </form>
         <form id="category-form" class="form-grid panel-inner">
           <h3 class="full">Categorias</h3>
           <input type="hidden" name="id">
@@ -99,7 +115,7 @@
           <p class="form-hint full">Para pizza meio a meio: crie uma categoria, cadastre os sabores nessa categoria, depois crie o produto como "Produto com sabores", escolha máximo 2 sabores e use "Maior valor prevalece".</p>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
-          <label>Preço base<input name="preco" type="number" step="0.01" required></label>
+          <label>Preço base<input name="preco" type="number" step="0.01" value="0" required></label>
           <label>Categoria<select name="categoriaId" id="product-category"></select></label>
           <label>Tipo
             <select name="tipoProduto" id="product-type">
@@ -116,6 +132,8 @@
               <option value="soma_sabores">Somar valores dos sabores</option>
             </select>
           </label>
+          <label class="check-row"><input name="pizzaMode" type="checkbox"> Modo pizzaria</label>
+          <label class="full">Tamanhos da pizza<textarea name="pizzaTamanhosTexto" rows="3" placeholder="Pequena=39.90&#10;Média=49.90&#10;Grande=59.90"></textarea></label>
           <input name="fotoUrl" type="hidden">
           <label class="full">Foto do produto em Base64<input id="product-photo-file" type="file" accept="image/*"></label>
           <div id="product-photo-preview" class="image-preview full">Sem foto selecionada</div>

@@ -115,6 +115,64 @@ $("#geocode-business-address")?.addEventListener("click", async () => {
 });
 $("#add-delivery-fee-row")?.addEventListener("click", () => addDeliveryFeeRow());
 
+$("#pizza-quick-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const categoriaId = doc(collection(db, "tmp")).id;
+    const produtoId = doc(collection(db, "tmp")).id;
+    const tamanhos = pizzaSizesFromQuickForm(data);
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, categoriaId), {
+      nome: data.categoriaNome || "Pizzas",
+      descricao: "Categoria criada pelo módulo de pizzaria.",
+      ordem: 0,
+      ativo: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, produtoId), {
+      nome: data.produtoNome || "Pizza Meio a Meio",
+      descricao: "Escolha o tamanho e os sabores da sua pizza.",
+      categoriaId,
+      preco: tamanhos[0]?.preco || 0,
+      tipoProduto: "sabores",
+      maxSabores: Math.max(1, Number(data.maxSabores || 2)),
+      regraPreco: "maior_valor",
+      pizzaMode: true,
+      pizzaTamanhos: tamanhos,
+      fotoUrl: "",
+      disponivel: true,
+      destaque: true,
+      permiteObservacoes: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    await Promise.all(parseBulkLines(data.sabores, 0).map((item, index) => setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, doc(collection(db, "tmp")).id), {
+      nome: item.nome,
+      preco: item.valor,
+      categoriaId,
+      ordem: index,
+      disponivel: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true })));
+    await Promise.all(parseBulkLines(data.adicionais, 0).map((item) => setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, doc(collection(db, "tmp")).id), {
+      nome: item.nome,
+      preco: item.valor,
+      aplicarEm: "produto",
+      categoriaId: "",
+      produtoId,
+      disponivel: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true })));
+    form.reset();
+    form.elements.categoriaNome.value = "Pizzas";
+    form.elements.produtoNome.value = "Pizza Meio a Meio";
+    form.elements.maxSabores.value = 2;
+    await loadCategories();
+    await loadProducts();
+    await Promise.all([loadFlavors(), loadAddons()]);
+  }, "Módulo de pizza criado");
+});
+
 async function findBusinessForUser(uid) {
   const savedBusinessId = sessionStorage.getItem("businessId");
   if (savedBusinessId) {
@@ -242,6 +300,7 @@ async function loadProducts() {
 }
 
 function productTypeLabel(product) {
+  if (product.pizzaMode) return "Pizza montável";
   if (product.tipoProduto === "sabores") return "Produto com sabores";
   return "Produto simples";
 }
@@ -254,6 +313,39 @@ function addonScopeLabel(addon) {
   if (addon.aplicarEm === "categoria") return `Categoria: ${categoryName(addon.categoriaId)}`;
   if (addon.aplicarEm === "produto") return `Produto: ${state.products.find((item) => item.id === addon.produtoId)?.nome || "não encontrado"}`;
   return "Todos os produtos";
+}
+
+function parseBulkLines(text = "", defaultValue = 0) {
+  return String(text || "").split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, value] = line.split(/[=:;]/);
+      return {
+        nome: name?.trim() || "",
+        valor: value === undefined ? defaultValue : numberValue(value)
+      };
+    })
+    .filter((item) => item.nome);
+}
+
+function pizzaSizesFromQuickForm(data) {
+  const sizes = [
+    { nome: "Pequena", preco: numberValue(data.precoPequena) },
+    { nome: "Média", preco: numberValue(data.precoMedia) },
+    { nome: "Grande", preco: numberValue(data.precoGrande) }
+  ].filter((item) => item.preco > 0);
+  return sizes.length ? sizes : [{ nome: "Grande", preco: 0 }];
+}
+
+function parsePizzaSizes(text = "") {
+  return parseBulkLines(text, 0)
+    .map((item) => ({ nome: item.nome, preco: item.valor }))
+    .filter((item) => item.nome);
+}
+
+function pizzaSizesToText(sizes = []) {
+  return Array.isArray(sizes) ? sizes.map((item) => `${item.nome || ""}=${item.preco || 0}`).join("\n") : "";
 }
 
 function loadOrders() {
@@ -323,6 +415,7 @@ function renderOrderStatusSteps(status = "") {
 
 function orderItemSummary(item) {
   const details = [
+    item.tamanho ? `tamanho: ${item.tamanho.nome}` : "",
     item.sabores?.length ? `sabores: ${item.sabores.map((flavor) => flavor.nome).join("/")}` : "",
     item.adicionais?.length ? `adicionais: ${item.adicionais.map((addon) => addon.nome).join("/")}` : "",
     item.observacao ? `obs: ${item.observacao}` : ""
@@ -444,6 +537,8 @@ $("#product-form")?.addEventListener("submit", async (event) => {
       tipoProduto: data.tipoProduto || "simples",
       maxSabores: Math.max(1, Number(data.maxSabores || 1)),
       regraPreco: data.regraPreco || "fixo",
+      pizzaMode: Boolean(data.pizzaMode),
+      pizzaTamanhos: parsePizzaSizes(data.pizzaTamanhosTexto),
       fotoUrl: data.fotoUrl || "",
       disponivel: Boolean(data.disponivel),
       destaque: Boolean(data.destaque),
@@ -486,9 +581,12 @@ function resetProductForm(form = $("#product-form")) {
   form?.reset();
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.categoriaId && currentCategory) form.elements.categoriaId.value = currentCategory;
+  if (form?.elements.preco) form.elements.preco.value = 0;
   if (form?.elements.tipoProduto) form.elements.tipoProduto.value = "simples";
   if (form?.elements.regraPreco) form.elements.regraPreco.value = "fixo";
   if (form?.elements.maxSabores) form.elements.maxSabores.value = 1;
+  if (form?.elements.pizzaMode) form.elements.pizzaMode.checked = false;
+  if (form?.elements.pizzaTamanhosTexto) form.elements.pizzaTamanhosTexto.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
   if (form?.elements.permiteObservacoes) form.elements.permiteObservacoes.checked = true;
   renderPhotoPreview("");
@@ -541,6 +639,8 @@ function fillProduct(id) {
   form.elements.tipoProduto.value = item.tipoProduto || "simples";
   form.elements.maxSabores.value = item.maxSabores || 1;
   form.elements.regraPreco.value = item.regraPreco || "fixo";
+  if (form.elements.pizzaMode) form.elements.pizzaMode.checked = Boolean(item.pizzaMode);
+  if (form.elements.pizzaTamanhosTexto) form.elements.pizzaTamanhosTexto.value = pizzaSizesToText(item.pizzaTamanhos);
   form.elements.disponivel.checked = item.disponivel !== false;
   form.elements.destaque.checked = Boolean(item.destaque);
   form.elements.permiteObservacoes.checked = item.permiteObservacoes !== false;
