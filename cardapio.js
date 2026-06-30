@@ -250,10 +250,15 @@ function productFlavors(product) {
 
 function availableAddons(product) {
   return state.addons.filter((addon) => {
-    if (addon.aplicarEm === "categoria") return addon.categoriaId === product.categoriaId;
+    if (addon.aplicarEm === "categoria") return addonCategoryIds(addon).includes(product.categoriaId);
     if (addon.aplicarEm === "produto") return addon.produtoId === product.id;
     return addon.aplicarEm === "todos" || !addon.aplicarEm;
   });
+}
+
+function addonCategoryIds(addon) {
+  if (Array.isArray(addon.categoriaIds)) return addon.categoriaIds.filter(Boolean);
+  return addon.categoriaId ? [addon.categoriaId] : [];
 }
 
 function openProductBuilder(product) {
@@ -315,13 +320,11 @@ function builderSubtitle(product, flavors, addons) {
 function renderPizzaBuilderTop(product) {
   const sizes = pizzaSizes(product);
   const max = Math.max(1, Number(product.maxSabores || 2));
+  const showSizePrices = !productFlavors(product).some((flavor) => Number(flavor.preco || 0) > 0);
   return `
-    <section class="pizza-builder-hero">
-      ${product.fotoUrl ? `<img src="${product.fotoUrl}" alt="${product.nome}">` : `
-        <div class="pizza-illustration" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-      `}
+    <section class="pizza-builder-intro">
+      <strong>${escapeHtml(product.nome)}</strong>
+      <span>${showSizePrices ? "Escolha o tamanho e os sabores." : "Escolha o tamanho. O preço será definido pelos sabores."}</span>
     </section>
     ${sizes.length ? `
       <section class="builder-section">
@@ -331,7 +334,7 @@ function renderPizzaBuilderTop(product) {
             <label class="segment-card">
               <input data-builder-size name="pizzaSize" value="${escapeHtml(size.nome)}" type="radio" ${index === 0 ? "checked" : ""}>
               <span>${escapeHtml(size.nome)}</span>
-              <small>${money(size.preco)}</small>
+              ${showSizePrices ? `<small>${money(size.preco)}</small>` : ""}
             </label>
           `).join("")}
         </div>
@@ -364,11 +367,11 @@ function renderFlavorPicker(product, flavors) {
         <span id="flavor-counter">0 de ${max}</span>
       </div>
       <p id="builder-flavor-help" class="builder-help">${flavorHelpText(product, max)}</p>
-      <div class="option-grid">
+      <div class="option-list">
         ${flavors.map((flavor) => `
           <label class="option-card flavor-option-card">
             <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
-            <span><b>${flavor.nome}</b>${max > 1 ? "<small>Meia parte disponível</small>" : ""}</span>
+            <span><b>${flavor.nome}</b>${max > 1 ? "<small>Disponível para meio a meio</small>" : "<small>Pizza inteira</small>"}</span>
             <strong>${product.pizzaMode && !Number(flavor.preco || 0) ? "Selecionar" : money(flavor.preco)}</strong>
           </label>
         `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
@@ -463,8 +466,10 @@ function calculateConfiguredPrice(product, flavors = [], addons = []) {
   const sizeBase = product.pizzaMode ? Number(state.builderPizzaSize?.preco || 0) : Number(product.preco || 0);
   if (product.tipoProduto !== "sabores" || !flavors.length) return sizeBase + addonTotal;
   const flavorPrices = flavors.map((flavor) => Number(flavor.preco || 0));
+  const hasFlavorPrices = flavorPrices.some((value) => value > 0);
   let base = sizeBase;
-  if (product.regraPreco === "maior_valor") base = Math.max(sizeBase, ...flavorPrices);
+  if (product.pizzaMode && hasFlavorPrices) base = Math.max(...flavorPrices);
+  else if (product.regraPreco === "maior_valor") base = Math.max(sizeBase, ...flavorPrices);
   if (product.regraPreco === "media_sabores") base = flavorPrices.reduce((sum, value) => sum + value, 0) / flavorPrices.length;
   if (product.regraPreco === "soma_sabores") base = flavorPrices.reduce((sum, value) => sum + value, 0);
   return base + addonTotal;

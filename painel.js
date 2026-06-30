@@ -237,7 +237,7 @@ async function loadCategories() {
   if ($("#pizza-source-category")) {
     $("#pizza-source-category").innerHTML = `<option value="">Não puxar automaticamente</option>${categoryOptions}`;
   }
-  $("#addon-category").innerHTML = `<option value="">Selecione se aplicar por categoria</option>${categoryOptions}`;
+  renderAddonCategoryChecks();
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
       <strong>${item.nome}</strong><small>${item.ativo ? "Ativo" : "Inativo"} - ordem ${item.ordem || 0}</small>
@@ -320,9 +320,42 @@ function categoryName(id) {
 }
 
 function addonScopeLabel(addon) {
-  if (addon.aplicarEm === "categoria") return `Categoria: ${categoryName(addon.categoriaId)}`;
+  if (addon.aplicarEm === "categoria") {
+    const ids = addonCategoryIds(addon);
+    return `Categorias: ${ids.map(categoryName).join(", ") || "nenhuma"}`;
+  }
   if (addon.aplicarEm === "produto") return `Produto: ${state.products.find((item) => item.id === addon.produtoId)?.nome || "não encontrado"}`;
   return "Todos os produtos";
+}
+
+function addonCategoryIds(addon) {
+  if (Array.isArray(addon.categoriaIds)) return addon.categoriaIds.filter(Boolean);
+  return addon.categoriaId ? [addon.categoriaId] : [];
+}
+
+function renderAddonCategoryChecks(selected = []) {
+  const target = $("#addon-category-checks");
+  if (!target) return;
+  const selectedSet = new Set(selected);
+  target.innerHTML = state.categories.map((category) => `
+    <label class="category-check ${selectedSet.has(category.id) ? "is-selected" : ""}">
+      <input type="checkbox" data-addon-category-id="${category.id}" ${selectedSet.has(category.id) ? "checked" : ""}>
+      <span>${category.nome}</span>
+    </label>
+  `).join("") || "<p>Nenhuma categoria cadastrada.</p>";
+  target.querySelectorAll("[data-addon-category-id]").forEach((input) => {
+    input.addEventListener("change", () => {
+      input.closest(".category-check")?.classList.toggle("is-selected", input.checked);
+    });
+  });
+}
+
+function selectedAddonCategoryIds() {
+  return Array.from(document.querySelectorAll("[data-addon-category-id]:checked")).map((input) => input.dataset.addonCategoryId);
+}
+
+function setAddonCategorySelection(values = []) {
+  renderAddonCategoryChecks(values);
 }
 
 function parseBulkLines(text = "", defaultValue = 0) {
@@ -544,11 +577,13 @@ $("#addon-form")?.addEventListener("submit", async (event) => {
   await runFormSave(form, async () => {
     const data = formToObject(form);
     const id = data.id || doc(collection(db, "tmp")).id;
+    const categoriaIds = selectedAddonCategoryIds();
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
       nome: data.nome,
       preco: numberValue(data.preco),
       aplicarEm: data.aplicarEm || "todos",
-      categoriaId: data.aplicarEm === "categoria" ? data.categoriaId || "" : "",
+      categoriaId: data.aplicarEm === "categoria" ? categoriaIds[0] || "" : "",
+      categoriaIds: data.aplicarEm === "categoria" ? categoriaIds : [],
       produtoId: data.aplicarEm === "produto" ? data.produtoId || "" : "",
       disponivel: Boolean(data.disponivel),
       atualizadoEm: serverTimestamp()
@@ -606,7 +641,7 @@ function resetAddonForm(form = $("#addon-form")) {
   form?.reset();
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.aplicarEm) form.elements.aplicarEm.value = "todos";
-  if (form?.elements.categoriaId) form.elements.categoriaId.value = "";
+  setAddonCategorySelection([]);
   if (form?.elements.produtoId) form.elements.produtoId.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
 }
@@ -659,7 +694,7 @@ function fillAddon(id) {
   form.elements.nome.value = item.nome || "";
   form.elements.preco.value = item.preco || 0;
   form.elements.aplicarEm.value = item.aplicarEm || "todos";
-  form.elements.categoriaId.value = item.categoriaId || "";
+  setAddonCategorySelection(addonCategoryIds(item));
   form.elements.produtoId.value = item.produtoId || "";
   form.elements.disponivel.checked = item.disponivel !== false;
 }

@@ -110,7 +110,11 @@
               <option value="produto">Um produto específico</option>
             </select>
           </label>
-          <label>Categoria<select name="categoriaId" id="addon-category"></select></label>
+          <div class="full">
+            <strong class="field-title">Categorias</strong>
+            <div id="addon-category-checks" class="category-check-grid"></div>
+          </div>
+          <p class="form-hint full">Para aplicar em mais de uma categoria, escolha "Uma categoria" e marque todas as categorias desejadas.</p>
           <label class="full">Produto<select name="produtoId" id="addon-product"></select></label>
           <label class="check-row full"><input name="disponivel" type="checkbox" checked> Disponível</label>
           <button class="btn btn-primary full" type="submit">Salvar adicional</button>
