@@ -376,10 +376,7 @@ function addonScopeLabel(addon) {
 }
 
 function simpleProducts() {
-  return state.products.filter((item) => (
-    item.moduleType === "simples"
-    || (!item.moduleType && item.tipoProduto !== "sabores" && !item.pizzaMode)
-  ));
+  return state.products.filter((item) => item.moduleType === "simples");
 }
 
 function moduleItems(type) {
@@ -435,15 +432,15 @@ function renderAllProductsOverview() {
 }
 
 function allCatalogItems() {
-  const legacyProducts = state.products.map((item) => ({
+  const simpleItems = simpleProducts().map((item) => ({
     id: item.id,
     nome: item.nome || "Produto sem nome",
     descricao: item.descricao || "",
     categoria: categoryName(item.categoriaId),
-    tipo: productTypeLabel(item),
+    tipo: "Produto simples",
     preco: item.preco,
     disponivel: item.disponivel !== false,
-    edit: item.moduleType === "simples" || item.tipoProduto === "simples" ? "simple-product" : "product"
+    edit: "simple-product"
   }));
   const pizzaItems = moduleItems("pizza").map((item) => ({
     id: item.id,
@@ -467,7 +464,7 @@ function allCatalogItems() {
     disponivel: item.disponivel !== false,
     edit: "portion-item"
   }));
-  return [...legacyProducts, ...pizzaItems, ...portionItems];
+  return [...simpleItems, ...pizzaItems, ...portionItems];
 }
 
 function renderCatalogCard(item) {
