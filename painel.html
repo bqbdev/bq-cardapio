@@ -15,7 +15,13 @@
     <nav>
       <a href="#dashboard">Dashboard</a>
       <a href="#pedidos">Pedidos</a>
-      <a href="#cardapio">Cardápio</a>
+      <a href="#produtos-simples">Produtos Simples</a>
+      <a href="#pizzas">Pizzas</a>
+      <a href="#porcoes">Porções</a>
+      <a href="#categorias">Categorias</a>
+      <a href="#sabores">Sabores</a>
+      <a href="#bordas">Bordas</a>
+      <a href="#adicionais">Adicionais</a>
       <a href="#clientes">Clientes</a>
       <a href="#financeiro">Financeiro</a>
       <a href="#taxas">Taxas</a>
@@ -52,7 +58,135 @@
       <div id="orders-list" class="stack-list"></div>
     </section>
 
-    <section id="cardapio" class="panel">
+    <section id="produtos-simples" class="panel module-page">
+      <div class="panel-heading"><h2>Produtos Simples</h2></div>
+      <form id="simple-product-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome do produto<input name="nome" required></label>
+        <label>Valor<input name="preco" type="number" step="0.01" required></label>
+        <label>Categoria<select name="categoriaId" id="simple-product-category"></select></label>
+        <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
+        <input name="fotoUrl" type="hidden">
+        <label class="full">Imagem em Base64<input id="simple-product-photo-file" type="file" accept="image/*"></label>
+        <div id="simple-product-photo-preview" class="image-preview full">Sem foto selecionada</div>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar produto simples</button>
+      </form>
+      <div id="simple-products-list" class="stack-list"></div>
+    </section>
+
+    <section id="pizzas" class="panel module-page">
+      <div class="panel-heading"><h2>Pizzas</h2><button id="new-pizza-btn" class="btn btn-small" type="button">+ Nova pizza</button></div>
+      <form id="pizza-item-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome da pizza<input name="nome" required placeholder="Ex: Calabresa"></label>
+        <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
+        <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
+        <label class="full">Ingredientes<textarea name="descricao" rows="2" placeholder="Molho, mussarela, calabresa..."></textarea></label>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar pizza e continuar</button>
+      </form>
+      <form id="pizza-settings-form" class="form-grid panel-inner">
+        <h3 class="full">Meio a meio automático</h3>
+        <label class="check-row"><input name="pizzaMeioP" type="checkbox"> Ativar pizza meio a meio P</label>
+        <label class="check-row"><input name="pizzaMeioG" type="checkbox"> Ativar pizza meio a meio G</label>
+        <button class="btn btn-primary full" type="submit">Salvar configuração de pizzas</button>
+      </form>
+      <div id="pizzas-list" class="stack-list"></div>
+    </section>
+
+    <section id="porcoes" class="panel module-page">
+      <div class="panel-heading"><h2>Porções</h2><button id="new-portion-btn" class="btn btn-small" type="button">+ Nova porção</button></div>
+      <form id="portion-item-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome da porção<input name="nome" required placeholder="Ex: Batata frita"></label>
+        <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
+        <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
+        <label class="full">Descrição/ingredientes<textarea name="descricao" rows="2"></textarea></label>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar porção e continuar</button>
+      </form>
+      <form id="portion-settings-form" class="form-grid panel-inner">
+        <h3 class="full">Meio a meio automático</h3>
+        <label class="check-row"><input name="porcaoMeioP" type="checkbox"> Ativar porção meio a meio P</label>
+        <label class="check-row"><input name="porcaoMeioG" type="checkbox"> Ativar porção meio a meio G</label>
+        <button class="btn btn-primary full" type="submit">Salvar configuração de porções</button>
+      </form>
+      <div id="portions-list" class="stack-list"></div>
+    </section>
+
+    <section id="categorias" class="panel module-page">
+      <div class="panel-heading"><h2>Categorias</h2></div>
+      <form id="module-category-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome da categoria<input name="nome" required></label>
+        <label>Tipo de módulo
+          <select name="moduleType">
+            <option value="simples">Produto simples</option>
+            <option value="pizza">Pizza</option>
+            <option value="porcao">Porção</option>
+          </select>
+        </label>
+        <label>Ordem<input name="ordem" type="number" value="0"></label>
+        <label class="check-row"><input name="ativo" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar categoria</button>
+      </form>
+      <div id="module-categories-list" class="stack-list"></div>
+    </section>
+
+    <section id="sabores" class="panel module-page">
+      <div class="panel-heading"><h2>Sabores</h2></div>
+      <form id="module-flavor-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome<input name="nome" required></label>
+        <label>Tipo
+          <select name="tipo">
+            <option value="pizza">Pizza</option>
+            <option value="porcao">Porção</option>
+          </select>
+        </label>
+        <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
+        <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
+        <label class="full">Ingredientes/descrição<textarea name="descricao" rows="2"></textarea></label>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar sabor</button>
+      </form>
+      <div id="module-flavors-list" class="stack-list"></div>
+    </section>
+
+    <section id="bordas" class="panel module-page">
+      <div class="panel-heading"><h2>Bordas</h2><button id="new-crust-btn" class="btn btn-small" type="button">+ Nova borda</button></div>
+      <form id="crust-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome da borda<input name="nome" required placeholder="Ex: Catupiry"></label>
+        <label>Valor adicional<input name="preco" type="number" step="0.01" required></label>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar borda e continuar</button>
+      </form>
+      <div id="crusts-list" class="stack-list"></div>
+    </section>
+
+    <section id="adicionais" class="panel module-page">
+      <div class="panel-heading"><h2>Adicionais</h2><button id="new-extra-btn" class="btn btn-small" type="button">+ Novo adicional</button></div>
+      <form id="module-addon-form" class="form-grid panel-inner">
+        <input type="hidden" name="id">
+        <label>Nome do adicional<input name="nome" required></label>
+        <label>Valor<input name="preco" type="number" step="0.01" required></label>
+        <label>Usar em
+          <select name="aplicarEm">
+            <option value="todos">Todos os módulos compatíveis</option>
+            <option value="pizza">Pizzas</option>
+            <option value="porcao">Porções</option>
+            <option value="simples">Produtos simples</option>
+          </select>
+        </label>
+        <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <button class="btn btn-primary full" type="submit">Salvar adicional e continuar</button>
+      </form>
+      <div id="module-addons-list" class="stack-list"></div>
+    </section>
+
+    <section id="cardapio" class="panel legacy-cardapio hidden">
       <div class="panel-heading"><h2>Cardápio</h2></div>
       <div class="menu-admin-grid">
         <form id="pizza-quick-form" class="form-grid panel-inner pizza-module">

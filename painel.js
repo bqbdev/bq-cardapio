@@ -9,6 +9,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   where,
@@ -19,9 +20,10 @@ import { addMonths, formToObject, money, numberValue, planMonths, printOrder, se
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "" };
+const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "" };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
+const panelPages = ["dashboard", "pedidos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
   aceitaRetirada: true,
@@ -55,6 +57,7 @@ onAuthStateChanged(auth, async (user) => {
     });
     renderBusinessHeader();
     await loadPanelData();
+    showCurrentPanelPage();
     document.body.classList.remove("protected-loading");
   } catch (error) {
     console.error("Falha ao verificar estabelecimento:", error);
@@ -80,6 +83,15 @@ $("#product-photo-file")?.addEventListener("change", async (event) => {
   const form = $("#product-form");
   form.elements.fotoUrl.value = base64;
   renderPhotoPreview(base64);
+});
+$("#simple-product-photo-file")?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+  if (!base64) return;
+  const form = $("#simple-product-form");
+  form.elements.fotoUrl.value = base64;
+  renderSimpleProductPhotoPreview(base64);
 });
 $("#business-logo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
@@ -114,6 +126,10 @@ $("#geocode-business-address")?.addEventListener("click", async () => {
   }
 });
 $("#add-delivery-fee-row")?.addEventListener("click", () => addDeliveryFeeRow());
+window.addEventListener("hashchange", showCurrentPanelPage);
+document.querySelectorAll(".sidebar nav a").forEach((link) => {
+  link.addEventListener("click", () => setTimeout(showCurrentPanelPage, 0));
+});
 
 $("#pizza-quick-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -226,10 +242,26 @@ function renderRenewalInfo() {
   $("#renewal-plan").textContent = `Plano ${plan}`;
 }
 
+function showCurrentPanelPage() {
+  const page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
+  document.querySelectorAll("main > section").forEach((section) => {
+    const isUtilityBand = section.classList.contains("soon-band");
+    const isPage = panelPages.includes(section.id);
+    if (isPage) section.classList.toggle("hidden", section.id !== page);
+    if (isUtilityBand) section.classList.toggle("hidden", page !== "dashboard");
+  });
+  document.querySelectorAll(".sidebar nav a").forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("href") === `#${page}`);
+  });
+}
+
 async function loadPanelData() {
   await loadCategories();
   await loadProducts();
   await Promise.all([loadFlavors(), loadAddons(), loadOrders(), loadClients(), loadSettings(), loadFees()]);
+  renderModuleProducts();
+  renderModuleFlavors();
+  renderModuleAddons();
 }
 
 async function loadCategories() {
@@ -237,6 +269,7 @@ async function loadCategories() {
   state.categories = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
   const categoryOptions = state.categories.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("");
   $("#product-category").innerHTML = categoryOptions;
+  if ($("#simple-product-category")) $("#simple-product-category").innerHTML = categoryOptions;
   $("#flavor-category").innerHTML = categoryOptions;
   ["#pizza-source-small", "#pizza-source-medium", "#pizza-source-large"].forEach((selector) => {
     if ($(selector)) $(selector).innerHTML = `<option value="">Não usar</option>${categoryOptions}`;
@@ -249,6 +282,7 @@ async function loadCategories() {
     </div>
   `).join("") || "<p>Nenhuma categoria cadastrada.</p>";
   document.querySelectorAll("[data-edit-category]").forEach((button) => button.addEventListener("click", () => fillCategory(button.dataset.editCategory)));
+  renderModuleCategories();
 }
 
 async function loadFlavors() {
@@ -262,6 +296,7 @@ async function loadFlavors() {
     </div>
   `).join("") || "<p>Nenhum sabor cadastrado.</p>";
   document.querySelectorAll("[data-edit-flavor]").forEach((button) => button.addEventListener("click", () => fillFlavor(button.dataset.editFlavor)));
+  renderModuleFlavors();
 }
 
 async function loadAddons() {
@@ -275,6 +310,7 @@ async function loadAddons() {
     </div>
   `).join("") || "<p>Nenhum adicional cadastrado.</p>";
   document.querySelectorAll("[data-edit-addon]").forEach((button) => button.addEventListener("click", () => fillAddon(button.dataset.editAddon)));
+  renderModuleAddons();
 }
 
 async function loadProducts() {
@@ -311,6 +347,7 @@ async function loadProducts() {
   document.querySelectorAll("[data-photo-input]").forEach((input) => {
     input.addEventListener("change", () => updateProductPhoto(input.dataset.photoInput, input.files?.[0], input));
   });
+  renderModuleProducts();
 }
 
 function productTypeLabel(product) {
@@ -330,6 +367,173 @@ function addonScopeLabel(addon) {
   }
   if (addon.aplicarEm === "produto") return `Produto: ${state.products.find((item) => item.id === addon.produtoId)?.nome || "não encontrado"}`;
   return "Todos os produtos";
+}
+
+function simpleProducts() {
+  return state.products.filter((item) => (
+    item.moduleType === "simples"
+    || (!item.moduleType && item.tipoProduto !== "sabores" && !item.pizzaMode)
+  ));
+}
+
+function moduleItems(type) {
+  return state.flavors.filter((item) => item.tipo === type || item.moduleType === type);
+}
+
+function crusts() {
+  return state.addons.filter((item) => item.tipoAdicional === "borda");
+}
+
+function extraAddons() {
+  return state.addons.filter((item) => item.tipoAdicional !== "borda");
+}
+
+function renderModuleProducts() {
+  renderSimpleProducts();
+  renderPizzas();
+  renderPortions();
+}
+
+function renderSimpleProducts() {
+  const target = $("#simple-products-list");
+  if (!target) return;
+  target.innerHTML = simpleProducts().map((item) => moduleListItem({
+    title: item.nome,
+    meta: `${money(item.preco)} - ${categoryName(item.categoriaId)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    id: item.id,
+    edit: "simple-product",
+    remove: "product"
+  })).join("") || "<p>Nenhum produto simples cadastrado.</p>";
+  bindModuleActions(target);
+}
+
+function renderPizzas() {
+  const target = $("#pizzas-list");
+  if (!target) return;
+  target.innerHTML = moduleItems("pizza").map((item) => moduleListItem({
+    title: item.nome,
+    meta: `P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    description: item.descricao || "",
+    id: item.id,
+    edit: "pizza-item",
+    remove: "flavor"
+  })).join("") || "<p>Nenhuma pizza cadastrada.</p>";
+  bindModuleActions(target);
+}
+
+function renderPortions() {
+  const target = $("#portions-list");
+  if (!target) return;
+  target.innerHTML = moduleItems("porcao").map((item) => moduleListItem({
+    title: item.nome,
+    meta: `P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    description: item.descricao || "",
+    id: item.id,
+    edit: "portion-item",
+    remove: "flavor"
+  })).join("") || "<p>Nenhuma porção cadastrada.</p>";
+  bindModuleActions(target);
+}
+
+function renderModuleCategories() {
+  const target = $("#module-categories-list");
+  if (!target) return;
+  target.innerHTML = state.categories.map((item) => moduleListItem({
+    title: item.nome,
+    meta: `${moduleTypeLabel(item.moduleType)} - ${item.ativo !== false ? "Ativa" : "Inativa"} - ordem ${item.ordem || 0}`,
+    id: item.id,
+    edit: "module-category",
+    remove: "category"
+  })).join("") || "<p>Nenhuma categoria cadastrada.</p>";
+  bindModuleActions(target);
+}
+
+function renderModuleFlavors() {
+  const target = $("#module-flavors-list");
+  if (!target) return;
+  const items = state.flavors.filter((item) => item.tipo === "pizza" || item.tipo === "porcao" || item.moduleType === "pizza" || item.moduleType === "porcao");
+  target.innerHTML = items.map((item) => moduleListItem({
+    title: item.nome,
+    meta: `${moduleTypeLabel(item.tipo || item.moduleType)} - P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    description: item.descricao || "",
+    id: item.id,
+    edit: "module-flavor",
+    remove: "flavor"
+  })).join("") || "<p>Nenhum sabor cadastrado.</p>";
+  bindModuleActions(target);
+}
+
+function renderModuleAddons() {
+  renderCrusts();
+  renderExtras();
+}
+
+function renderCrusts() {
+  const target = $("#crusts-list");
+  if (!target) return;
+  const items = [{ id: "", nome: "Sem borda", preco: 0, disponivel: true, fixed: true }, ...crusts()];
+  target.innerHTML = items.map((item) => item.fixed ? `
+    <article class="list-item"><strong>Sem borda</strong><small>${money(0)} - padrão obrigatório</small></article>
+  ` : moduleListItem({
+    title: item.nome,
+    meta: `${money(item.preco)} - ${item.disponivel !== false ? "Ativa" : "Inativa"}`,
+    id: item.id,
+    edit: "crust",
+    remove: "addon"
+  })).join("");
+  bindModuleActions(target);
+}
+
+function renderExtras() {
+  const target = $("#module-addons-list");
+  if (!target) return;
+  target.innerHTML = extraAddons().map((item) => moduleListItem({
+    title: item.nome,
+    meta: `${money(item.preco)} - ${moduleAddonScope(item.aplicarEm)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    id: item.id,
+    edit: "module-addon",
+    remove: "addon"
+  })).join("") || "<p>Nenhum adicional cadastrado.</p>";
+  bindModuleActions(target);
+}
+
+function moduleListItem({ title, meta, description = "", id, edit, remove }) {
+  return `
+    <article class="list-item module-list-item">
+      <div>
+        <strong>${title || ""}</strong>
+        <small>${meta || ""}</small>
+        ${description ? `<small>${description}</small>` : ""}
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-small" data-module-edit="${edit}" data-id="${id}" type="button">Editar</button>
+        <button class="btn btn-small" data-module-delete="${remove}" data-id="${id}" type="button">Excluir</button>
+      </div>
+    </article>
+  `;
+}
+
+function bindModuleActions(root = document) {
+  root.querySelectorAll("[data-module-edit]").forEach((button) => {
+    button.addEventListener("click", () => editModuleItem(button.dataset.moduleEdit, button.dataset.id));
+  });
+  root.querySelectorAll("[data-module-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.id));
+  });
+}
+
+function moduleTypeLabel(value = "") {
+  if (value === "pizza") return "Pizza";
+  if (value === "porcao") return "Porção";
+  if (value === "simples") return "Produto simples";
+  return "Geral";
+}
+
+function moduleAddonScope(value = "") {
+  if (value === "pizza") return "Pizzas";
+  if (value === "porcao") return "Porções";
+  if (value === "simples") return "Produtos simples";
+  return "Todos";
 }
 
 function addonCategoryIds(addon) {
@@ -553,6 +757,144 @@ function printById(id, mode) {
   if (order) printOrder(order, mode);
 }
 
+$("#simple-product-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+      nome: data.nome,
+      descricao: data.descricao || "",
+      categoriaId: data.categoriaId || "",
+      preco: numberValue(data.preco),
+      fotoUrl: data.fotoUrl || "",
+      tipoProduto: "simples",
+      moduleType: "simples",
+      disponivel: Boolean(data.disponivel),
+      destaque: false,
+      permiteObservacoes: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetSimpleProductForm(form);
+    await loadProducts();
+  });
+});
+
+$("#pizza-item-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveModuleFlavor(event.currentTarget, "pizza", "Pizza salva");
+});
+
+$("#portion-item-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveModuleFlavor(event.currentTarget, "porcao", "Porção salva");
+});
+
+$("#module-flavor-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const type = event.currentTarget.elements.tipo.value || "pizza";
+  await saveModuleFlavor(event.currentTarget, type, "Sabor salvo");
+});
+
+$("#module-category-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, id), {
+      nome: data.nome,
+      moduleType: data.moduleType || "simples",
+      ordem: Number(data.ordem || 0),
+      ativo: Boolean(data.ativo),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetModuleCategoryForm(form);
+    await loadCategories();
+  });
+});
+
+$("#crust-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveModuleAddon(event.currentTarget, "borda", "pizza", "Borda salva");
+});
+
+$("#module-addon-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  await saveModuleAddon(form, "adicional", form.elements.aplicarEm.value || "todos", "Adicional salvo");
+});
+
+$("#pizza-settings-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveModuleSettings(event.currentTarget, ["pizzaMeioP", "pizzaMeioG"], "Configuração de pizzas salva");
+});
+
+$("#portion-settings-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await saveModuleSettings(event.currentTarget, ["porcaoMeioP", "porcaoMeioG"], "Configuração de porções salva");
+});
+
+$("#new-pizza-btn")?.addEventListener("click", () => resetModuleFlavorForm($("#pizza-item-form"), "pizza"));
+$("#new-portion-btn")?.addEventListener("click", () => resetModuleFlavorForm($("#portion-item-form"), "porcao"));
+$("#new-crust-btn")?.addEventListener("click", () => resetModuleAddonForm($("#crust-form")));
+$("#new-extra-btn")?.addEventListener("click", () => resetModuleAddonForm($("#module-addon-form")));
+
+async function saveModuleFlavor(form, type, successText) {
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
+      nome: data.nome,
+      descricao: data.descricao || "",
+      tipo: type,
+      moduleType: type,
+      valorP: numberValue(data.valorP),
+      valorG: numberValue(data.valorG),
+      preco: numberValue(data.valorP),
+      precosPorTamanho: {
+        P: numberValue(data.valorP),
+        G: numberValue(data.valorG)
+      },
+      disponivel: Boolean(data.disponivel),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetModuleFlavorForm(form, type);
+    await loadFlavors();
+  }, successText);
+}
+
+async function saveModuleAddon(form, tipoAdicional, aplicarEm, successText) {
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
+      nome: data.nome,
+      preco: numberValue(data.preco),
+      tipoAdicional,
+      aplicarEm,
+      categoriaId: "",
+      categoriaIds: [],
+      produtoId: "",
+      disponivel: Boolean(data.disponivel),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetModuleAddonForm(form);
+    await loadAddons();
+  }, successText);
+}
+
+async function saveModuleSettings(form, keys, successText) {
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const payload = {};
+    keys.forEach((key) => payload[key] = Boolean(data[key]));
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), payload, { merge: true });
+    state.settings = { ...state.settings, ...payload };
+  }, successText);
+}
+
 $("#category-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -681,6 +1023,119 @@ function resetProductForm(form = $("#product-form")) {
   if (form?.elements.permiteObservacoes) form.elements.permiteObservacoes.checked = true;
   renderPhotoPreview("");
   document.querySelectorAll(".product-list-item").forEach((element) => element.classList.remove("editing"));
+}
+
+function resetSimpleProductForm(form = $("#simple-product-form")) {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.fotoUrl) form.elements.fotoUrl.value = "";
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  renderSimpleProductPhotoPreview("");
+}
+
+function resetModuleFlavorForm(form, type = "pizza") {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.tipo) form.elements.tipo.value = type;
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+}
+
+function resetModuleCategoryForm(form = $("#module-category-form")) {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.ordem) form.elements.ordem.value = 0;
+  if (form?.elements.ativo) form.elements.ativo.checked = true;
+}
+
+function resetModuleAddonForm(form) {
+  form?.reset();
+  if (form?.elements.id) form.elements.id.value = "";
+  if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+}
+
+function editModuleItem(kind, id) {
+  if (kind === "simple-product") return fillSimpleProduct(id);
+  if (kind === "pizza-item") return fillModuleFlavor(id, $("#pizza-item-form"), "pizza", "pizzas");
+  if (kind === "portion-item") return fillModuleFlavor(id, $("#portion-item-form"), "porcao", "porcoes");
+  if (kind === "module-flavor") {
+    const item = state.flavors.find((flavor) => flavor.id === id);
+    return fillModuleFlavor(id, $("#module-flavor-form"), item?.tipo || item?.moduleType || "pizza", "sabores");
+  }
+  if (kind === "module-category") return fillModuleCategory(id);
+  if (kind === "crust") return fillModuleAddon(id, $("#crust-form"), "bordas");
+  if (kind === "module-addon") return fillModuleAddon(id, $("#module-addon-form"), "adicionais");
+}
+
+function fillSimpleProduct(id) {
+  const item = state.products.find((product) => product.id === id);
+  const form = $("#simple-product-form");
+  if (!item || !form) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  form.elements.preco.value = item.preco || 0;
+  form.elements.categoriaId.value = item.categoriaId || "";
+  form.elements.descricao.value = item.descricao || "";
+  form.elements.fotoUrl.value = item.fotoUrl || "";
+  form.elements.disponivel.checked = item.disponivel !== false;
+  renderSimpleProductPhotoPreview(item.fotoUrl || "");
+  location.hash = "produtos-simples";
+  showCurrentPanelPage();
+}
+
+function fillModuleFlavor(id, form, type, page) {
+  const item = state.flavors.find((flavor) => flavor.id === id);
+  if (!item || !form) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  if (form.elements.tipo) form.elements.tipo.value = type;
+  form.elements.valorP.value = item.valorP ?? item.precoP ?? item.preco ?? 0;
+  form.elements.valorG.value = item.valorG ?? item.precoG ?? item.preco ?? 0;
+  form.elements.descricao.value = item.descricao || "";
+  form.elements.disponivel.checked = item.disponivel !== false;
+  location.hash = page;
+  showCurrentPanelPage();
+}
+
+function fillModuleCategory(id) {
+  const item = state.categories.find((category) => category.id === id);
+  const form = $("#module-category-form");
+  if (!item || !form) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  form.elements.moduleType.value = item.moduleType || "simples";
+  form.elements.ordem.value = item.ordem || 0;
+  form.elements.ativo.checked = item.ativo !== false;
+  location.hash = "categorias";
+  showCurrentPanelPage();
+}
+
+function fillModuleAddon(id, form, page) {
+  const item = state.addons.find((addon) => addon.id === id);
+  if (!item || !form) return;
+  form.elements.id.value = id;
+  form.elements.nome.value = item.nome || "";
+  form.elements.preco.value = item.preco || 0;
+  if (form.elements.aplicarEm) form.elements.aplicarEm.value = item.aplicarEm || "todos";
+  form.elements.disponivel.checked = item.disponivel !== false;
+  location.hash = page;
+  showCurrentPanelPage();
+}
+
+async function deleteModuleItem(type, id) {
+  if (!id || !confirm("Tem certeza que deseja excluir este item?")) return;
+  const pathByType = {
+    product: `estabelecimentos/${state.businessId}/produtos`,
+    flavor: `estabelecimentos/${state.businessId}/sabores`,
+    category: `estabelecimentos/${state.businessId}/categorias`,
+    addon: `estabelecimentos/${state.businessId}/adicionais`
+  };
+  const path = pathByType[type];
+  if (!path) return;
+  await deleteDoc(doc(db, path, id));
+  if (type === "product") await loadProducts();
+  if (type === "flavor") await loadFlavors();
+  if (type === "category") await loadCategories();
+  if (type === "addon") await loadAddons();
 }
 
 function fillCategory(id) {
@@ -847,9 +1302,16 @@ function renderPhotoPreview(src) {
   preview.innerHTML = src ? `<img src="${src}" alt="Prévia da foto do produto">` : "Sem foto selecionada";
 }
 
+function renderSimpleProductPhotoPreview(src) {
+  const preview = $("#simple-product-photo-preview");
+  if (!preview) return;
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da imagem do produto">` : "Sem foto selecionada";
+}
+
 async function loadSettings() {
   const snap = await getDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"));
   const data = snap.data() || {};
+  state.settings = data;
   const form = $("#settings-form");
   Array.from(form.elements).forEach((field) => {
     if (!field.name || field.type === "file") return;
@@ -860,6 +1322,20 @@ async function loadSettings() {
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
   renderDashboardLogo(form.elements.logoUrl?.value || "");
   renderDeliveryFeeRows(form.elements.entregaBairrosTaxas?.value || "");
+  fillModuleSettingsForms();
+}
+
+function fillModuleSettingsForms() {
+  const pizzaForm = $("#pizza-settings-form");
+  if (pizzaForm) {
+    pizzaForm.elements.pizzaMeioP.checked = Boolean(state.settings.pizzaMeioP);
+    pizzaForm.elements.pizzaMeioG.checked = Boolean(state.settings.pizzaMeioG);
+  }
+  const portionForm = $("#portion-settings-form");
+  if (portionForm) {
+    portionForm.elements.porcaoMeioP.checked = Boolean(state.settings.porcaoMeioP);
+    portionForm.elements.porcaoMeioG.checked = Boolean(state.settings.porcaoMeioG);
+  }
 }
 
 $("#settings-form")?.addEventListener("submit", async (event) => {

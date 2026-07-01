@@ -511,6 +511,25 @@ input, select, textarea {
 .metric-card strong { display: block; font-size: 1.7rem; margin-top: 6px; }
 .panel { padding: 18px; }
 .panel-inner { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, #fff, var(--bg)); }
+.module-page {
+  display: grid;
+  gap: 16px;
+}
+.module-page .panel-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.module-page .panel-heading h2 {
+  margin: 0;
+}
+.module-page .panel-heading p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-weight: 650;
+}
+.module-page .panel-inner {
+  background: linear-gradient(180deg, #fff, #f8fbf9);
+}
 .compact-title { margin: 8px 0 0; }
 .toolbar-row { margin-top: 14px; display: grid; grid-template-columns: minmax(220px, 420px); gap: 12px; }
 .search-field { color: var(--muted); }
@@ -573,6 +592,20 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   margin: 0;
 }
 .list-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; display: grid; gap: 8px; }
+.module-list-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+.module-list-item strong {
+  display: block;
+  font-size: 1.02rem;
+}
+.module-list-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
 .compact-list-item {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -1062,6 +1095,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .segmented-options { grid-template-columns: 1fr 1fr; }
   .product-list-item { grid-template-columns: 62px minmax(0, 1fr); }
   .product-list-item .item-actions { grid-column: 1 / -1; }
+  .module-list-item { grid-template-columns: 1fr; }
+  .module-list-item .item-actions { width: 100%; }
   .product-admin-thumb { width: 62px; height: 62px; }
   .status-timeline { grid-template-columns: 1fr; }
   .delivery-fees-heading { align-items: flex-start; flex-direction: column; }
