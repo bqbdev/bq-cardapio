@@ -590,6 +590,19 @@ function updateBuilderTotal() {
 
 function updateBuilderSelectionState(product) {
   const max = selectedFlavorLimit(product);
+  if (product.generatedModule === "porcao") {
+    if (Number(state.builderFlavorMode || 1) > max) state.builderFlavorMode = 1;
+    document.querySelectorAll("[data-flavor-mode]").forEach((input) => {
+      const disabled = Number(input.value || 1) > max;
+      input.disabled = disabled;
+      if (disabled && input.checked) {
+        input.checked = false;
+        const fullMode = document.querySelector("[data-flavor-mode][value='1']");
+        if (fullMode) fullMode.checked = true;
+      }
+      input.closest(".segment-card")?.classList.toggle("is-disabled", disabled);
+    });
+  }
   const flavors = selectedBuilderFlavors();
   const counter = $("#flavor-counter");
   if (counter) counter.textContent = `${flavors.length} de ${max}`;

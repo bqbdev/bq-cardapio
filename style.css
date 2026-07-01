@@ -1130,6 +1130,11 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   color: #fff;
   box-shadow: 0 10px 22px rgba(20, 108, 67, .18);
 }
+.segment-card.is-disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 .segment-card small {
   color: inherit;
   opacity: .86;
