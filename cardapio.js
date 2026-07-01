@@ -421,8 +421,9 @@ function openProductBuilder(product) {
         const flavor = state.flavors.find((item) => item.id === flavorInput.value);
         if (flavor && !flavorAvailableForSelection(flavor)) flavorInput.checked = false;
       });
-      updateBuilderTotal();
+      enforceFlavorLimit(product);
       updateBuilderSelectionState(product);
+      updateBuilderTotal();
     });
   });
   document.querySelectorAll("[data-flavor-mode]").forEach((input) => {
@@ -564,7 +565,7 @@ function enforceFlavorLimit(product) {
   const max = selectedFlavorLimit(product);
   const checked = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
   if (checked.length <= max) return;
-  checked.at(-1).checked = false;
+  checked.slice(max).forEach((input) => input.checked = false);
   setMessage($("#builder-message"), `Escolha no máximo ${max} sabor(es).`, "error");
 }
 
@@ -592,6 +593,10 @@ function updateBuilderSelectionState(product) {
   const max = selectedFlavorLimit(product);
   if (product.generatedModule === "porcao") {
     if (Number(state.builderFlavorMode || 1) > max) state.builderFlavorMode = 1;
+    const checkedFlavors = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
+    if (checkedFlavors.length > max) {
+      checkedFlavors.slice(max).forEach((input) => input.checked = false);
+    }
     document.querySelectorAll("[data-flavor-mode]").forEach((input) => {
       const disabled = Number(input.value || 1) > max;
       input.disabled = disabled;
