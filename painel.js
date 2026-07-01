@@ -257,6 +257,7 @@ function showCurrentPanelPage() {
   document.querySelectorAll(".sidebar nav a").forEach((link) => {
     link.classList.toggle("active", link.getAttribute("href") === `#${page}`);
   });
+  if (page === "adicionais") syncModuleAddonApplyMode();
 }
 
 async function loadPanelData() {
@@ -280,6 +281,7 @@ async function loadCategories() {
   });
   renderAddonCategoryChecks();
   renderModuleAddonCategoryChecks();
+  if (location.hash.replace("#", "") === "adicionais") syncModuleAddonApplyMode();
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
       <strong>${item.nome}</strong><small>${item.ativo ? "Ativo" : "Inativo"} - ordem ${item.ordem || 0}</small>
@@ -706,9 +708,15 @@ function setModuleAddonModules(values = ["pizza"]) {
 function setModuleAddonApplyMode(value = "modulo") {
   const form = $("#module-addon-form");
   if (form?.elements.aplicarPor) form.elements.aplicarPor.value = value;
+  if (value === "categoria") renderModuleAddonCategoryChecks(selectedModuleAddonCategoryIds());
   document.querySelectorAll("[data-module-addon-panel]").forEach((panel) => {
     panel.classList.toggle("hidden", panel.dataset.moduleAddonPanel !== value);
   });
+}
+
+function syncModuleAddonApplyMode() {
+  const value = $("#module-addon-apply-mode")?.value || "modulo";
+  setModuleAddonApplyMode(value);
 }
 
 function parseBulkLines(text = "", defaultValue = 0) {
@@ -939,6 +947,12 @@ $("#module-addon-form")?.addEventListener("submit", async (event) => {
   await saveModuleAddon(form, "adicional", "", "Adicional salvo");
 });
 $("#module-addon-apply-mode")?.addEventListener("change", (event) => setModuleAddonApplyMode(event.target.value));
+document.addEventListener("change", (event) => {
+  if (event.target?.id === "module-addon-apply-mode") setModuleAddonApplyMode(event.target.value);
+});
+document.addEventListener("input", (event) => {
+  if (event.target?.id === "module-addon-apply-mode") setModuleAddonApplyMode(event.target.value);
+});
 document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
   input.addEventListener("change", () => input.closest(".category-check")?.classList.toggle("is-selected", input.checked));
 });
