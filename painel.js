@@ -862,6 +862,7 @@ function orderItemSummary(item) {
   const details = [
     item.tamanho ? `tamanho: ${item.tamanho.nome}` : "",
     item.sabores?.length ? `sabores: ${item.sabores.map((flavor) => flavor.nome).join("/")}` : "",
+    item.bordas?.length ? `borda: ${item.bordas.map((addon) => addon.nome).join("/")}` : "",
     item.adicionais?.length ? `adicionais: ${item.adicionais.map((addon) => addon.nome).join("/")}` : "",
     item.observacao ? `obs: ${item.observacao}` : ""
   ].filter(Boolean).join(" - ");

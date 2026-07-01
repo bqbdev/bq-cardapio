@@ -93,6 +93,7 @@ export const printOrder = (order, mode = false) => {
       <strong>${escapeHtml(item.nome)}</strong> x ${item.quantidade || 1}<br>
       ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho.nome)}<br>` : ""}
       ${item.sabores?.length ? `Sabores: ${escapeHtml(item.sabores.map((flavor) => flavor.nome).join(", "))}<br>` : ""}
+      ${item.bordas?.length ? `Borda: ${escapeHtml(item.bordas.map((addon) => addon.nome).join(", "))}<br>` : ""}
       ${item.adicionais?.length ? `Adicionais: ${escapeHtml(item.adicionais.map((addon) => addon.nome).join(", "))}<br>` : ""}
       ${escapeHtml(item.observacao || "")}
     </div>

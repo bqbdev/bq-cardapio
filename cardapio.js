@@ -289,6 +289,7 @@ function renderCart() {
         <strong>${item.quantidade}x ${item.nome}</strong>
         ${item.tamanho ? `<small>Tamanho: ${item.tamanho.nome}</small>` : ""}
         ${item.sabores?.length ? `<small>Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}</small>` : ""}
+        ${item.bordas?.length ? `<small>Borda: ${item.bordas.map((addon) => addon.nome).join(", ")}</small>` : ""}
         ${item.adicionais?.length ? `<small>Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}</small>` : ""}
         <small>${item.observacao || ""}</small>
       </div>
@@ -642,13 +643,26 @@ function renderBuilderSummary(product, flavors = [], addons = []) {
   if (!target) return;
   const price = calculateConfiguredPrice(product, flavors, addons);
   const itemFlavors = product.tipoProduto === "individual_module" ? productFlavors(product) : flavors;
+  const { crusts, extras } = splitSelectedAddons(addons);
   target.innerHTML = `
     <strong>Resumo</strong>
     ${product.pizzaMode && state.builderPizzaSize ? `<span>Tamanho: ${escapeHtml(state.builderPizzaSize.nome)}</span>` : ""}
     <span>${itemFlavors.length ? `Sabores: ${itemFlavors.map((item) => item.nome).join(", ")}` : product.tipoProduto === "sabores" ? "Escolha os sabores" : product.nome}</span>
-    ${addons.length ? `<span>Adicionais: ${addons.map((item) => item.nome).join(", ")}</span>` : ""}
+    ${crusts.length ? `<span>Borda: ${crusts.map((item) => item.nome).join(", ")}</span>` : ""}
+    ${extras.length ? `<span>Adicionais: ${extras.map((item) => item.nome).join(", ")}</span>` : ""}
     <b>${money(price)}</b>
   `;
+}
+
+function splitSelectedAddons(addons = []) {
+  return {
+    crusts: addons.filter((item) => item.tipoAdicional === "borda"),
+    extras: addons.filter((item) => item.tipoAdicional !== "borda")
+  };
+}
+
+function cartAddonView(addons = []) {
+  return addons.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) }));
 }
 
 function calculateConfiguredPrice(product, flavors = [], addons = []) {
@@ -674,6 +688,7 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
   const preco = calculateConfiguredPrice(product, flavors, addons);
   const flavorIds = itemFlavors.map((item) => item.id).sort();
   const addonIds = addons.map((item) => item.id).sort();
+  const { crusts, extras } = splitSelectedAddons(addons);
   return {
     id: product.id,
     nome: product.nome,
@@ -682,7 +697,8 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
     observacao,
     tamanho: product.pizzaMode && state.builderPizzaSize ? { nome: state.builderPizzaSize.nome, preco: Number(state.builderPizzaSize.preco || 0) } : null,
     sabores: itemFlavors.map((item) => ({ id: item.id, nome: item.nome, preco: flavorPriceForSelection(item) })),
-    adicionais: addons.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
+    bordas: cartAddonView(crusts),
+    adicionais: cartAddonView(extras),
     regraPreco: product.regraPreco || "fixo",
     signature: [product.id, state.builderPizzaSize?.nome || "", flavorIds.join(","), addonIds.join(","), observacao].join("|")
   };
@@ -833,6 +849,7 @@ function buildWhatsAppMessage(order) {
     const details = [
       item.tamanho ? `  Tamanho: ${item.tamanho.nome}` : "",
       item.sabores?.length ? `  Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}` : "",
+      item.bordas?.length ? `  Borda: ${item.bordas.map((addon) => addon.nome).join(", ")}` : "",
       item.adicionais?.length ? `  Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}` : "",
       item.observacao ? `  Obs: ${item.observacao}` : ""
     ].filter(Boolean).join("\n");
