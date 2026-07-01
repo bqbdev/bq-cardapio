@@ -887,16 +887,6 @@ $("#module-addon-form")?.addEventListener("submit", async (event) => {
   await saveModuleAddon(form, "adicional", form.elements.aplicarEm.value || "todos", "Adicional salvo");
 });
 
-$("#pizza-settings-form")?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await saveModuleSettings(event.currentTarget, ["pizzaMeioP", "pizzaMeioG"], "Configuração de pizzas salva");
-});
-
-$("#portion-settings-form")?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await saveModuleSettings(event.currentTarget, ["porcaoMeioP", "porcaoMeioG"], "Configuração de porções salva");
-});
-
 $("#new-simple-product-btn")?.addEventListener("click", () => saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form"))));
 $("#new-pizza-btn")?.addEventListener("click", () => saveDraftOrReset($("#pizza-item-form"), () => saveModuleFlavor($("#pizza-item-form"), "pizza", "Pizza salva"), () => resetModuleFlavorForm($("#pizza-item-form"), "pizza")));
 $("#new-portion-btn")?.addEventListener("click", () => saveDraftOrReset($("#portion-item-form"), () => saveModuleFlavor($("#portion-item-form"), "porcao", "Porção salva"), () => resetModuleFlavorForm($("#portion-item-form"), "porcao")));
@@ -974,6 +964,7 @@ async function saveModuleFlavor(form, type, successText) {
   await runFormSave(form, async () => {
     const data = formToObject(form);
     const id = data.id || doc(collection(db, "tmp")).id;
+    await persistInlineModuleSettings(form, type);
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
       nome: data.nome,
       descricao: data.descricao || "",
@@ -989,9 +980,46 @@ async function saveModuleFlavor(form, type, successText) {
       disponivel: Boolean(data.disponivel),
       atualizadoEm: serverTimestamp()
     }, { merge: true });
+    const savedItem = {
+      id,
+      nome: data.nome,
+      descricao: data.descricao || "",
+      tipo: type,
+      moduleType: type,
+      valorP: numberValue(data.valorP),
+      valorG: numberValue(data.valorG),
+      preco: numberValue(data.valorP),
+      precosPorTamanho: {
+        P: numberValue(data.valorP),
+        G: numberValue(data.valorG)
+      },
+      disponivel: Boolean(data.disponivel)
+    };
+    state.flavors = [
+      savedItem,
+      ...state.flavors.filter((item) => item.id !== id)
+    ].sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
+    renderModuleFlavors();
+    renderModuleProducts();
     resetModuleFlavorForm(form, type);
     await loadFlavors();
   }, successText);
+}
+
+async function persistInlineModuleSettings(form, type) {
+  const keys = type === "pizza"
+    ? ["pizzaMeioP", "pizzaMeioG"]
+    : type === "porcao"
+      ? ["porcaoMeioP", "porcaoMeioG"]
+      : [];
+  if (!keys.length || !form) return;
+  const payload = {};
+  keys.forEach((key) => {
+    if (form.elements[key]) payload[key] = Boolean(form.elements[key].checked);
+  });
+  if (!Object.keys(payload).length) return;
+  await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), payload, { merge: true });
+  state.settings = { ...state.settings, ...payload };
 }
 
 async function saveModuleAddon(form, tipoAdicional, aplicarEm, successText) {
@@ -1011,16 +1039,6 @@ async function saveModuleAddon(form, tipoAdicional, aplicarEm, successText) {
     }, { merge: true });
     resetModuleAddonForm(form);
     await loadAddons();
-  }, successText);
-}
-
-async function saveModuleSettings(form, keys, successText) {
-  await runFormSave(form, async () => {
-    const data = formToObject(form);
-    const payload = {};
-    keys.forEach((key) => payload[key] = Boolean(data[key]));
-    await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), payload, { merge: true });
-    state.settings = { ...state.settings, ...payload };
   }, successText);
 }
 
@@ -1167,6 +1185,19 @@ function resetModuleFlavorForm(form, type = "pizza") {
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.tipo) form.elements.tipo.value = type;
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  applyInlineModuleSettings(form, type);
+}
+
+function applyInlineModuleSettings(form, type = "pizza") {
+  if (!form) return;
+  if (type === "pizza") {
+    if (form.elements.pizzaMeioP) form.elements.pizzaMeioP.checked = Boolean(state.settings.pizzaMeioP);
+    if (form.elements.pizzaMeioG) form.elements.pizzaMeioG.checked = Boolean(state.settings.pizzaMeioG);
+  }
+  if (type === "porcao") {
+    if (form.elements.porcaoMeioP) form.elements.porcaoMeioP.checked = Boolean(state.settings.porcaoMeioP);
+    if (form.elements.porcaoMeioG) form.elements.porcaoMeioG.checked = Boolean(state.settings.porcaoMeioG);
+  }
 }
 
 function resetModuleCategoryForm(form = $("#module-category-form")) {
@@ -1456,16 +1487,8 @@ async function loadSettings() {
 }
 
 function fillModuleSettingsForms() {
-  const pizzaForm = $("#pizza-settings-form");
-  if (pizzaForm) {
-    pizzaForm.elements.pizzaMeioP.checked = Boolean(state.settings.pizzaMeioP);
-    pizzaForm.elements.pizzaMeioG.checked = Boolean(state.settings.pizzaMeioG);
-  }
-  const portionForm = $("#portion-settings-form");
-  if (portionForm) {
-    portionForm.elements.porcaoMeioP.checked = Boolean(state.settings.porcaoMeioP);
-    portionForm.elements.porcaoMeioG.checked = Boolean(state.settings.porcaoMeioG);
-  }
+  applyInlineModuleSettings($("#pizza-item-form"), "pizza");
+  applyInlineModuleSettings($("#portion-item-form"), "porcao");
 }
 
 $("#settings-form")?.addEventListener("submit", async (event) => {

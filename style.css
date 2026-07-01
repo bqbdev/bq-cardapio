@@ -530,6 +530,19 @@ input, select, textarea {
 .module-page .panel-inner {
   background: linear-gradient(180deg, #fff, #f8fbf9);
 }
+.module-inline-settings {
+  border: 1px solid rgba(20, 108, 67, .18);
+  border-radius: 14px;
+  background: #f0f8f4;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(180px, 1fr));
+  align-items: center;
+  gap: 12px;
+}
+.module-inline-settings strong {
+  color: var(--primary);
+}
 .products-overview-page {
   background: linear-gradient(180deg, #fff, #f6faf8);
 }
@@ -1180,6 +1193,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .product-list-item .item-actions { grid-column: 1 / -1; }
   .module-list-item { grid-template-columns: 1fr; }
   .module-list-item .item-actions { width: 100%; }
+  .module-inline-settings { grid-template-columns: 1fr; }
   .catalog-card { grid-template-columns: 1fr; }
   .catalog-card-side { justify-items: start; }
   .product-admin-thumb { width: 62px; height: 62px; }

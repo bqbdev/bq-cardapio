@@ -151,7 +151,7 @@ function timeToMinutes(value) {
 }
 
 function renderCategories(activeId = "todos") {
-  const tabs = [{ id: "todos", nome: "Todos" }, ...virtualCategories(), ...state.categories];
+  const tabs = [{ id: "todos", nome: "Todos" }, ...virtualCategories(), ...publicCategories()];
   $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}">${item.nome}</button>`).join("");
   document.querySelectorAll("[data-category]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -222,11 +222,20 @@ function menuProducts() {
       disponivel: true
     });
   }
-  return [...virtual, ...state.products];
+  return [...virtual, ...publicSimpleProducts()];
 }
 
 function moduleFlavors(type) {
   return state.flavors.filter((item) => (item.tipo === type || item.moduleType === type) && item.disponivel !== false);
+}
+
+function publicSimpleProducts() {
+  return state.products.filter((item) => item.moduleType === "simples" && item.disponivel !== false);
+}
+
+function publicCategories() {
+  const categoryIds = new Set(publicSimpleProducts().map((item) => item.categoriaId).filter(Boolean));
+  return state.categories.filter((item) => categoryIds.has(item.id));
 }
 
 function moduleSizes(type) {

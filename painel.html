@@ -100,14 +100,13 @@
         <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Ingredientes<textarea name="descricao" rows="2" placeholder="Molho, mussarela, calabresa..."></textarea></label>
+        <div class="module-inline-settings full">
+          <strong>Meio a meio automático</strong>
+          <label class="check-row"><input name="pizzaMeioP" type="checkbox"> Ativar para tamanho P</label>
+          <label class="check-row"><input name="pizzaMeioG" type="checkbox"> Ativar para tamanho G</label>
+        </div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
-        <button class="btn btn-primary full" type="submit">Salvar pizza e continuar</button>
-      </form>
-      <form id="pizza-settings-form" class="form-grid panel-inner">
-        <h3 class="full">Meio a meio automático</h3>
-        <label class="check-row"><input name="pizzaMeioP" type="checkbox"> Ativar pizza meio a meio P</label>
-        <label class="check-row"><input name="pizzaMeioG" type="checkbox"> Ativar pizza meio a meio G</label>
-        <button class="btn btn-primary full" type="submit">Salvar configuração de pizzas</button>
+        <button class="btn btn-primary full" type="submit">Salvar pizza</button>
       </form>
       <div id="pizzas-list" class="stack-list"></div>
     </section>
@@ -120,14 +119,13 @@
         <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Descrição/ingredientes<textarea name="descricao" rows="2"></textarea></label>
+        <div class="module-inline-settings full">
+          <strong>Meio a meio automático</strong>
+          <label class="check-row"><input name="porcaoMeioP" type="checkbox"> Ativar para tamanho P</label>
+          <label class="check-row"><input name="porcaoMeioG" type="checkbox"> Ativar para tamanho G</label>
+        </div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
-        <button class="btn btn-primary full" type="submit">Salvar porção e continuar</button>
-      </form>
-      <form id="portion-settings-form" class="form-grid panel-inner">
-        <h3 class="full">Meio a meio automático</h3>
-        <label class="check-row"><input name="porcaoMeioP" type="checkbox"> Ativar porção meio a meio P</label>
-        <label class="check-row"><input name="porcaoMeioG" type="checkbox"> Ativar porção meio a meio G</label>
-        <button class="btn btn-primary full" type="submit">Salvar configuração de porções</button>
+        <button class="btn btn-primary full" type="submit">Salvar porção</button>
       </form>
       <div id="portions-list" class="stack-list"></div>
     </section>
