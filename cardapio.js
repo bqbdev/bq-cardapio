@@ -192,7 +192,7 @@ function menuProducts() {
   if (pizzaFlavors.length) {
     virtual.push({
       id: "__pizza_builder",
-      nome: "Pizza",
+      nome: "Monte sua pizza",
       descricao: "Escolha tamanho, sabor, borda e adicionais.",
       categoriaId: "__pizza",
       tipoProduto: "sabores",
@@ -204,12 +204,13 @@ function menuProducts() {
       pizzaTamanhos: moduleSizes("pizza"),
       disponivel: true
     });
+    virtual.push(...pizzaFlavors.map((flavor) => moduleFlavorProduct(flavor, "pizza")));
   }
   const portionFlavors = moduleFlavors("porcao");
   if (portionFlavors.length) {
     virtual.push({
       id: "__portion_builder",
-      nome: "Porção",
+      nome: "Monte sua porção",
       descricao: "Escolha tamanho, opção e adicionais.",
       categoriaId: "__porcao",
       tipoProduto: "sabores",
@@ -221,8 +222,28 @@ function menuProducts() {
       pizzaTamanhos: moduleSizes("porcao"),
       disponivel: true
     });
+    virtual.push(...portionFlavors.map((flavor) => moduleFlavorProduct(flavor, "porcao")));
   }
   return [...virtual, ...publicSimpleProducts()];
+}
+
+function moduleFlavorProduct(flavor, type) {
+  return {
+    id: `__${type}_flavor_${flavor.id}`,
+    nome: flavor.nome || (type === "pizza" ? "Pizza" : "Porção"),
+    descricao: flavor.descricao || (type === "pizza" ? "Escolha o tamanho da pizza." : "Escolha o tamanho da porção."),
+    fotoUrl: flavor.fotoUrl || "",
+    categoriaId: type === "pizza" ? "__pizza" : "__porcao",
+    tipoProduto: "individual_module",
+    moduleType: type,
+    generatedModule: type,
+    sourceFlavorId: flavor.id,
+    sourceFlavor: flavor,
+    regraPreco: "maior_valor",
+    pizzaMode: true,
+    pizzaTamanhos: moduleSizes(type),
+    disponivel: true
+  };
 }
 
 function moduleFlavors(type) {
@@ -286,10 +307,14 @@ function cartSubtotal() {
 }
 
 function productNeedsBuilder(product) {
-  return product.tipoProduto === "sabores" || availableAddons(product).length > 0 || product.permiteObservacoes !== false;
+  return product.pizzaMode || product.tipoProduto === "sabores" || product.tipoProduto === "individual_module" || availableAddons(product).length > 0 || product.permiteObservacoes !== false;
 }
 
 function productPriceLabel(product) {
+  if (product.tipoProduto === "individual_module") {
+    const prices = flavorPriceList(product.sourceFlavor).filter((value) => value > 0);
+    if (prices.length) return `A partir de ${money(Math.min(...prices))}`;
+  }
   if (product.tipoProduto === "sabores") {
     const flavors = productFlavors(product);
     const prices = flavors.flatMap((item) => flavorPriceList(item)).filter((value) => value > 0);
@@ -331,6 +356,10 @@ function selectedFlavorLimit(product) {
 }
 
 function productFlavors(product) {
+  if (product.sourceFlavorId) {
+    const flavor = state.flavors.find((item) => item.id === product.sourceFlavorId) || product.sourceFlavor;
+    return flavor ? [flavor] : [];
+  }
   if (product.generatedModule) return moduleFlavors(product.generatedModule);
   return state.flavors.filter((item) => item.categoriaId === product.categoriaId);
 }
@@ -418,6 +447,11 @@ function openProductBuilder(product) {
 
 function builderSubtitle(product, flavors, addons) {
   const parts = [];
+  if (product.tipoProduto === "individual_module") {
+    parts.push(product.generatedModule === "porcao" ? "Escolha o tamanho da porção" : "Escolha o tamanho da pizza");
+    if (addons.length) parts.push("Adicionais opcionais");
+    return parts.join(" · ");
+  }
   if (product.generatedModule === "porcao") {
     parts.push("Escolha tamanho, opção e adicionais");
     return parts.join(" · ");
@@ -439,6 +473,7 @@ function renderPizzaBuilderTop(product) {
   const max = Math.max(1, Number(product.maxSabores || 2));
   const showSizePrices = !productFlavors(product).some((flavor) => Number(flavor.preco || 0) > 0);
   const isPortion = product.generatedModule === "porcao";
+  const isIndividual = product.tipoProduto === "individual_module";
   return `
     <section class="pizza-builder-intro">
       <strong>${escapeHtml(product.nome)}</strong>
@@ -458,7 +493,7 @@ function renderPizzaBuilderTop(product) {
         </div>
       </section>
     ` : ""}
-    <section class="builder-section">
+    ${isIndividual ? "" : `<section class="builder-section">
       <div class="builder-section-heading"><strong>${isPortion ? "Quantidade de opções" : "Quantidade de sabores"}</strong><span>Obrigatório</span></div>
       <div class="segmented-options">
         <label class="segment-card">
@@ -472,7 +507,7 @@ function renderPizzaBuilderTop(product) {
           </label>
         ` : ""}
       </div>
-    </section>
+    </section>`}
   `;
 }
 
@@ -580,10 +615,11 @@ function renderBuilderSummary(product, flavors = [], addons = []) {
   const target = $("#builder-summary");
   if (!target) return;
   const price = calculateConfiguredPrice(product, flavors, addons);
+  const itemFlavors = product.tipoProduto === "individual_module" ? productFlavors(product) : flavors;
   target.innerHTML = `
     <strong>Resumo</strong>
     ${product.pizzaMode && state.builderPizzaSize ? `<span>Tamanho: ${escapeHtml(state.builderPizzaSize.nome)}</span>` : ""}
-    <span>${flavors.length ? `Sabores: ${flavors.map((item) => item.nome).join(", ")}` : product.tipoProduto === "sabores" ? "Escolha os sabores" : product.nome}</span>
+    <span>${itemFlavors.length ? `Sabores: ${itemFlavors.map((item) => item.nome).join(", ")}` : product.tipoProduto === "sabores" ? "Escolha os sabores" : product.nome}</span>
     ${addons.length ? `<span>Adicionais: ${addons.map((item) => item.nome).join(", ")}</span>` : ""}
     <b>${money(price)}</b>
   `;
@@ -592,6 +628,10 @@ function renderBuilderSummary(product, flavors = [], addons = []) {
 function calculateConfiguredPrice(product, flavors = [], addons = []) {
   const addonTotal = addons.reduce((sum, addon) => sum + Number(addon.preco || 0), 0);
   const sizeBase = product.pizzaMode ? Number(state.builderPizzaSize?.preco || 0) : Number(product.preco || 0);
+  if (product.tipoProduto === "individual_module") {
+    const flavor = productFlavors(product)[0];
+    return (flavor ? flavorPriceForSelection(flavor) : sizeBase) + addonTotal;
+  }
   if (product.tipoProduto !== "sabores" || !flavors.length) return sizeBase + addonTotal;
   const flavorPrices = flavors.map(flavorPriceForSelection);
   const hasFlavorPrices = flavorPrices.some((value) => value > 0);
@@ -604,8 +644,9 @@ function calculateConfiguredPrice(product, flavors = [], addons = []) {
 }
 
 function buildCartItem(product, flavors = [], addons = [], observacao = "") {
+  const itemFlavors = product.tipoProduto === "individual_module" ? productFlavors(product) : flavors;
   const preco = calculateConfiguredPrice(product, flavors, addons);
-  const flavorIds = flavors.map((item) => item.id).sort();
+  const flavorIds = itemFlavors.map((item) => item.id).sort();
   const addonIds = addons.map((item) => item.id).sort();
   return {
     id: product.id,
@@ -614,7 +655,7 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
     quantidade: 1,
     observacao,
     tamanho: product.pizzaMode && state.builderPizzaSize ? { nome: state.builderPizzaSize.nome, preco: Number(state.builderPizzaSize.preco || 0) } : null,
-    sabores: flavors.map((item) => ({ id: item.id, nome: item.nome, preco: flavorPriceForSelection(item) })),
+    sabores: itemFlavors.map((item) => ({ id: item.id, nome: item.nome, preco: flavorPriceForSelection(item) })),
     adicionais: addons.map((item) => ({ id: item.id, nome: item.nome, preco: Number(item.preco || 0) })),
     regraPreco: product.regraPreco || "fixo",
     signature: [product.id, state.builderPizzaSize?.nome || "", flavorIds.join(","), addonIds.join(","), observacao].join("|")
