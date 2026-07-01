@@ -837,6 +837,22 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   color: var(--muted);
   font-size: .92rem;
 }
+.builder-half-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(0, 105, 55, .22);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 12px;
+}
+.builder-half-card strong {
+  color: var(--primary);
+}
+.builder-half-card span {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.4;
+}
 .product-builder-body { display: grid; gap: 12px; }
 .option-grid {
   display: grid;

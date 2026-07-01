@@ -407,7 +407,7 @@ function addonCategoryIds(addon) {
 
 function openProductBuilder(product) {
   state.buildingProduct = product;
-  state.builderFlavorMode = product.pizzaMode ? 1 : Math.max(1, Number(product.maxSabores || 1));
+  state.builderFlavorMode = product.pizzaMode ? Math.max(1, Number(product.maxSabores || 2)) : Math.max(1, Number(product.maxSabores || 1));
   state.builderPizzaSize = pizzaSizes(product)[0] || null;
   const flavors = productFlavors(product);
   const addons = availableAddons(product);
@@ -467,7 +467,7 @@ function builderSubtitle(product, flavors, addons) {
     return parts.join(" · ");
   }
   if (product.pizzaMode) {
-    parts.push("Escolha tamanho, quantidade de sabores e borda");
+    parts.push("Escolha tamanho, meio a meio e borda");
     return parts.join(" · ");
   }
   if (product.tipoProduto === "sabores") {
@@ -484,6 +484,53 @@ function renderPizzaBuilderTop(product) {
   const showSizePrices = !productFlavors(product).some((flavor) => Number(flavor.preco || 0) > 0);
   const isPortion = product.generatedModule === "porcao";
   const isIndividual = product.tipoProduto === "individual_module";
+  const modeSection = isIndividual ? "" : isPortion ? `
+    <section class="builder-section">
+      <div class="builder-section-heading"><strong>Quantidade de op&ccedil;&otilde;es</strong><span>Obrigat&oacute;rio</span></div>
+      <div class="segmented-options">
+        <label class="segment-card">
+          <input data-flavor-mode name="flavorMode" value="1" type="radio" checked>
+          <span>Inteira</span>
+        </label>
+        ${max > 1 ? `
+          <label class="segment-card">
+            <input data-flavor-mode name="flavorMode" value="${max}" type="radio">
+            <span>${max} op&ccedil;&otilde;es</span>
+          </label>
+        ` : ""}
+      </div>
+    </section>
+  ` : `
+    <section class="builder-section builder-half-section">
+      <div class="builder-section-heading"><strong>Meio a meio</strong><span>Obrigat&oacute;rio</span></div>
+      <input data-flavor-mode name="flavorMode" value="${max}" type="radio" checked hidden>
+      <div class="builder-half-card">
+        <strong>Escolha at&eacute; ${max} sabores</strong>
+        <span>Esta pizza ser&aacute; montada no formato meio a meio. O maior valor escolhido prevalece.</span>
+      </div>
+    </section>
+  `;
+  return `
+    <section class="pizza-builder-intro">
+      <strong>${escapeHtml(product.nome)}</strong>
+      <span>${isPortion ? "Escolha o tamanho e a por&ccedil;&atilde;o." : showSizePrices ? "Escolha o tamanho e os sabores para meio a meio." : "Escolha o tamanho. O pre&ccedil;o ser&aacute; definido pelos sabores."}</span>
+    </section>
+    ${sizes.length ? `
+      <section class="builder-section">
+        <div class="builder-section-heading"><strong>Tamanho</strong><span>Obrigat&oacute;rio</span></div>
+        <div class="segmented-options">
+          ${sizes.map((size, index) => `
+            <label class="segment-card">
+              <input data-builder-size name="pizzaSize" value="${escapeHtml(size.nome)}" type="radio" ${index === 0 ? "checked" : ""}>
+              <span>${escapeHtml(size.nome)}</span>
+              ${showSizePrices ? `<small>${money(size.preco)}</small>` : ""}
+            </label>
+          `).join("")}
+        </div>
+      </section>
+    ` : ""}
+    ${modeSection}
+  `;
   return `
     <section class="pizza-builder-intro">
       <strong>${escapeHtml(product.nome)}</strong>
