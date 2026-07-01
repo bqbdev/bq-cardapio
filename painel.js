@@ -20,10 +20,10 @@ import { addMonths, formToObject, money, numberValue, planMonths, printOrder, se
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "" };
+const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "" };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
-const panelPages = ["dashboard", "pedidos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
+const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
   aceitaRetirada: true,
@@ -74,6 +74,10 @@ $("#refresh-orders")?.addEventListener("click", loadOrders);
 $("#order-search")?.addEventListener("input", (event) => {
   state.orderSearch = event.target.value.trim().toLowerCase();
   renderOrders();
+});
+$("#all-products-search")?.addEventListener("input", (event) => {
+  state.productSearch = event.target.value.trim().toLowerCase();
+  renderAllProductsOverview();
 });
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
@@ -283,6 +287,7 @@ async function loadCategories() {
   `).join("") || "<p>Nenhuma categoria cadastrada.</p>";
   document.querySelectorAll("[data-edit-category]").forEach((button) => button.addEventListener("click", () => fillCategory(button.dataset.editCategory)));
   renderModuleCategories();
+  renderAllProductsOverview();
 }
 
 async function loadFlavors() {
@@ -297,6 +302,7 @@ async function loadFlavors() {
   `).join("") || "<p>Nenhum sabor cadastrado.</p>";
   document.querySelectorAll("[data-edit-flavor]").forEach((button) => button.addEventListener("click", () => fillFlavor(button.dataset.editFlavor)));
   renderModuleFlavors();
+  renderAllProductsOverview();
 }
 
 async function loadAddons() {
@@ -389,9 +395,99 @@ function extraAddons() {
 }
 
 function renderModuleProducts() {
+  renderAllProductsOverview();
   renderSimpleProducts();
   renderPizzas();
   renderPortions();
+}
+
+function renderAllProductsOverview() {
+  const target = $("#all-products-list");
+  if (!target) return;
+  const queryText = normalizeName(state.productSearch);
+  const items = allCatalogItems().filter((item) => {
+    if (!queryText) return true;
+    return [item.nome, item.categoria, item.tipo, item.descricao]
+      .some((value) => normalizeName(value).includes(queryText));
+  });
+  if (!items.length) {
+    target.innerHTML = "<p>Nenhum produto encontrado.</p>";
+    return;
+  }
+  const groups = items.reduce((map, item) => {
+    const key = item.categoria || "Sem categoria";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+    return map;
+  }, new Map());
+  target.innerHTML = Array.from(groups.entries()).map(([category, products]) => `
+    <section class="catalog-group">
+      <div class="catalog-group-heading">
+        <strong>${category}</strong>
+        <span>${products.length} item(ns)</span>
+      </div>
+      <div class="catalog-cards">
+        ${products.map(renderCatalogCard).join("")}
+      </div>
+    </section>
+  `).join("");
+  bindModuleActions(target);
+}
+
+function allCatalogItems() {
+  const legacyProducts = state.products.map((item) => ({
+    id: item.id,
+    nome: item.nome || "Produto sem nome",
+    descricao: item.descricao || "",
+    categoria: categoryName(item.categoriaId),
+    tipo: productTypeLabel(item),
+    preco: item.preco,
+    disponivel: item.disponivel !== false,
+    edit: item.moduleType === "simples" || item.tipoProduto === "simples" ? "simple-product" : "product"
+  }));
+  const pizzaItems = moduleItems("pizza").map((item) => ({
+    id: item.id,
+    nome: item.nome || "Pizza sem nome",
+    descricao: item.descricao || "",
+    categoria: "Pizzas",
+    tipo: "Pizza",
+    preco: item.valorP ?? item.precoP ?? item.preco,
+    valorG: item.valorG ?? item.precoG ?? item.preco,
+    disponivel: item.disponivel !== false,
+    edit: "pizza-item"
+  }));
+  const portionItems = moduleItems("porcao").map((item) => ({
+    id: item.id,
+    nome: item.nome || "Porção sem nome",
+    descricao: item.descricao || "",
+    categoria: "Porções",
+    tipo: "Porção",
+    preco: item.valorP ?? item.precoP ?? item.preco,
+    valorG: item.valorG ?? item.precoG ?? item.preco,
+    disponivel: item.disponivel !== false,
+    edit: "portion-item"
+  }));
+  return [...legacyProducts, ...pizzaItems, ...portionItems];
+}
+
+function renderCatalogCard(item) {
+  const price = item.valorG !== undefined
+    ? `P ${money(item.preco)} | G ${money(item.valorG)}`
+    : money(item.preco);
+  return `
+    <article class="catalog-card ${item.disponivel ? "" : "is-disabled"}">
+      <div>
+        <span class="catalog-type">${item.tipo}</span>
+        <strong>${item.nome}</strong>
+        ${item.descricao ? `<small>${item.descricao}</small>` : ""}
+      </div>
+      <div class="catalog-card-side">
+        <b>${price}</b>
+        <span>${item.disponivel ? "Ativo" : "Inativo"}</span>
+        <button class="btn btn-small" data-module-edit="${item.edit}" data-id="${item.id}" type="button">Editar</button>
+      </div>
+    </article>
+  `;
 }
 
 function renderSimpleProducts() {
@@ -759,26 +855,7 @@ function printById(id, mode) {
 
 $("#simple-product-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = event.currentTarget;
-  await runFormSave(form, async () => {
-    const data = formToObject(form);
-    const id = data.id || doc(collection(db, "tmp")).id;
-    await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
-      nome: data.nome,
-      descricao: data.descricao || "",
-      categoriaId: data.categoriaId || "",
-      preco: numberValue(data.preco),
-      fotoUrl: data.fotoUrl || "",
-      tipoProduto: "simples",
-      moduleType: "simples",
-      disponivel: Boolean(data.disponivel),
-      destaque: false,
-      permiteObservacoes: true,
-      atualizadoEm: serverTimestamp()
-    }, { merge: true });
-    resetSimpleProductForm(form);
-    await loadProducts();
-  });
+  await saveSimpleProduct(event.currentTarget);
 });
 
 $("#pizza-item-form")?.addEventListener("submit", async (event) => {
@@ -799,20 +876,7 @@ $("#module-flavor-form")?.addEventListener("submit", async (event) => {
 
 $("#module-category-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = event.currentTarget;
-  await runFormSave(form, async () => {
-    const data = formToObject(form);
-    const id = data.id || doc(collection(db, "tmp")).id;
-    await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, id), {
-      nome: data.nome,
-      moduleType: data.moduleType || "simples",
-      ordem: Number(data.ordem || 0),
-      ativo: Boolean(data.ativo),
-      atualizadoEm: serverTimestamp()
-    }, { merge: true });
-    resetModuleCategoryForm(form);
-    await loadCategories();
-  });
+  await saveModuleCategory(event.currentTarget);
 });
 
 $("#crust-form")?.addEventListener("submit", async (event) => {
@@ -836,10 +900,78 @@ $("#portion-settings-form")?.addEventListener("submit", async (event) => {
   await saveModuleSettings(event.currentTarget, ["porcaoMeioP", "porcaoMeioG"], "Configuração de porções salva");
 });
 
-$("#new-pizza-btn")?.addEventListener("click", () => resetModuleFlavorForm($("#pizza-item-form"), "pizza"));
-$("#new-portion-btn")?.addEventListener("click", () => resetModuleFlavorForm($("#portion-item-form"), "porcao"));
-$("#new-crust-btn")?.addEventListener("click", () => resetModuleAddonForm($("#crust-form")));
-$("#new-extra-btn")?.addEventListener("click", () => resetModuleAddonForm($("#module-addon-form")));
+$("#new-simple-product-btn")?.addEventListener("click", () => saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form"))));
+$("#new-pizza-btn")?.addEventListener("click", () => saveDraftOrReset($("#pizza-item-form"), () => saveModuleFlavor($("#pizza-item-form"), "pizza", "Pizza salva"), () => resetModuleFlavorForm($("#pizza-item-form"), "pizza")));
+$("#new-portion-btn")?.addEventListener("click", () => saveDraftOrReset($("#portion-item-form"), () => saveModuleFlavor($("#portion-item-form"), "porcao", "Porção salva"), () => resetModuleFlavorForm($("#portion-item-form"), "porcao")));
+$("#new-category-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-category-form"), () => saveModuleCategory($("#module-category-form")), () => resetModuleCategoryForm($("#module-category-form"))));
+$("#new-flavor-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-flavor-form"), () => saveModuleFlavor($("#module-flavor-form"), $("#module-flavor-form")?.elements.tipo.value || "pizza", "Sabor salvo"), () => resetModuleFlavorForm($("#module-flavor-form"), $("#module-flavor-form")?.elements.tipo.value || "pizza")));
+$("#new-crust-btn")?.addEventListener("click", () => saveDraftOrReset($("#crust-form"), () => saveModuleAddon($("#crust-form"), "borda", "pizza", "Borda salva"), () => resetModuleAddonForm($("#crust-form"))));
+$("#new-extra-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-addon-form"), () => saveModuleAddon($("#module-addon-form"), "adicional", $("#module-addon-form")?.elements.aplicarEm.value || "todos", "Adicional salvo"), () => resetModuleAddonForm($("#module-addon-form"))));
+
+async function saveDraftOrReset(form, saveAction, resetAction) {
+  if (!form) return;
+  if (!formHasDraft(form)) {
+    resetAction();
+    focusFirstField(form);
+    return;
+  }
+  if (!form.reportValidity()) return;
+  await saveAction();
+  focusFirstField(form);
+}
+
+function formHasDraft(form) {
+  const ignoredNames = new Set(["id", "disponivel", "ativo", "fotoUrl"]);
+  return Array.from(form.elements).some((field) => {
+    if (!field.name || ignoredNames.has(field.name)) return false;
+    if (field.type === "checkbox" || field.type === "radio" || field.type === "button" || field.type === "submit") return false;
+    if (field.tagName === "SELECT") return false;
+    return String(field.value || "").trim() !== "";
+  });
+}
+
+function focusFirstField(form) {
+  const field = Array.from(form.elements).find((item) => item.name && !["hidden", "checkbox", "button", "submit"].includes(item.type));
+  field?.focus();
+}
+
+async function saveSimpleProduct(form) {
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
+      nome: data.nome,
+      descricao: data.descricao || "",
+      categoriaId: data.categoriaId || "",
+      preco: numberValue(data.preco),
+      fotoUrl: data.fotoUrl || "",
+      tipoProduto: "simples",
+      moduleType: "simples",
+      disponivel: Boolean(data.disponivel),
+      destaque: false,
+      permiteObservacoes: true,
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetSimpleProductForm(form);
+    await loadProducts();
+  }, "Produto salvo");
+}
+
+async function saveModuleCategory(form) {
+  await runFormSave(form, async () => {
+    const data = formToObject(form);
+    const id = data.id || doc(collection(db, "tmp")).id;
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/categorias`, id), {
+      nome: data.nome,
+      moduleType: data.moduleType || "simples",
+      ordem: Number(data.ordem || 0),
+      ativo: Boolean(data.ativo),
+      atualizadoEm: serverTimestamp()
+    }, { merge: true });
+    resetModuleCategoryForm(form);
+    await loadCategories();
+  }, "Categoria salva");
+}
 
 async function saveModuleFlavor(form, type, successText) {
   await runFormSave(form, async () => {
@@ -1054,6 +1186,7 @@ function resetModuleAddonForm(form) {
 }
 
 function editModuleItem(kind, id) {
+  if (kind === "product") return fillProduct(id);
   if (kind === "simple-product") return fillSimpleProduct(id);
   if (kind === "pizza-item") return fillModuleFlavor(id, $("#pizza-item-form"), "pizza", "pizzas");
   if (kind === "portion-item") return fillModuleFlavor(id, $("#portion-item-form"), "porcao", "porcoes");

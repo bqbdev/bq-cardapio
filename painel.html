@@ -15,6 +15,7 @@
     <nav>
       <a href="#dashboard">Dashboard</a>
       <a href="#pedidos">Pedidos</a>
+      <a href="#produtos">Produtos</a>
       <a href="#produtos-simples">Produtos Simples</a>
       <a href="#pizzas">Pizzas</a>
       <a href="#porcoes">Porções</a>
@@ -58,8 +59,24 @@
       <div id="orders-list" class="stack-list"></div>
     </section>
 
+    <section id="produtos" class="panel module-page products-overview-page">
+      <div class="panel-heading">
+        <div>
+          <h2>Produtos</h2>
+          <p>Veja tudo o que está cadastrado, separado por categoria e módulo.</p>
+        </div>
+        <a class="btn btn-small btn-primary" href="#produtos-simples">+ Cadastrar produto</a>
+      </div>
+      <div class="toolbar-row">
+        <label class="search-field">Buscar produto
+          <input id="all-products-search" type="search" placeholder="Nome, categoria ou tipo">
+        </label>
+      </div>
+      <div id="all-products-list" class="catalog-overview"></div>
+    </section>
+
     <section id="produtos-simples" class="panel module-page">
-      <div class="panel-heading"><h2>Produtos Simples</h2></div>
+      <div class="panel-heading"><h2>Produtos Simples</h2><button id="new-simple-product-btn" class="btn btn-small" type="button">+ Novo produto</button></div>
       <form id="simple-product-form" class="form-grid panel-inner">
         <input type="hidden" name="id">
         <label>Nome do produto<input name="nome" required></label>
@@ -116,7 +133,7 @@
     </section>
 
     <section id="categorias" class="panel module-page">
-      <div class="panel-heading"><h2>Categorias</h2></div>
+      <div class="panel-heading"><h2>Categorias</h2><button id="new-category-btn" class="btn btn-small" type="button">+ Nova categoria</button></div>
       <form id="module-category-form" class="form-grid panel-inner">
         <input type="hidden" name="id">
         <label>Nome da categoria<input name="nome" required></label>
@@ -135,7 +152,7 @@
     </section>
 
     <section id="sabores" class="panel module-page">
-      <div class="panel-heading"><h2>Sabores</h2></div>
+      <div class="panel-heading"><h2>Sabores</h2><button id="new-flavor-btn" class="btn btn-small" type="button">+ Novo sabor</button></div>
       <form id="module-flavor-form" class="form-grid panel-inner">
         <input type="hidden" name="id">
         <label>Nome<input name="nome" required></label>
