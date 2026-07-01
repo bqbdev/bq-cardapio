@@ -386,6 +386,11 @@ function availableAddons(product) {
   return state.addons.filter((addon) => {
     if (addon.disponivel === false) return false;
     if (product.generatedModule === "pizza" && addon.tipoAdicional === "borda") return true;
+    if (addon.aplicarPor === "categoria") return addonCategoryIds(addon).includes(product.categoriaId);
+    if (Array.isArray(addon.modulos) && addon.modulos.length) {
+      const moduleName = product.generatedModule || product.moduleType;
+      return addon.modulos.includes(moduleName);
+    }
     if (product.generatedModule && addon.tipoAdicional !== "borda") return ["todos", product.generatedModule].includes(addon.aplicarEm || "todos");
     if (product.moduleType && addon.tipoAdicional !== "borda") return ["todos", product.moduleType].includes(addon.aplicarEm || "todos");
     if (addon.aplicarEm === "categoria") return addonCategoryIds(addon).includes(product.categoriaId);
@@ -405,6 +410,8 @@ function openProductBuilder(product) {
   state.builderPizzaSize = pizzaSizes(product)[0] || null;
   const flavors = productFlavors(product);
   const addons = availableAddons(product);
+  const crusts = addons.filter((addon) => addon.tipoAdicional === "borda");
+  const extras = addons.filter((addon) => addon.tipoAdicional !== "borda");
   $("#builder-title").textContent = product.generatedModule === "porcao" ? "Monte a sua porção" : product.pizzaMode ? "Monte a sua pizza" : product.nome;
   $("#builder-subtitle").textContent = builderSubtitle(product, flavors, addons);
   $("#builder-message").textContent = "";
@@ -412,7 +419,8 @@ function openProductBuilder(product) {
   $("#builder-body").innerHTML = `
     ${product.pizzaMode ? renderPizzaBuilderTop(product) : ""}
     ${product.tipoProduto === "sabores" ? renderFlavorPicker(product, flavors) : ""}
-    ${addons.length ? renderAddonPicker(addons) : ""}
+    ${crusts.length ? renderAddonPicker(crusts, "Bordas") : ""}
+    ${extras.length ? renderAddonPicker(extras, "Adicionais") : ""}
   `;
   document.querySelectorAll("[data-builder-size]").forEach((input) => {
     input.addEventListener("change", () => {
@@ -544,10 +552,10 @@ function flavorHelpText(product, max) {
   return "O preço base do produto será mantido, independente dos sabores.";
 }
 
-function renderAddonPicker(addons) {
+function renderAddonPicker(addons, title = "Adicionais") {
   return `
     <section class="builder-section">
-      <div class="builder-section-heading"><strong>Adicionais</strong><span>Opcional</span></div>
+      <div class="builder-section-heading"><strong>${title}</strong><span>Opcional</span></div>
       <div class="option-grid">
         ${addons.map((addon) => `
           <label class="option-card">

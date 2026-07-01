@@ -187,14 +187,24 @@
         <input type="hidden" name="id">
         <label>Nome do adicional<input name="nome" required></label>
         <label>Valor<input name="preco" type="number" step="0.01" required></label>
-        <label>Usar em
-          <select name="aplicarEm">
-            <option value="todos">Todos os módulos compatíveis</option>
-            <option value="pizza">Pizzas</option>
-            <option value="porcao">Porções</option>
-            <option value="simples">Produtos simples</option>
+        <label>Aplicar por
+          <select name="aplicarPor" id="module-addon-apply-mode">
+            <option value="modulo">Módulo</option>
+            <option value="categoria">Categoria</option>
           </select>
         </label>
+        <div class="full addon-scope-panel" data-module-addon-panel="modulo">
+          <strong>Módulos</strong>
+          <div class="category-check-grid">
+            <label class="category-check is-selected"><input type="checkbox" data-module-addon-module="pizza" checked><span>Pizzas</span></label>
+            <label class="category-check"><input type="checkbox" data-module-addon-module="porcao"><span>Porções</span></label>
+            <label class="category-check"><input type="checkbox" data-module-addon-module="simples"><span>Produtos simples</span></label>
+          </div>
+        </div>
+        <div class="full addon-scope-panel hidden" data-module-addon-panel="categoria">
+          <strong>Categorias</strong>
+          <div id="module-addon-category-checks" class="category-check-grid"></div>
+        </div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
         <button class="btn btn-primary full" type="submit">Salvar adicional e continuar</button>
       </form>

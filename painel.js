@@ -279,6 +279,7 @@ async function loadCategories() {
     if ($(selector)) $(selector).innerHTML = `<option value="">Não usar</option>${categoryOptions}`;
   });
   renderAddonCategoryChecks();
+  renderModuleAddonCategoryChecks();
   $("#categories-list").innerHTML = state.categories.map((item) => `
     <div class="list-item">
       <strong>${item.nome}</strong><small>${item.ativo ? "Ativo" : "Inativo"} - ordem ${item.ordem || 0}</small>
@@ -582,7 +583,7 @@ function renderExtras() {
   if (!target) return;
   target.innerHTML = extraAddons().map((item) => moduleListItem({
     title: item.nome,
-    meta: `${money(item.preco)} - ${moduleAddonScope(item.aplicarEm)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    meta: `${money(item.preco)} - ${moduleAddonScopeText(item)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
     id: item.id,
     edit: "module-addon",
     remove: "addon"
@@ -629,6 +630,16 @@ function moduleAddonScope(value = "") {
   return "Todos";
 }
 
+function moduleAddonScopeText(addon) {
+  if (addon.aplicarPor === "categoria") {
+    const names = addonCategoryIds(addon).map(categoryName).filter(Boolean);
+    return `Categorias: ${names.join(", ") || "nenhuma"}`;
+  }
+  const modules = Array.isArray(addon.modulos) && addon.modulos.length ? addon.modulos : [addon.aplicarEm || "todos"];
+  if (modules.includes("todos")) return "Todos os módulos";
+  return `Módulos: ${modules.map(moduleAddonScope).join(", ")}`;
+}
+
 function addonCategoryIds(addon) {
   if (Array.isArray(addon.categoriaIds)) return addon.categoriaIds.filter(Boolean);
   return addon.categoriaId ? [addon.categoriaId] : [];
@@ -657,6 +668,47 @@ function selectedAddonCategoryIds() {
 
 function setAddonCategorySelection(values = []) {
   renderAddonCategoryChecks(values);
+}
+
+function renderModuleAddonCategoryChecks(selected = []) {
+  const target = $("#module-addon-category-checks");
+  if (!target) return;
+  const selectedSet = new Set(selected);
+  target.innerHTML = state.categories.map((category) => `
+    <label class="category-check ${selectedSet.has(category.id) ? "is-selected" : ""}">
+      <input type="checkbox" data-module-addon-category-id="${category.id}" ${selectedSet.has(category.id) ? "checked" : ""}>
+      <span>${category.nome}</span>
+    </label>
+  `).join("") || "<p>Nenhuma categoria cadastrada.</p>";
+  target.querySelectorAll("[data-module-addon-category-id]").forEach((input) => {
+    input.addEventListener("change", () => {
+      input.closest(".category-check")?.classList.toggle("is-selected", input.checked);
+    });
+  });
+}
+
+function selectedModuleAddonCategoryIds() {
+  return Array.from(document.querySelectorAll("[data-module-addon-category-id]:checked")).map((input) => input.dataset.moduleAddonCategoryId);
+}
+
+function selectedModuleAddonModules() {
+  return Array.from(document.querySelectorAll("[data-module-addon-module]:checked")).map((input) => input.dataset.moduleAddonModule);
+}
+
+function setModuleAddonModules(values = ["pizza"]) {
+  const selected = new Set(values?.length ? values : ["pizza"]);
+  document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
+    input.checked = selected.has(input.dataset.moduleAddonModule);
+    input.closest(".category-check")?.classList.toggle("is-selected", input.checked);
+  });
+}
+
+function setModuleAddonApplyMode(value = "modulo") {
+  const form = $("#module-addon-form");
+  if (form?.elements.aplicarPor) form.elements.aplicarPor.value = value;
+  document.querySelectorAll("[data-module-addon-panel]").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.moduleAddonPanel !== value);
+  });
 }
 
 function parseBulkLines(text = "", defaultValue = 0) {
@@ -884,7 +936,11 @@ $("#crust-form")?.addEventListener("submit", async (event) => {
 $("#module-addon-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  await saveModuleAddon(form, "adicional", form.elements.aplicarEm.value || "todos", "Adicional salvo");
+  await saveModuleAddon(form, "adicional", "", "Adicional salvo");
+});
+$("#module-addon-apply-mode")?.addEventListener("change", (event) => setModuleAddonApplyMode(event.target.value));
+document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
+  input.addEventListener("change", () => input.closest(".category-check")?.classList.toggle("is-selected", input.checked));
 });
 
 $("#new-simple-product-btn")?.addEventListener("click", () => saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form"))));
@@ -893,7 +949,7 @@ $("#new-portion-btn")?.addEventListener("click", () => saveDraftOrReset($("#port
 $("#new-category-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-category-form"), () => saveModuleCategory($("#module-category-form")), () => resetModuleCategoryForm($("#module-category-form"))));
 $("#new-flavor-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-flavor-form"), () => saveModuleFlavor($("#module-flavor-form"), $("#module-flavor-form")?.elements.tipo.value || "pizza", "Sabor salvo"), () => resetModuleFlavorForm($("#module-flavor-form"), $("#module-flavor-form")?.elements.tipo.value || "pizza")));
 $("#new-crust-btn")?.addEventListener("click", () => saveDraftOrReset($("#crust-form"), () => saveModuleAddon($("#crust-form"), "borda", "pizza", "Borda salva"), () => resetModuleAddonForm($("#crust-form"))));
-$("#new-extra-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-addon-form"), () => saveModuleAddon($("#module-addon-form"), "adicional", $("#module-addon-form")?.elements.aplicarEm.value || "todos", "Adicional salvo"), () => resetModuleAddonForm($("#module-addon-form"))));
+$("#new-extra-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-addon-form"), () => saveModuleAddon($("#module-addon-form"), "adicional", "", "Adicional salvo"), () => resetModuleAddonForm($("#module-addon-form"))));
 
 async function saveDraftOrReset(form, saveAction, resetAction) {
   if (!form) return;
@@ -1026,13 +1082,28 @@ async function saveModuleAddon(form, tipoAdicional, aplicarEm, successText) {
   await runFormSave(form, async () => {
     const data = formToObject(form);
     const id = data.id || doc(collection(db, "tmp")).id;
+    const aplicarPor = tipoAdicional === "borda" ? "modulo" : data.aplicarPor || "modulo";
+    const modulos = tipoAdicional === "borda"
+      ? ["pizza"]
+      : aplicarPor === "modulo"
+        ? selectedModuleAddonModules()
+        : [];
+    const categoriaIds = tipoAdicional === "borda" || aplicarPor !== "categoria" ? [] : selectedModuleAddonCategoryIds();
+    if (tipoAdicional !== "borda" && aplicarPor === "modulo" && !modulos.length) {
+      throw new Error("Selecione pelo menos um módulo para este adicional.");
+    }
+    if (tipoAdicional !== "borda" && aplicarPor === "categoria" && !categoriaIds.length) {
+      throw new Error("Selecione pelo menos uma categoria para este adicional.");
+    }
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/adicionais`, id), {
       nome: data.nome,
       preco: numberValue(data.preco),
       tipoAdicional,
-      aplicarEm,
+      aplicarPor,
+      aplicarEm: aplicarPor === "modulo" ? modulos[0] || "todos" : "categoria",
+      modulos,
       categoriaId: "",
-      categoriaIds: [],
+      categoriaIds,
       produtoId: "",
       disponivel: Boolean(data.disponivel),
       atualizadoEm: serverTimestamp()
@@ -1211,6 +1282,9 @@ function resetModuleAddonForm(form) {
   form?.reset();
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  setModuleAddonApplyMode("modulo");
+  setModuleAddonModules(["pizza"]);
+  renderModuleAddonCategoryChecks([]);
 }
 
 function editModuleItem(kind, id) {
@@ -1276,7 +1350,10 @@ function fillModuleAddon(id, form, page) {
   form.elements.id.value = id;
   form.elements.nome.value = item.nome || "";
   form.elements.preco.value = item.preco || 0;
-  if (form.elements.aplicarEm) form.elements.aplicarEm.value = item.aplicarEm || "todos";
+  if (form.elements.aplicarPor) form.elements.aplicarPor.value = item.aplicarPor || (addonCategoryIds(item).length ? "categoria" : "modulo");
+  setModuleAddonApplyMode(form.elements.aplicarPor?.value || "modulo");
+  setModuleAddonModules(item.modulos || (item.aplicarEm && item.aplicarEm !== "categoria" ? [item.aplicarEm] : ["pizza"]));
+  renderModuleAddonCategoryChecks(addonCategoryIds(item));
   form.elements.disponivel.checked = item.disponivel !== false;
   location.hash = page;
   showCurrentPanelPage();
