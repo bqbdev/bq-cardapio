@@ -980,7 +980,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   background: transparent;
   box-shadow: none;
   border-radius: 50%;
-  border: 2px solid var(--primary);
+  border: 0;
 }
 .menu-logo img {
   width: 100%;
