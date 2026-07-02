@@ -109,7 +109,10 @@ function renderHeader() {
   $("#menu-business-name").textContent = name;
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
   if (state.settings.logoUrl) {
+    $("#menu-logo").classList.add("has-image");
     $("#menu-logo").innerHTML = `<img src="${state.settings.logoUrl}" alt="${name}">`;
+  } else {
+    $("#menu-logo").classList.remove("has-image");
   }
   renderOpeningHours();
 }
@@ -128,7 +131,7 @@ function renderOpeningHours() {
     return `<span>${label}: ${open && close ? `${open} às ${close}` : "Fechado"}</span>`;
   }).join("");
   target.innerHTML = `
-    <strong class="${openNow ? "status-open" : "status-closed"}">${openNow ? "Aberto agora" : "Fechado agora"}</strong>
+    <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
     <div class="hours-list">${rows}</div>
   `;
 }
