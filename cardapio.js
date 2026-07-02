@@ -484,29 +484,23 @@ function renderPizzaBuilderTop(product) {
   const showSizePrices = !productFlavors(product).some((flavor) => Number(flavor.preco || 0) > 0);
   const isPortion = product.generatedModule === "porcao";
   const isIndividual = product.tipoProduto === "individual_module";
+  const selectedMax = selectedFlavorLimit(product);
   const modeSection = isIndividual ? "" : isPortion ? `
-    <section class="builder-section">
-      <div class="builder-section-heading"><strong>Quantidade de op&ccedil;&otilde;es</strong><span>Obrigat&oacute;rio</span></div>
-      <div class="segmented-options">
-        <label class="segment-card">
-          <input data-flavor-mode name="flavorMode" value="1" type="radio" checked>
-          <span>Inteira</span>
-        </label>
-        ${max > 1 ? `
-          <label class="segment-card">
-            <input data-flavor-mode name="flavorMode" value="${max}" type="radio">
-            <span>${max} op&ccedil;&otilde;es</span>
-          </label>
-        ` : ""}
+    <section class="builder-section builder-half-section">
+      <div class="builder-section-heading"><strong>Meio a meio</strong><span>Obrigat&oacute;rio</span></div>
+      <input data-flavor-mode name="flavorMode" value="${selectedMax}" type="radio" checked hidden>
+      <div class="builder-half-card">
+        <strong data-builder-half-title>${selectedMax > 1 ? `Escolha at&eacute; ${selectedMax} op&ccedil;&otilde;es` : "Escolha 1 op&ccedil;&atilde;o"}</strong>
+        <span data-builder-half-text>${selectedMax > 1 ? "Esta por&ccedil;&atilde;o ser&aacute; montada no formato meio a meio. O maior valor escolhido prevalece." : "Este tamanho aceita uma op&ccedil;&atilde;o de por&ccedil;&atilde;o."}</span>
       </div>
     </section>
   ` : `
     <section class="builder-section builder-half-section">
       <div class="builder-section-heading"><strong>Meio a meio</strong><span>Obrigat&oacute;rio</span></div>
-      <input data-flavor-mode name="flavorMode" value="${max}" type="radio" checked hidden>
+      <input data-flavor-mode name="flavorMode" value="${selectedMax}" type="radio" checked hidden>
       <div class="builder-half-card">
-        <strong>Escolha at&eacute; ${max} sabores</strong>
-        <span>Esta pizza ser&aacute; montada no formato meio a meio. O maior valor escolhido prevalece.</span>
+        <strong data-builder-half-title>${selectedMax > 1 ? `Escolha at&eacute; ${selectedMax} sabores` : "Escolha 1 sabor"}</strong>
+        <span data-builder-half-text>${selectedMax > 1 ? "Esta pizza ser&aacute; montada no formato meio a meio. O maior valor escolhido prevalece." : "Este tamanho aceita um sabor."}</span>
       </div>
     </section>
   `;
@@ -622,6 +616,9 @@ function enforceFlavorLimit(product) {
   const checked = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
   if (checked.length <= max) return;
   checked.slice(max).forEach((input) => input.checked = false);
+  const label = product.generatedModule === "porcao" ? "opção(ões)" : "sabor(es)";
+  setMessage($("#builder-message"), `Escolha no máximo ${max} ${label}.`, "error");
+  return;
   setMessage($("#builder-message"), `Escolha no máximo ${max} sabor(es).`, "error");
 }
 
@@ -647,6 +644,7 @@ function updateBuilderTotal() {
 
 function updateBuilderSelectionState(product) {
   const max = selectedFlavorLimit(product);
+  updateBuilderHalfCopy(product, max);
   if (product.generatedModule === "porcao") {
     if (Number(state.builderFlavorMode || 1) > max) state.builderFlavorMode = 1;
     const checkedFlavors = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
@@ -683,6 +681,28 @@ function updateBuilderSelectionState(product) {
   document.querySelectorAll("[data-builder-addon]").forEach((input) => {
     input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
   });
+}
+
+function updateBuilderHalfCopy(product, max) {
+  const title = document.querySelector("[data-builder-half-title]");
+  const text = document.querySelector("[data-builder-half-text]");
+  const mode = document.querySelector("[data-flavor-mode]");
+  if (mode) {
+    mode.value = String(max);
+    mode.checked = true;
+  }
+  if (!title || !text) return;
+  if (product.generatedModule === "porcao") {
+    title.textContent = max > 1 ? `Escolha até ${max} opções` : "Escolha 1 opção";
+    text.textContent = max > 1
+      ? "Esta porção será montada no formato meio a meio. O maior valor escolhido prevalece."
+      : "Este tamanho aceita uma opção de porção.";
+    return;
+  }
+  title.textContent = max > 1 ? `Escolha até ${max} sabores` : "Escolha 1 sabor";
+  text.textContent = max > 1
+    ? "Esta pizza será montada no formato meio a meio. O maior valor escolhido prevalece."
+    : "Este tamanho aceita um sabor.";
 }
 
 function renderBuilderSummary(product, flavors = [], addons = []) {
@@ -767,6 +787,10 @@ $("#product-builder-form")?.addEventListener("submit", (event) => {
   const flavors = selectedBuilderFlavors();
   const addons = selectedBuilderAddons();
   if (product.tipoProduto === "sabores" && !flavors.length) {
+    if (product.generatedModule === "porcao") {
+      setMessage($("#builder-message"), "Escolha pelo menos uma opção.", "error");
+      return;
+    }
     setMessage($("#builder-message"), "Escolha pelo menos um sabor.", "error");
     return;
   }
