@@ -114,6 +114,9 @@ function renderHeader() {
   } else {
     $("#menu-logo").classList.remove("has-image");
   }
+  const phone = state.settings.whatsappPedidos || state.business.whatsapp || "";
+  const whatsapp = $("#menu-whatsapp-link");
+  if (whatsapp) whatsapp.href = phone ? whatsappLink(phone, `Olá, vim pelo cardápio digital de ${name}.`) : "#";
   renderOpeningHours();
 }
 
@@ -300,6 +303,8 @@ function renderCart() {
     </div>
   `).join("") || "<p>Seu carrinho está vazio.</p>";
   $("#cart-total").textContent = money(cartSubtotal());
+  const count = state.cart.reduce((sum, item) => sum + Number(item.quantidade || 0), 0);
+  if ($("#menu-cart-count")) $("#menu-cart-count").textContent = String(count);
   document.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
     state.cart.splice(Number(button.dataset.remove), 1);
     renderCart();
@@ -1183,3 +1188,11 @@ function escapeHtml(value = "") {
     "'": "&#039;"
   }[char]));
 }
+
+$("#menu-search-shortcut")?.addEventListener("click", () => {
+  $("#category-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$("#menu-cart-shortcut")?.addEventListener("click", () => {
+  $(".cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});

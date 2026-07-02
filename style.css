@@ -950,10 +950,10 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .menu-header {
   display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-columns: 58px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
-  padding: 18px clamp(14px, 4vw, 42px) 16px;
+  gap: 12px;
+  padding: 10px clamp(14px, 4vw, 42px);
   background: rgba(255, 255, 255, .92);
   border-bottom: 1px solid rgba(214, 224, 218, .72);
   box-shadow: 0 14px 34px rgba(23, 32, 27, .06);
@@ -963,9 +963,9 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   z-index: 5;
 }
 .menu-logo {
-  width: 86px;
-  height: 86px;
-  border-radius: 22px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #0b8a4f);
   color: #fff;
   display: grid;
@@ -978,7 +978,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .menu-logo.has-image {
   background: transparent;
   box-shadow: none;
-  border-radius: 18px;
+  border-radius: 50%;
 }
 .menu-logo img {
   width: 100%;
@@ -987,24 +987,75 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   background: transparent;
   display: block;
 }
+.menu-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
 .menu-header h1 {
   margin: 0;
   line-height: 1;
-  font-size: clamp(1.7rem, 3vw, 2.45rem);
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
   letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.menu-header p { margin: 0; color: var(--muted); }
+.menu-header p { margin: 0; color: var(--muted); font-size: .78rem; }
 .menu-header .eyebrow {
   color: var(--primary);
-  font-size: .72rem;
+  font-size: .62rem;
+  font-weight: 950;
+}
+.menu-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.menu-icon-button {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(214, 224, 218, .88);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(23, 32, 27, .05);
+}
+.menu-icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.menu-icon-button.whatsapp { color: #0a9f55; }
+.cart-shortcut span {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: .68rem;
   font-weight: 950;
 }
 .menu-hours {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 5px;
+  margin-top: 3px;
 }
 .menu-hours strong {
   display: inline-flex;
@@ -1013,8 +1064,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   width: fit-content;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 7px 11px;
-  font-size: .84rem;
+  padding: 3px 8px;
+  font-size: .72rem;
   background: #fff;
 }
 .menu-hours strong span {
@@ -1028,13 +1079,14 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   flex-wrap: wrap;
   gap: 6px;
   color: var(--muted);
-  font-size: .82rem;
+  font-size: .72rem;
 }
+.hours-list span:not(:first-child) { display: none; }
 .hours-list span {
   border: 1px solid rgba(214, 224, 218, .9);
   border-radius: 999px;
   background: #fff;
-  padding: 7px 10px;
+  padding: 3px 8px;
   white-space: nowrap;
   box-shadow: 0 8px 20px rgba(23, 32, 27, .04);
 }
@@ -1290,16 +1342,20 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .preview-dashboard-head, .preview-order { align-items: flex-start; flex-direction: column; }
   .preview-floating-card { position: static; width: 100%; margin-top: 12px; }
   .menu-header {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 52px minmax(0, 1fr) auto;
     align-items: center;
-    padding: 12px 14px;
-    gap: 12px;
+    padding: 9px 12px;
+    gap: 10px;
   }
-  .menu-logo { width: 76px; height: 76px; border-radius: 18px; }
-  .menu-logo.has-image { border-radius: 14px; }
-  .menu-header h1 { font-size: 1.6rem; }
-  .menu-header .eyebrow { font-size: .68rem; }
-  .menu-hours { gap: 6px; margin-top: 8px; }
+  .menu-logo { width: 52px; height: 52px; border-radius: 50%; }
+  .menu-logo.has-image { border-radius: 50%; }
+  .menu-header h1 { font-size: 1rem; }
+  .menu-header .eyebrow { font-size: .58rem; }
+  .menu-header p { font-size: .68rem; }
+  .menu-actions { gap: 6px; }
+  .menu-icon-button { width: 34px; height: 34px; }
+  .menu-icon-button svg { width: 16px; height: 16px; }
+  .menu-hours { gap: 5px; margin-top: 3px; }
   .hours-list {
     flex-wrap: nowrap;
     overflow-x: auto;
