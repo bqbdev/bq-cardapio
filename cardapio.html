@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cardápio - BQ Menu</title>
-  <link rel="stylesheet" href="style.css?v=webapp-topo-3">
+  <link rel="stylesheet" href="style.css?v=webapp-layout-5">
 </head>
 <body class="menu-page">
   <header class="menu-header">
@@ -30,11 +30,12 @@
   </header>
   <main class="menu-shell">
     <section>
+      <section id="menu-hero" class="menu-hero"></section>
       <div id="category-tabs" class="category-tabs"></div>
       <div id="menu-products" class="menu-products"></div>
     </section>
     <aside class="cart-panel">
-      <h2>Carrinho</h2>
+      <h2>Seu pedido</h2>
       <div id="cart-items" class="cart-items"></div>
       <div class="cart-total"><span>Total</span><strong id="cart-total">R$ 0,00</strong></div>
       <button id="checkout-open" class="btn btn-primary full">Finalizar pedido</button>
@@ -95,6 +96,6 @@
       <p id="builder-message" class="form-message full"></p>
     </form>
   </dialog>
-  <script type="module" src="cardapio.js?v=webapp-topo-3"></script>
+  <script type="module" src="cardapio.js?v=webapp-layout-5"></script>
 </body>
 </html>

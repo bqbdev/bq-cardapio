@@ -56,6 +56,7 @@ async function init() {
   }
   await Promise.all([loadBusiness(), loadSettings(), loadFees(), loadCategories(), loadProducts(), loadFlavors(), loadAddons()]);
   renderHeader();
+  renderMenuHero();
   renderCategories();
   renderProducts();
   renderCart();
@@ -185,15 +186,53 @@ function timeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
+function renderMenuHero() {
+  const target = $("#menu-hero");
+  if (!target) return;
+  const product = bestHeroProduct();
+  const title = state.settings.chamadaCardapio || "Os melhores pedidos feitos para voce.";
+  const subtitle = state.settings.subtituloCardapio || "Escolha seus favoritos e finalize direto pelo WhatsApp.";
+  target.innerHTML = `
+    <div class="menu-hero-copy">
+      <span>Pedido rapido</span>
+      <h2>${escapeHtml(title)}</h2>
+      <p>${escapeHtml(subtitle)}</p>
+      <a class="hero-whatsapp-link" href="${$("#menu-whatsapp-link")?.href || "#"}" target="_blank" rel="noopener">Peca pelo WhatsApp</a>
+    </div>
+    <div class="menu-hero-art">
+      ${product?.fotoUrl ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}">` : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
+      ${product ? `<strong>${escapeHtml(product.nome)}</strong>` : ""}
+    </div>
+  `;
+}
+
+function bestHeroProduct() {
+  return menuProducts().find((item) => item.destaque && item.fotoUrl)
+    || menuProducts().find((item) => item.fotoUrl)
+    || menuProducts()[0]
+    || null;
+}
+
 function renderCategories(activeId = "todos") {
   const tabs = [{ id: "todos", nome: "Todos" }, ...virtualCategories(), ...publicCategories()];
-  $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}">${item.nome}</button>`).join("");
+  $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}"><span>${categoryIcon(item)}</span><b>${item.nome}</b></button>`).join("");
   document.querySelectorAll("[data-category]").forEach((button) => {
     button.addEventListener("click", () => {
       renderCategories(button.dataset.category);
       renderProducts(button.dataset.category);
     });
   });
+}
+
+function categoryIcon(item) {
+  const name = normalizeAreaName(item.nome || item.id || "");
+  if (item.id === "todos") return "BQ";
+  if (name.includes("pizza")) return "PZ";
+  if (name.includes("porc")) return "PR";
+  if (name.includes("bebida") || name.includes("suco")) return "BD";
+  if (name.includes("lanche") || name.includes("burger") || name.includes("hamb")) return "LN";
+  if (name.includes("sobremesa") || name.includes("doce")) return "SB";
+  return String(item.nome || "BQ").slice(0, 2).toUpperCase();
 }
 
 function renderProducts(categoryId = "todos") {
