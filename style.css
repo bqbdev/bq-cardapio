@@ -950,10 +950,11 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .menu-header {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 54px minmax(170px, 260px) auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px clamp(14px, 4vw, 42px);
+  justify-content: start;
+  gap: 10px;
+  padding: 9px clamp(14px, 4vw, 42px);
   background: rgba(255, 255, 255, .92);
   border-bottom: 1px solid rgba(214, 224, 218, .72);
   box-shadow: 0 14px 34px rgba(23, 32, 27, .06);
@@ -963,8 +964,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   z-index: 5;
 }
 .menu-logo {
-  width: 58px;
-  height: 58px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #0b8a4f);
   color: #fff;
@@ -995,7 +996,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .menu-header h1 {
   margin: 0;
   line-height: 1;
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-size: 1.05rem;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1003,6 +1004,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .menu-header p { margin: 0; color: var(--muted); font-size: .78rem; }
 .menu-header .eyebrow {
+  display: none;
   color: var(--primary);
   font-size: .62rem;
   font-weight: 950;
@@ -1010,12 +1012,12 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .menu-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 .menu-icon-button {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border: 1px solid rgba(214, 224, 218, .88);
   border-radius: 50%;
   background: #fff;
@@ -1026,8 +1028,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   box-shadow: 0 10px 22px rgba(23, 32, 27, .05);
 }
 .menu-icon-button svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -1055,7 +1057,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 .menu-hours strong {
   display: inline-flex;
@@ -1064,8 +1066,10 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   width: fit-content;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: .72rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: .68rem;
   background: #fff;
 }
 .menu-hours strong span {
@@ -1079,16 +1083,16 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   flex-wrap: wrap;
   gap: 6px;
   color: var(--muted);
-  font-size: .72rem;
+  font-size: .68rem;
 }
 .hours-list span:not(:first-child) { display: none; }
 .hours-list span {
-  border: 1px solid rgba(214, 224, 218, .9);
-  border-radius: 999px;
-  background: #fff;
-  padding: 3px 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   white-space: nowrap;
-  box-shadow: 0 8px 20px rgba(23, 32, 27, .04);
+  box-shadow: none;
 }
 .status-open { color: var(--ok); }
 .status-closed { color: var(--danger); }

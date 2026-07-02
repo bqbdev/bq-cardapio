@@ -105,6 +105,7 @@ async function loadAddons() {
 }
 
 function renderHeader() {
+  ensureMenuActions();
   const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "Cardápio";
   $("#menu-business-name").textContent = name;
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
@@ -120,6 +121,24 @@ function renderHeader() {
   renderOpeningHours();
 }
 
+function ensureMenuActions() {
+  if ($(".menu-actions")) return;
+  $(".menu-header")?.insertAdjacentHTML("beforeend", `
+    <div class="menu-actions">
+      <button id="menu-search-shortcut" class="menu-icon-button" type="button" aria-label="Buscar produtos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Zm5.2-1.7 4.1 4.1"/></svg>
+      </button>
+      <a id="menu-whatsapp-link" class="menu-icon-button whatsapp" href="#" target="_blank" rel="noopener" aria-label="Chamar no WhatsApp">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 19.6 4 20.8l1.2-4A8 8 0 1 1 8.2 19.6Z"/><path d="M8.9 8.6c.2 4 2.4 6 6.3 6.7l1.2-1.4-2.2-1.2-.9.8c-1.4-.6-2.3-1.5-2.9-2.9l.8-.9-1.2-2.2-1.1 1.1Z"/></svg>
+      </a>
+      <button id="menu-cart-shortcut" class="menu-icon-button cart-shortcut" type="button" aria-label="Ver carrinho">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l2 10h9l2-7H7"/><path d="M9 20h.1M17 20h.1"/></svg>
+        <span id="menu-cart-count">0</span>
+      </button>
+    </div>
+  `);
+}
+
 function renderOpeningHours() {
   const target = $("#menu-hours");
   if (!target) return;
@@ -128,6 +147,12 @@ function renderOpeningHours() {
   const todayClose = state.settings[`horario_${todayKey}_fecha`];
   const hasTodayHours = Boolean(todayOpen && todayClose);
   const openNow = hasTodayHours && isOpenNow(todayOpen, todayClose);
+  const todayLabel = hasTodayHours ? `${todayOpen} &agrave;s ${todayClose}` : "Fechado";
+  target.innerHTML = `
+    <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
+    <div class="hours-list"><span>${todayLabel}</span></div>
+  `;
+  return;
   const rows = businessDays.map(([key, label]) => {
     const open = state.settings[`horario_${key}_abre`];
     const close = state.settings[`horario_${key}_fecha`];
@@ -1189,10 +1214,11 @@ function escapeHtml(value = "") {
   }[char]));
 }
 
-$("#menu-search-shortcut")?.addEventListener("click", () => {
-  $("#category-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
-});
-
-$("#menu-cart-shortcut")?.addEventListener("click", () => {
-  $(".cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+document.addEventListener("click", (event) => {
+  if (event.target.closest("#menu-search-shortcut")) {
+    $("#category-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (event.target.closest("#menu-cart-shortcut")) {
+    $(".cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 });
