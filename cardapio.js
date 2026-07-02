@@ -31,7 +31,8 @@ const state = {
   clientOrders: [],
   clientUnsubscribe: null,
   deliveryFee: 0,
-  deliveryRule: ""
+  deliveryRule: "",
+  isOpenNow: true
 };
 const $ = (selector) => document.querySelector(selector);
 let checkoutLookupTimer = null;
@@ -147,11 +148,14 @@ function renderOpeningHours() {
   const todayClose = state.settings[`horario_${todayKey}_fecha`];
   const hasTodayHours = Boolean(todayOpen && todayClose);
   const openNow = hasTodayHours && isOpenNow(todayOpen, todayClose);
+  state.isOpenNow = openNow;
   const todayLabel = hasTodayHours ? `${todayOpen} &agrave;s ${todayClose}` : "Fechado";
   target.innerHTML = `
     <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
     <div class="hours-list"><span>${todayLabel}</span></div>
+    ${openNow ? "" : "<em>Pedidos indisponíveis no momento</em>"}
   `;
+  updateOrderingAvailability();
   return;
   const rows = businessDays.map(([key, label]) => {
     const open = state.settings[`horario_${key}_abre`];
@@ -208,6 +212,7 @@ function renderProducts(categoryId = "todos") {
     </article>
   `).join("") || "<p>Nenhum produto disponível nesta categoria.</p>";
   document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => addToCart(button.dataset.add)));
+  updateOrderingAvailability();
 }
 
 function virtualCategories() {
@@ -300,6 +305,7 @@ function moduleSizes(type) {
 }
 
 function addToCart(productId) {
+  if (!canOrderNow()) return;
   const product = menuProducts().find((item) => item.id === productId);
   if (!product) return;
   if (productNeedsBuilder(product)) {
@@ -311,6 +317,28 @@ function addToCart(productId) {
   if (existing) existing.quantidade += 1;
   else state.cart.push(cartItem);
   renderCart();
+}
+
+function canOrderNow() {
+  if (state.isOpenNow) return true;
+  alert("A loja está fechada agora. Não é possível fazer pedidos no momento.");
+  return false;
+}
+
+function updateOrderingAvailability() {
+  const closed = !state.isOpenNow;
+  document.querySelectorAll("[data-add]").forEach((button) => {
+    button.disabled = closed;
+    button.classList.toggle("is-disabled", closed);
+    button.setAttribute("aria-disabled", closed ? "true" : "false");
+  });
+  const checkout = $("#checkout-open");
+  if (checkout) {
+    checkout.disabled = closed;
+    checkout.classList.toggle("is-disabled", closed);
+    checkout.textContent = closed ? "Loja fechada" : "Finalizar pedido";
+  }
+  document.body.classList.toggle("store-closed", closed);
 }
 
 function renderCart() {
@@ -815,6 +843,7 @@ $("#product-dialog-close")?.addEventListener("click", () => $("#product-dialog")
 
 $("#product-builder-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!canOrderNow()) return;
   const product = state.buildingProduct;
   if (!product) return;
   const flavors = selectedBuilderFlavors();
@@ -837,6 +866,7 @@ $("#product-builder-form")?.addEventListener("submit", (event) => {
 });
 
 $("#checkout-open")?.addEventListener("click", () => {
+  if (!canOrderNow()) return;
   if (!state.cart.length) {
     alert("Adicione pelo menos um item ao carrinho.");
     return;
