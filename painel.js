@@ -20,9 +20,10 @@ import { addMonths, formToObject, money, numberValue, planMonths, printOrder, se
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "" };
+const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", knownOrderIds: new Set(), ordersLoadedOnce: false };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
+let notificationAudioCtx = null;
 const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
@@ -70,6 +71,7 @@ $("#logout-btn")?.addEventListener("click", async () => {
   await signOut(auth);
   location.replace("login.html");
 });
+document.addEventListener("pointerdown", unlockNotificationSound, { once: true });
 $("#refresh-orders")?.addEventListener("click", loadOrders);
 $("#order-search")?.addEventListener("input", (event) => {
   state.orderSearch = event.target.value.trim().toLowerCase();
@@ -797,13 +799,84 @@ function loadOrders() {
   if (unsubscribeOrders) unsubscribeOrders();
   return new Promise((resolve, reject) => {
     unsubscribeOrders = onSnapshot(query(collection(db, `estabelecimentos/${state.businessId}/pedidos`), orderBy("criadoEm", "desc")), (snap) => {
+      const addedOrders = snap.docChanges()
+        .filter((change) => change.type === "added" && state.ordersLoadedOnce && !state.knownOrderIds.has(change.doc.id))
+        .map((change) => ({ id: change.doc.id, ...change.doc.data() }));
       state.orders = snap.docs.map((item) => ({ id: item.id, ...item.data() }));
+      state.knownOrderIds = new Set(state.orders.map((order) => order.id));
       renderOrders();
       renderDashboard();
+      updateOrdersNotification(addedOrders);
       renderFinanceSummary("#finance-summary", state.orders);
+      state.ordersLoadedOnce = true;
       resolve();
     }, reject);
   });
+}
+
+function updateOrdersNotification(newOrders = []) {
+  const pending = state.orders.filter((order) => normalizeStatus(order.status || "Aguardando aprovação") === normalizeStatus("Aguardando aprovação")).length;
+  let badge = $("#orders-menu-badge");
+  const ordersLink = document.querySelector('.sidebar nav a[href="#pedidos"]');
+  if (!badge && ordersLink) {
+    ordersLink.insertAdjacentHTML("beforeend", '<span id="orders-menu-badge" class="nav-badge hidden">0</span>');
+    badge = $("#orders-menu-badge");
+  }
+  if (badge) {
+    badge.textContent = String(pending);
+    badge.classList.toggle("hidden", pending <= 0);
+  }
+  document.title = pending > 0 ? `(${pending}) BQ Menu` : "BQ Menu";
+  if (newOrders.length) {
+    playOrderNotification();
+    showPanelNotice(`${newOrders.length} novo${newOrders.length > 1 ? "s" : ""} pedido${newOrders.length > 1 ? "s" : ""}`);
+  }
+}
+
+function showPanelNotice(text) {
+  let notice = $("#panel-order-notice");
+  if (!notice) {
+    document.body.insertAdjacentHTML("beforeend", '<div id="panel-order-notice" class="panel-order-notice"></div>');
+    notice = $("#panel-order-notice");
+  }
+  notice.textContent = text;
+  notice.classList.add("show");
+  clearTimeout(showPanelNotice.timer);
+  showPanelNotice.timer = setTimeout(() => notice.classList.remove("show"), 4200);
+}
+
+function unlockNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    notificationAudioCtx = notificationAudioCtx || new AudioContext();
+    notificationAudioCtx.resume?.();
+  } catch (error) {
+    console.warn("Som de notificação indisponível:", error);
+  }
+}
+
+function playOrderNotification() {
+  try {
+    unlockNotificationSound();
+    if (!notificationAudioCtx) return;
+    const now = notificationAudioCtx.currentTime;
+    [0, 0.18].forEach((offset) => {
+      const oscillator = notificationAudioCtx.createOscillator();
+      const gain = notificationAudioCtx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(880, now + offset);
+      gain.gain.setValueAtTime(0.0001, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.14);
+      oscillator.connect(gain);
+      gain.connect(notificationAudioCtx.destination);
+      oscillator.start(now + offset);
+      oscillator.stop(now + offset + 0.16);
+    });
+  } catch (error) {
+    console.warn("Não foi possível tocar alerta de pedido:", error);
+  }
 }
 
 async function loadClients() {

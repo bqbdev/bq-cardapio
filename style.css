@@ -500,6 +500,26 @@ input, select, textarea {
   font-size: .75rem;
   font-weight: 900;
 }
+.panel-order-notice {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 60;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 900;
+  box-shadow: 0 18px 44px rgba(0, 105, 55, .28);
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease;
+}
+.panel-order-notice.show {
+  opacity: 1;
+  transform: translateY(0);
+}
 .sidebar .btn { margin-top: auto; color: #fff; border-color: rgba(255,255,255,.25); }
 .app-main { padding: clamp(16px, 3vw, 34px); display: grid; gap: 18px; align-content: start; }
 .app-topbar, .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -1568,17 +1588,33 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .menu-add-button { width: 32px; height: 32px; }
   .cart-panel {
     position: fixed;
+    top: auto;
     left: 12px;
     right: 12px;
     bottom: 12px;
     z-index: 8;
     padding: 10px;
     border-radius: 18px;
+    display: grid;
+    grid-template-columns: minmax(92px, .7fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 8px;
+    max-height: 92px;
   }
   .cart-panel h2,
   .cart-items,
   .client-orders-box { display: none; }
-  .cart-total { border-top: 0; padding: 0 0 8px; margin-top: 0; }
+  .cart-total {
+    border-top: 0;
+    padding: 0;
+    margin-top: 0;
+    display: grid;
+    gap: 2px;
+  }
+  #checkout-open {
+    min-height: 48px;
+    padding: 10px 12px;
+  }
   .store-closed .cart-panel { display: none; }
   .segmented-options { grid-template-columns: 1fr 1fr; }
   .product-list-item { grid-template-columns: 62px minmax(0, 1fr); }
@@ -1594,5 +1630,11 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .delivery-fee-row { grid-template-columns: 1fr; }
   .app-topbar, .panel-heading { align-items: flex-start; flex-direction: column; }
   .sidebar nav { grid-template-columns: 1fr; }
+  .panel-order-notice {
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+    text-align: center;
+  }
   .footer { align-items: flex-start; flex-direction: column; }
 }

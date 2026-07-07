@@ -1009,13 +1009,22 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     criadoEm: serverTimestamp()
   };
   const ref = await addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order);
-  const message = buildWhatsAppMessage({ ...order, id: ref.id });
+  const trackingUrl = orderTrackingUrl(ref.id);
+  const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
   const phone = state.settings.whatsappPedidos || state.business.whatsapp;
   const link = whatsappLink(phone, message);
   sessionStorage.setItem("lastOrderLink", link);
   sessionStorage.setItem("lastOrderCode", codigo);
-  location.href = `pedido.html?estabelecimento=${state.estabelecimentoId}&pedido=${ref.id}`;
+  sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
+  location.href = link;
 });
+
+function orderTrackingUrl(orderId) {
+  const url = new URL("pedido.html", location.href);
+  url.searchParams.set("estabelecimento", state.estabelecimentoId);
+  url.searchParams.set("pedido", orderId);
+  return url.href;
+}
 
 function buildWhatsAppMessage(order) {
   const items = order.itens.map((item) => {
@@ -1046,7 +1055,9 @@ function buildWhatsAppMessage(order) {
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
-    `Total: ${money(order.totalFinal)}`
+    `Total: ${money(order.totalFinal)}`,
+    "",
+    order.trackingUrl ? `Acompanhe seu pedido: ${order.trackingUrl}` : ""
   ].filter(Boolean).join("\n");
 }
 
