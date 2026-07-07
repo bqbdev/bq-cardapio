@@ -215,7 +215,7 @@ function bestHeroProduct() {
 
 function renderCategories(activeId = "todos") {
   const tabs = [{ id: "todos", nome: "Todos" }, ...virtualCategories(), ...publicCategories()];
-  $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}"><span>${categoryIcon(item)}</span><b>${item.nome}</b></button>`).join("");
+  $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}"><b>${item.nome}</b></button>`).join("");
   document.querySelectorAll("[data-category]").forEach((button) => {
     button.addEventListener("click", () => {
       renderCategories(button.dataset.category);
@@ -267,8 +267,8 @@ function menuProducts() {
   if (pizzaFlavors.length) {
     virtual.push({
       id: "__pizza_builder",
-      nome: "Monte sua pizza",
-      descricao: "Escolha tamanho, sabor, borda e adicionais.",
+      nome: "Pizza meio a meio",
+      descricao: "Escolha até 2 sabores. O maior valor prevalece.",
       categoriaId: "__pizza",
       tipoProduto: "sabores",
       moduleType: "pizza",
@@ -285,8 +285,8 @@ function menuProducts() {
   if (portionFlavors.length) {
     virtual.push({
       id: "__portion_builder",
-      nome: "Monte sua porção",
-      descricao: "Escolha tamanho, opção e adicionais.",
+      nome: "Porção meio a meio",
+      descricao: "Escolha até 2 opções. O maior valor prevalece.",
       categoriaId: "__porcao",
       tipoProduto: "sabores",
       moduleType: "porcao",
@@ -513,7 +513,7 @@ function openProductBuilder(product) {
   const addons = availableAddons(product);
   const crusts = addons.filter((addon) => addon.tipoAdicional === "borda");
   const extras = addons.filter((addon) => addon.tipoAdicional !== "borda");
-  $("#builder-title").textContent = product.generatedModule === "porcao" ? "Monte a sua porção" : product.pizzaMode ? "Monte a sua pizza" : product.nome;
+  $("#builder-title").textContent = product.generatedModule === "porcao" ? "Porção meio a meio" : product.generatedModule === "pizza" ? "Pizza meio a meio" : product.pizzaMode ? "Monte a sua pizza" : product.nome;
   $("#builder-subtitle").textContent = builderSubtitle(product, flavors, addons);
   $("#builder-message").textContent = "";
   $("#product-builder-form").reset();
@@ -563,11 +563,11 @@ function builderSubtitle(product, flavors, addons) {
     return parts.join(" · ");
   }
   if (product.generatedModule === "porcao") {
-    parts.push("Escolha tamanho, opção e adicionais");
+    parts.push("Meio a meio: escolha tamanho, opções e adicionais");
     return parts.join(" · ");
   }
   if (product.pizzaMode) {
-    parts.push("Escolha tamanho, meio a meio e borda");
+    parts.push("Meio a meio: escolha tamanho, sabores e borda");
     return parts.join(" · ");
   }
   if (product.tipoProduto === "sabores") {
@@ -607,7 +607,7 @@ function renderPizzaBuilderTop(product) {
   return `
     <section class="pizza-builder-intro">
       <strong>${escapeHtml(product.nome)}</strong>
-      <span>${isPortion ? "Escolha o tamanho e a por&ccedil;&atilde;o." : showSizePrices ? "Escolha o tamanho e os sabores para meio a meio." : "Escolha o tamanho. O pre&ccedil;o ser&aacute; definido pelos sabores."}</span>
+      <span>${isPortion ? "Escolha o tamanho e at&eacute; 2 op&ccedil;&otilde;es. O maior valor prevalece." : showSizePrices ? "Escolha o tamanho e at&eacute; 2 sabores. O maior valor prevalece." : "Escolha o tamanho. O pre&ccedil;o ser&aacute; definido pelos sabores."}</span>
     </section>
     ${sizes.length ? `
       <section class="builder-section">

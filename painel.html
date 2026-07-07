@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Painel do estabelecimento - BQ Menu</title>
-  <link rel="stylesheet" href="style.css?v=admin-orders-1">
+  <link rel="stylesheet" href="style.css?v=admin-dashboard-2">
 </head>
 <body class="app-page protected-page protected-loading">
   <div class="auth-check-screen">
@@ -37,13 +37,39 @@
       <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardápio</a>
     </header>
 
-    <section id="dashboard" class="metric-grid">
+    <section class="dashboard-toolbar panel">
+      <div>
+        <p class="eyebrow">Visão do negócio</p>
+        <h2>Indicadores para vender melhor</h2>
+      </div>
+      <label class="compact-filter">Período
+        <select id="dashboard-period">
+          <option value="today">Hoje</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="all">Tudo</option>
+        </select>
+      </label>
+    </section>
+
+    <section id="dashboard" class="metric-grid dashboard-metrics">
       <article class="metric-card"><span>Pedidos hoje</span><strong id="orders-today">0</strong></article>
       <article class="metric-card"><span>Vendido hoje</span><strong id="sales-today">R$ 0,00</strong></article>
       <article class="metric-card"><span>Em andamento</span><strong id="orders-open">0</strong></article>
       <article class="metric-card"><span>Ticket médio</span><strong id="average-ticket">R$ 0,00</strong></article>
       <article class="metric-card"><span>Próxima renovação</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
     </section>
+
+    <section class="dashboard-insights">
+      <article class="panel insight-card"><span>Produto mais vendido</span><strong id="top-product">--</strong><small id="top-product-detail">Sem pedidos no período.</small></article>
+      <article class="panel insight-card"><span>Cliente que mais compra</span><strong id="top-client">--</strong><small id="top-client-detail">Sem pedidos no período.</small></article>
+      <article class="panel insight-card"><span>Forma de pedido mais usada</span><strong id="top-delivery-type">--</strong><small id="top-delivery-detail">Retirada, entrega ou consumo no local.</small></article>
+      <article class="panel insight-card"><span>Novos clientes</span><strong id="new-clients">0</strong><small>Primeira compra dentro do período escolhido.</small></article>
+      <article class="panel insight-card"><span>Cancelamento</span><strong id="cancellation-rate">0%</strong><small>Pedidos cancelados comparados ao total do período.</small></article>
+      <article class="panel insight-card"><span>Entregues</span><strong id="orders-completed">0</strong><small>Pedidos finalizados corretamente.</small></article>
+    </section>
+
+    <section id="dashboard-tips" class="panel dashboard-tips"></section>
 
     <section class="soon-band compact-band">
       <div><p class="eyebrow">Delivery integrado em breve na plataforma</p><h2>Acionamento de motoboys futuramente pelo painel</h2></div>
@@ -323,7 +349,17 @@
     </section>
 
     <section id="financeiro" class="panel">
-      <div class="panel-heading"><h2>Financeiro</h2></div>
+      <div class="panel-heading">
+        <h2>Financeiro</h2>
+        <label class="compact-filter">Período
+          <select id="finance-period">
+            <option value="today">Hoje</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="all">Tudo</option>
+          </select>
+        </label>
+      </div>
       <div id="finance-summary" class="metric-grid tight"></div>
     </section>
 
@@ -402,6 +438,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="painel.js?v=admin-orders-1"></script>
+  <script type="module" src="painel.js?v=admin-dashboard-2"></script>
 </body>
 </html>

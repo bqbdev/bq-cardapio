@@ -16,11 +16,11 @@ import {
   orderBy,
   serverTimestamp
 } from "./firebase.js";
-import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, todayStart, toBrazilDate } from "./utils.js";
+import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", knownOrderIds: new Set(), ordersLoadedOnce: false };
+const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", dashboardPeriod: "today", financePeriod: "today", knownOrderIds: new Set(), ordersLoadedOnce: false };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
 let notificationAudioCtx = null;
@@ -80,6 +80,14 @@ $("#order-search")?.addEventListener("input", (event) => {
 $("#all-products-search")?.addEventListener("input", (event) => {
   state.productSearch = event.target.value.trim().toLowerCase();
   renderAllProductsOverview();
+});
+$("#dashboard-period")?.addEventListener("change", (event) => {
+  state.dashboardPeriod = event.target.value;
+  renderDashboard();
+});
+$("#finance-period")?.addEventListener("change", (event) => {
+  state.financePeriod = event.target.value;
+  renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod));
 });
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
@@ -251,7 +259,10 @@ function renderRenewalInfo() {
 function showCurrentPanelPage() {
   const page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
   document.querySelectorAll("main > section").forEach((section) => {
-    const isUtilityBand = section.classList.contains("soon-band");
+    const isUtilityBand = section.classList.contains("soon-band")
+      || section.classList.contains("dashboard-toolbar")
+      || section.classList.contains("dashboard-insights")
+      || section.classList.contains("dashboard-tips");
     const isPage = panelPages.includes(section.id);
     if (isPage) section.classList.toggle("hidden", section.id !== page);
     if (isUtilityBand) section.classList.toggle("hidden", page !== "dashboard");
@@ -807,7 +818,7 @@ function loadOrders() {
       renderOrders();
       renderDashboard();
       updateOrdersNotification(addedOrders);
-      renderFinanceSummary("#finance-summary", state.orders);
+      renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod));
       state.ordersLoadedOnce = true;
       resolve();
     }, reject);
@@ -965,14 +976,134 @@ function filteredOrders() {
 }
 
 function renderDashboard() {
-  const today = todayStart().toMillis();
-  const todayOrders = state.orders.filter((order) => order.criadoEm?.toMillis?.() >= today);
-  const total = todayOrders.reduce((sum, order) => sum + Number(order.totalFinal || 0), 0);
+  enhanceDashboardHelp();
+  const periodOrders = ordersForDashboardPeriod();
+  const validOrders = periodOrders.filter((order) => normalizeStatus(order.status) !== normalizeStatus("Cancelado"));
+  const total = validOrders.reduce((sum, order) => sum + Number(order.totalFinal || 0), 0);
   const open = state.orders.filter((order) => !["Entregue", "Cancelado"].includes(order.status)).length;
-  $("#orders-today").textContent = todayOrders.length;
+  const completed = periodOrders.filter((order) => normalizeStatus(order.status) === normalizeStatus("Entregue")).length;
+  const cancelled = periodOrders.filter((order) => normalizeStatus(order.status) === normalizeStatus("Cancelado")).length;
+  const cancellationRate = periodOrders.length ? Math.round((cancelled / periodOrders.length) * 100) : 0;
+  const topProduct = topOrderItem(validOrders);
+  const topClient = topOrderClient(validOrders);
+  const topDelivery = topOrderField(validOrders, "tipoEntrega");
+  $("#orders-today").textContent = periodOrders.length;
   $("#sales-today").textContent = money(total);
   $("#orders-open").textContent = open;
-  $("#average-ticket").textContent = money(todayOrders.length ? total / todayOrders.length : 0);
+  $("#average-ticket").textContent = money(validOrders.length ? total / validOrders.length : 0);
+  setText("#orders-completed", completed);
+  setText("#cancellation-rate", `${cancellationRate}%`);
+  setText("#new-clients", newClientsInPeriod(periodOrders));
+  setText("#top-product", topProduct?.name || "--");
+  setText("#top-product-detail", topProduct ? `${topProduct.count} item(ns) vendidos - ${money(topProduct.total)}` : "Sem pedidos no periodo.");
+  setText("#top-client", topClient?.name || "--");
+  setText("#top-client-detail", topClient ? `${topClient.count} pedido(s) - ${money(topClient.total)}` : "Sem pedidos no periodo.");
+  setText("#top-delivery-type", topDelivery?.name || "--");
+  setText("#top-delivery-detail", topDelivery ? `${topDelivery.count} pedido(s) no periodo.` : "Retirada, entrega ou consumo no local.");
+  renderDashboardTips({ periodOrders, validOrders, topProduct, topClient, cancellationRate });
+}
+
+function enhanceDashboardHelp() {
+  const helps = {
+    "orders-today": "Quantidade de pedidos no periodo selecionado.",
+    "sales-today": "Soma dos pedidos nao cancelados no periodo.",
+    "orders-open": "Pedidos que ainda precisam de acao: aceitar, preparar ou entregar.",
+    "average-ticket": "Valor medio de cada pedido vendido.",
+    "next-renewal": "Data estimada da proxima renovacao do plano."
+  };
+  Object.entries(helps).forEach(([id, title]) => {
+    const card = document.getElementById(id)?.closest(".metric-card");
+    const label = card?.querySelector("span");
+    if (!label || label.querySelector(".help-dot")) return;
+    label.insertAdjacentHTML("beforeend", ` <button class="help-dot" title="${title}" type="button">?</button>`);
+  });
+}
+
+function setText(selector, value) {
+  const element = $(selector);
+  if (element) element.textContent = value;
+}
+
+function ordersForDashboardPeriod() {
+  return ordersForPeriod(state.dashboardPeriod);
+}
+
+function ordersForPeriod(period = "today") {
+  if (period === "all") return state.orders;
+  const days = period === "today" ? 0 : Number(period || 0);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  if (days > 0) start.setDate(start.getDate() - (days - 1));
+  const startTime = start.getTime();
+  return state.orders.filter((order) => orderDateTime(order) >= startTime);
+}
+
+function orderDateTime(order) {
+  if (order.criadoEm?.toMillis) return order.criadoEm.toMillis();
+  const date = order.criadoEm?.toDate ? order.criadoEm.toDate() : new Date(order.criadoEm || 0);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function topOrderItem(orders) {
+  const map = new Map();
+  orders.forEach((order) => {
+    (order.itens || []).forEach((item) => {
+      const name = item.nome || "Produto";
+      const current = map.get(name) || { name, count: 0, total: 0 };
+      current.count += Number(item.quantidade || 1);
+      current.total += Number(item.preco || 0) * Number(item.quantidade || 1);
+      map.set(name, current);
+    });
+  });
+  return [...map.values()].sort((a, b) => b.count - a.count || b.total - a.total)[0] || null;
+}
+
+function topOrderClient(orders) {
+  const map = new Map();
+  orders.forEach((order) => {
+    const key = order.whatsapp || order.clienteNome || order.id;
+    if (!key) return;
+    const current = map.get(key) || { name: order.clienteNome || order.whatsapp || "Cliente", count: 0, total: 0 };
+    current.count += 1;
+    current.total += Number(order.totalFinal || 0);
+    map.set(key, current);
+  });
+  return [...map.values()].sort((a, b) => b.total - a.total || b.count - a.count)[0] || null;
+}
+
+function topOrderField(orders, field) {
+  const map = new Map();
+  orders.forEach((order) => {
+    const name = order[field] || "Nao informado";
+    const current = map.get(name) || { name, count: 0 };
+    current.count += 1;
+    map.set(name, current);
+  });
+  return [...map.values()].sort((a, b) => b.count - a.count)[0] || null;
+}
+
+function newClientsInPeriod(periodOrders) {
+  const firstByClient = new Map();
+  state.orders.forEach((order) => {
+    const key = order.whatsapp || order.clienteNome;
+    if (!key) return;
+    const time = orderDateTime(order);
+    if (!firstByClient.has(key) || time < firstByClient.get(key)) firstByClient.set(key, time);
+  });
+  const periodKeys = new Set(periodOrders.map((order) => order.whatsapp || order.clienteNome).filter(Boolean));
+  return [...periodKeys].filter((key) => periodOrders.some((order) => (order.whatsapp || order.clienteNome) === key && firstByClient.get(key) === orderDateTime(order))).length;
+}
+
+function renderDashboardTips({ periodOrders, validOrders, topProduct, topClient, cancellationRate }) {
+  const target = $("#dashboard-tips");
+  if (!target) return;
+  const tips = [];
+  if (topProduct) tips.push(`Destaque "${topProduct.name}" no cardapio e use uma foto boa: ele ja provou que vende.`);
+  if (topClient && topClient.count > 1) tips.push(`Chame ${topClient.name} no WhatsApp com uma oferta de recompra ou cupom simples.`);
+  if (cancellationRate >= 20) tips.push("A taxa de cancelamento esta alta. Confira tempo de preparo, estoque e clareza dos itens.");
+  if (!validOrders.length) tips.push("Ainda nao ha vendas no periodo. Publique produtos com foto e envie o link do cardapio para clientes antigos.");
+  if (periodOrders.length && !tips.length) tips.push("O periodo esta saudavel. Acompanhe os mais vendidos para montar combos e promocoes.");
+  target.innerHTML = `<div class="dashboard-tips-head"><strong>O que fazer agora</strong><span>${periodOrders.length} pedido(s) no periodo</span></div>${tips.map((tip) => `<p>${tip}</p>`).join("")}`;
 }
 
 async function updateOrderStatus(id, status) {
