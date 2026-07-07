@@ -190,8 +190,8 @@ function renderMenuHero() {
   const target = $("#menu-hero");
   if (!target) return;
   const product = bestHeroProduct();
-  const title = state.settings.chamadaCardapio || "Os melhores pedidos feitos para voce.";
-  const subtitle = state.settings.subtituloCardapio || "Escolha seus favoritos e finalize direto pelo WhatsApp.";
+  const title = state.settings.chamadaCardapio || "Peça seus favoritos em poucos cliques.";
+  const subtitle = state.settings.subtituloCardapio || "Escolha, finalize pelo WhatsApp e acompanhe seu pedido em tempo real.";
   target.innerHTML = `
     <div class="menu-hero-copy">
       <span>Pedido rapido</span>
@@ -201,13 +201,14 @@ function renderMenuHero() {
     </div>
     <div class="menu-hero-art">
       ${product?.fotoUrl ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}">` : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
-      ${product ? `<strong>${escapeHtml(product.nome)}</strong>` : ""}
     </div>
   `;
 }
 
 function bestHeroProduct() {
-  return menuProducts().find((item) => item.destaque && item.fotoUrl)
+  const chosenId = state.settings.produtoCapaId || "";
+  return menuProducts().find((item) => item.id === chosenId && item.fotoUrl)
+    || menuProducts().find((item) => item.destaque && item.fotoUrl)
     || menuProducts().find((item) => item.fotoUrl)
     || menuProducts()[0]
     || null;

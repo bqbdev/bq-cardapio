@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Painel do estabelecimento - BQ Menu</title>
-  <link rel="stylesheet" href="style.css?v=admin-dashboard-2">
+  <link rel="stylesheet" href="style.css?v=admin-dashboard-3">
 </head>
 <body class="app-page protected-page protected-loading">
   <div class="auth-check-screen">
@@ -47,9 +47,14 @@
           <option value="today">Hoje</option>
           <option value="7">Últimos 7 dias</option>
           <option value="30">Últimos 30 dias</option>
+          <option value="custom">Personalizado</option>
           <option value="all">Tudo</option>
         </select>
       </label>
+      <div id="dashboard-custom-period" class="custom-period hidden">
+        <label>Data inicial<input id="dashboard-start-date" type="date"></label>
+        <label>Data final<input id="dashboard-end-date" type="date"></label>
+      </div>
     </section>
 
     <section id="dashboard" class="metric-grid dashboard-metrics">
@@ -356,9 +361,14 @@
             <option value="today">Hoje</option>
             <option value="7">Últimos 7 dias</option>
             <option value="30">Últimos 30 dias</option>
+            <option value="custom">Personalizado</option>
             <option value="all">Tudo</option>
           </select>
         </label>
+      </div>
+      <div id="finance-custom-period" class="custom-period hidden">
+        <label>Data inicial<input id="finance-start-date" type="date"></label>
+        <label>Data final<input id="finance-end-date" type="date"></label>
       </div>
       <div id="finance-summary" class="metric-grid tight"></div>
     </section>
@@ -385,6 +395,13 @@
         <input name="logoUrl" type="hidden">
         <label class="full">Logo do estabelecimento em Base64<input id="business-logo-file" type="file" accept="image/*"></label>
         <div id="business-logo-preview" class="image-preview full">Sem logo selecionado</div>
+        <label class="full">Produto em destaque na capa
+          <select name="produtoCapaId" id="hero-product-select">
+            <option value="">Escolher automaticamente</option>
+          </select>
+        </label>
+        <label class="full">Chamada da capa<input name="chamadaCardapio" placeholder="Ex: Peça seu lanche favorito pelo WhatsApp"></label>
+        <label class="full">Texto de apoio da capa<input name="subtituloCardapio" placeholder="Ex: Escolha, finalize e acompanhe seu pedido em tempo real."></label>
         <label>Cidade<input name="cidade"></label>
         <h3 class="full compact-title">Modalidades no checkout</h3>
         <label class="check-row"><input name="aceitaRetirada" type="checkbox"> Retirada</label>
@@ -438,6 +455,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="painel.js?v=admin-dashboard-2"></script>
+  <script type="module" src="painel.js?v=admin-dashboard-3"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ import { addMonths, formToObject, money, numberValue, planMonths, printOrder, se
 import { renderFinanceSummary } from "./financeiro.js";
 import { fillCoordinatesFromAddress } from "./geocoding.js";
 
-const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", dashboardPeriod: "today", financePeriod: "today", knownOrderIds: new Set(), ordersLoadedOnce: false };
+const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", dashboardPeriod: "today", financePeriod: "today", dashboardStartDate: "", dashboardEndDate: "", financeStartDate: "", financeEndDate: "", knownOrderIds: new Set(), ordersLoadedOnce: false };
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
 let notificationAudioCtx = null;
@@ -83,11 +83,29 @@ $("#all-products-search")?.addEventListener("input", (event) => {
 });
 $("#dashboard-period")?.addEventListener("change", (event) => {
   state.dashboardPeriod = event.target.value;
+  toggleCustomPeriod("dashboard");
   renderDashboard();
 });
 $("#finance-period")?.addEventListener("change", (event) => {
   state.financePeriod = event.target.value;
-  renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod));
+  toggleCustomPeriod("finance");
+  renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod, "finance"));
+});
+$("#dashboard-start-date")?.addEventListener("change", (event) => {
+  state.dashboardStartDate = event.target.value;
+  renderDashboard();
+});
+$("#dashboard-end-date")?.addEventListener("change", (event) => {
+  state.dashboardEndDate = event.target.value;
+  renderDashboard();
+});
+$("#finance-start-date")?.addEventListener("change", (event) => {
+  state.financeStartDate = event.target.value;
+  renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod, "finance"));
+});
+$("#finance-end-date")?.addEventListener("change", (event) => {
+  state.financeEndDate = event.target.value;
+  renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod, "finance"));
 });
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
@@ -341,6 +359,7 @@ async function loadProducts() {
     .map((item) => ({ id: item.id, ...item.data() }))
     .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
   $("#addon-product").innerHTML = `<option value="">Selecione se aplicar por produto</option>${state.products.map((item) => `<option value="${item.id}">${item.nome}</option>`).join("")}`;
+  renderHeroProductOptions();
   $("#products-list").innerHTML = state.products.map((item) => `
     <div class="list-item product-list-item ${item.disponivel === false ? "is-disabled" : ""}">
       <div class="product-admin-thumb">
@@ -370,6 +389,18 @@ async function loadProducts() {
     input.addEventListener("change", () => updateProductPhoto(input.dataset.photoInput, input.files?.[0], input));
   });
   renderModuleProducts();
+}
+
+function renderHeroProductOptions() {
+  const select = $("#hero-product-select");
+  if (!select) return;
+  const current = state.settings.produtoCapaId || select.value || "";
+  const productOptions = state.products
+    .filter((item) => item.fotoUrl && item.disponivel !== false)
+    .map((item) => `<option value="${item.id}">${item.nome}</option>`)
+    .join("");
+  select.innerHTML = `<option value="">Escolher automaticamente</option>${productOptions}`;
+  select.value = current;
 }
 
 function productTypeLabel(product) {
@@ -818,7 +849,7 @@ function loadOrders() {
       renderOrders();
       renderDashboard();
       updateOrdersNotification(addedOrders);
-      renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod));
+      renderFinanceSummary("#finance-summary", ordersForPeriod(state.financePeriod, "finance"));
       state.ordersLoadedOnce = true;
       resolve();
     }, reject);
@@ -1025,17 +1056,48 @@ function setText(selector, value) {
 }
 
 function ordersForDashboardPeriod() {
-  return ordersForPeriod(state.dashboardPeriod);
+  return ordersForPeriod(state.dashboardPeriod, "dashboard");
 }
 
-function ordersForPeriod(period = "today") {
+function ordersForPeriod(period = "today", scope = "dashboard") {
   if (period === "all") return state.orders;
+  if (period === "custom") {
+    const startValue = scope === "dashboard" ? state.dashboardStartDate : state.financeStartDate;
+    const endValue = scope === "dashboard" ? state.dashboardEndDate : state.financeEndDate;
+    const start = startValue ? new Date(`${startValue}T00:00:00`) : null;
+    const end = endValue ? new Date(`${endValue}T23:59:59`) : null;
+    const startTime = start && !Number.isNaN(start.getTime()) ? start.getTime() : 0;
+    const endTime = end && !Number.isNaN(end.getTime()) ? end.getTime() : Infinity;
+    return state.orders.filter((order) => {
+      const time = orderDateTime(order);
+      return time >= startTime && time <= endTime;
+    });
+  }
   const days = period === "today" ? 0 : Number(period || 0);
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   if (days > 0) start.setDate(start.getDate() - (days - 1));
   const startTime = start.getTime();
   return state.orders.filter((order) => orderDateTime(order) >= startTime);
+}
+
+function toggleCustomPeriod(scope) {
+  const period = scope === "finance" ? state.financePeriod : state.dashboardPeriod;
+  const panel = $(`#${scope}-custom-period`);
+  panel?.classList.toggle("hidden", period !== "custom");
+  if (period !== "custom") return;
+  const today = new Date().toISOString().slice(0, 10);
+  const start = $(`#${scope}-start-date`);
+  const end = $(`#${scope}-end-date`);
+  if (start && !start.value) start.value = today;
+  if (end && !end.value) end.value = today;
+  if (scope === "finance") {
+    state.financeStartDate = start?.value || today;
+    state.financeEndDate = end?.value || today;
+  } else {
+    state.dashboardStartDate = start?.value || today;
+    state.dashboardEndDate = end?.value || today;
+  }
 }
 
 function orderDateTime(order) {
@@ -1778,6 +1840,7 @@ async function loadSettings() {
   });
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
   renderDashboardLogo(form.elements.logoUrl?.value || "");
+  renderHeroProductOptions();
   renderDeliveryFeeRows(form.elements.entregaBairrosTaxas?.value || "");
   fillModuleSettingsForms();
 }
