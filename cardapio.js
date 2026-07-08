@@ -1016,7 +1016,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     setMessage($("#checkout-message"), "Confira o bairro para calcular a entrega antes de finalizar.", "error");
     return;
   }
-  const reservedWindow = reserveWhatsAppWindow();
+  const reservedWindow = isMobileDevice() ? null : reserveWhatsAppWindow();
   try {
     if (submitButton) {
       submitButton.disabled = true;
@@ -1125,26 +1125,16 @@ function reserveWhatsAppWindow() {
 }
 
 function openWhatsAppLink(link, reservedWindow, directAppLink = link) {
-  const targetLink = isMobileDevice() ? directAppLink : link;
+  if (isMobileDevice()) {
+    location.href = directAppLink;
+    return false;
+  }
+  const targetLink = link;
   if (reservedWindow && !reservedWindow.closed) {
     reservedWindow.location.href = targetLink;
-    if (targetLink !== link) {
-      setTimeout(() => {
-        try {
-          if (reservedWindow && !reservedWindow.closed) reservedWindow.location.href = link;
-        } catch (error) {
-          console.warn("Não foi possível aplicar fallback do WhatsApp:", error);
-        }
-      }, 1800);
-    }
     return true;
   }
   location.href = targetLink;
-  if (targetLink !== link) {
-    setTimeout(() => {
-      location.href = link;
-    }, 1800);
-  }
   return false;
 }
 
