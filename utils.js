@@ -82,6 +82,8 @@ export const whatsappRecipient = (phone = "") => {
 
 export const whatsappLink = (phone, message) => `https://wa.me/${whatsappRecipient(phone)}?text=${encodeURIComponent(message)}`;
 
+export const whatsappAppLink = (phone, message) => `whatsapp://send?phone=${whatsappRecipient(phone)}&text=${encodeURIComponent(message)}`;
+
 export const orderCode = () => `BQ-${Date.now().toString(36).toUpperCase()}`;
 
 export const escapeHtml = (value = "") => String(value).replace(/[&<>"']/g, (char) => ({

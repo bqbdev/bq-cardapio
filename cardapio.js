@@ -13,7 +13,7 @@
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
 import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-upsert-2";
-import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappLink } from "./utils.js";
+import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js";
 
 const state = {
   estabelecimentoId: requireParam("estabelecimento"),
@@ -1068,10 +1068,11 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       return;
     }
     const link = whatsappLink(phone, message);
+    const directAppLink = whatsappAppLink(phone, message);
     sessionStorage.setItem("lastOrderLink", link);
     sessionStorage.setItem("lastOrderCode", codigo);
     sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
-    const openedInReservedWindow = openWhatsAppLink(link, reservedWindow);
+    const openedInReservedWindow = openWhatsAppLink(link, reservedWindow, directAppLink);
     if (openedInReservedWindow) {
       setTimeout(() => {
         location.href = trackingUrl;
@@ -1123,13 +1124,32 @@ function reserveWhatsAppWindow() {
   return win;
 }
 
-function openWhatsAppLink(link, reservedWindow) {
+function openWhatsAppLink(link, reservedWindow, directAppLink = link) {
+  const targetLink = isMobileDevice() ? directAppLink : link;
   if (reservedWindow && !reservedWindow.closed) {
-    reservedWindow.location.href = link;
+    reservedWindow.location.href = targetLink;
+    if (targetLink !== link) {
+      setTimeout(() => {
+        try {
+          if (reservedWindow && !reservedWindow.closed) reservedWindow.location.href = link;
+        } catch (error) {
+          console.warn("Não foi possível aplicar fallback do WhatsApp:", error);
+        }
+      }, 1800);
+    }
     return true;
   }
-  location.href = link;
+  location.href = targetLink;
+  if (targetLink !== link) {
+    setTimeout(() => {
+      location.href = link;
+    }, 1800);
+  }
   return false;
+}
+
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent || "");
 }
 
 function closeReservedWindow(win) {
