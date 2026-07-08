@@ -1388,6 +1388,8 @@ async function saveModuleFlavor(form, type, successText) {
     renderModuleProducts();
     resetModuleFlavorForm(form, type);
     await loadFlavors();
+    renderModuleProducts();
+    renderModuleFlavors();
   }, successText);
 }
 

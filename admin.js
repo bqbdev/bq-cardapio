@@ -383,7 +383,7 @@ async function approveRequest(id) {
     longitude: request.estabelecimentoLongitude || "",
     segmento: request.segmento,
     plano: "Mensal",
-    valorMensalidade: 39.99,
+    valorMensalidade: 89.90,
     metodoPagamento: "PIX",
     dataInicio: serverTimestamp(),
     proximoVencimento: null,
@@ -505,7 +505,7 @@ function activationLink(id, business) {
     token: business.activationToken,
     email: business.email || "",
     nome: business.nomeEstabelecimento || "estabelecimento",
-    plano: business.plano || "Essencial"
+    plano: business.plano || "Mensal"
   });
   return `${base}?${params.toString()}`;
 }
@@ -530,8 +530,8 @@ function openEditor(id) {
     documento: business.documento,
     cidade: business.cidade,
     segmento: business.segmento,
-    plano: business.plano,
-    valorMensalidade: business.valorMensalidade,
+    plano: business.plano || "Mensal",
+    valorMensalidade: business.valorMensalidade || 89.90,
     metodoPagamento: business.metodoPagamento,
     dataInicio: toDateInput(business.dataInicio),
     proximoVencimento: toDateInput(business.proximoVencimento),
@@ -559,7 +559,8 @@ async function saveBusiness(event) {
   delete data.id;
   await updateDoc(doc(db, "estabelecimentos", id), {
     ...data,
-    valorMensalidade: Number(data.valorMensalidade || 0),
+    plano: data.plano || "Mensal",
+    valorMensalidade: Number(data.valorMensalidade || 89.90),
     dataInicio: fromDateInput(data.dataInicio),
     proximoVencimento: fromDateInput(data.proximoVencimento)
   });
