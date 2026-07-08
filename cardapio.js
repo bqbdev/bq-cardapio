@@ -1158,6 +1158,7 @@ function orderTrackingUrl(orderId) {
 }
 
 function buildWhatsAppMessage(order) {
+  const separator = "--------------------------------";
   const items = order.itens.map((item) => {
     const details = [
       item.tamanho ? `Tamanho: ${item.tamanho.nome}` : "",
@@ -1181,24 +1182,24 @@ function buildWhatsAppMessage(order) {
     "DADOS DO CLIENTE",
     `Cliente: ${order.clienteNome}`,
     `WhatsApp: ${order.whatsapp}`,
-    "",
+    separator,
     "ENTREGA / RETIRADA",
     `${address}`,
-    "",
+    separator,
     "ITENS DO PEDIDO",
     items,
-    "",
+    separator,
     "PAGAMENTO",
     `Pagamento: ${order.formaPagamento}`,
     order.trocoPara ? `Troco para: ${money(order.trocoPara)}` : "",
     order.observacoes ? `Observações: ${order.observacoes}` : "",
-    "",
+    separator,
     "RESUMO",
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`,
-    "",
+    separator,
     order.trackingUrl ? `ACOMPANHAR PEDIDO\n${order.trackingUrl}` : ""
   ].filter(Boolean).join("\n");
 }

@@ -1,10 +1,9 @@
-import { db, doc, onSnapshot } from "./firebase.js";
-import { escapeHtml, money, normalizePhone } from "./utils.js";
+import { db, doc, getDoc, onSnapshot } from "./firebase.js";
+import { escapeHtml, money, normalizePhone, whatsappLink } from "./utils.js";
 
 const params = new URLSearchParams(location.search);
 const estabelecimentoId = params.get("estabelecimento") || "";
 const pedidoId = params.get("pedido") || "";
-const link = sessionStorage.getItem("lastOrderLink");
 const code = sessionStorage.getItem("lastOrderCode");
 const menuLink = document.querySelector("#order-menu-link");
 
@@ -14,12 +13,6 @@ if (menuLink && estabelecimentoId) {
 
 if (code) {
   document.querySelector("#order-title").textContent = `Pedido ${code} registrado`;
-}
-
-if (link) {
-  document.querySelector("#order-whatsapp-link").href = link;
-} else {
-  document.querySelector("#order-whatsapp-link").classList.add("hidden");
 }
 
 if (!estabelecimentoId || !pedidoId) {
@@ -57,6 +50,44 @@ function renderOrder(order) {
   `;
   const phone = normalizePhone(order.whatsapp || "");
   if (phone) localStorage.setItem(`bqClientPhone:${estabelecimentoId}`, phone);
+  updateStatusRequestLink(order);
+}
+
+async function updateStatusRequestLink(order) {
+  const linkElement = document.querySelector("#order-whatsapp-link");
+  if (!linkElement) return;
+  try {
+    const phone = await latestOrderWhatsApp();
+    if (!phone) {
+      linkElement.classList.add("hidden");
+      return;
+    }
+    const trackingUrl = location.href;
+    const message = [
+      `Olá, gostaria de saber atualizações do meu pedido ${order.codigo || order.numeroPedido || order.id}.`,
+      "",
+      `Cliente: ${order.clienteNome || ""}`,
+      `WhatsApp: ${order.whatsapp || ""}`,
+      `Status atual: ${order.status || "Aguardando aprovação"}`,
+      "",
+      `Link do pedido: ${trackingUrl}`
+    ].filter(Boolean).join("\n");
+    linkElement.href = whatsappLink(phone, message);
+    linkElement.classList.remove("hidden");
+  } catch (error) {
+    console.warn("Não foi possível montar link de atualização:", error);
+    linkElement.classList.add("hidden");
+  }
+}
+
+async function latestOrderWhatsApp() {
+  const [settingsSnap, businessSnap] = await Promise.all([
+    getDoc(doc(db, `estabelecimentos/${estabelecimentoId}/configuracoes`, "geral")),
+    getDoc(doc(db, "estabelecimentos", estabelecimentoId))
+  ]);
+  const settings = settingsSnap.data() || {};
+  const business = businessSnap.data() || {};
+  return settings.whatsappPedidos || business.whatsapp || "";
 }
 
 function renderOrderStatusSteps(status = "") {
