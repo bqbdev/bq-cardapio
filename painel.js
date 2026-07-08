@@ -124,6 +124,9 @@ $("#simple-product-photo-file")?.addEventListener("change", async (event) => {
   form.elements.fotoUrl.value = base64;
   renderSimpleProductPhotoPreview(base64);
 });
+bindModulePhotoInput("#pizza-photo-file", "#pizza-item-form", "pizza-photo-preview");
+bindModulePhotoInput("#portion-photo-file", "#portion-item-form", "portion-photo-preview");
+bindModulePhotoInput("#module-flavor-photo-file", "#module-flavor-form", "module-flavor-photo-preview");
 $("#business-logo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -133,6 +136,35 @@ $("#business-logo-file")?.addEventListener("change", async (event) => {
   form.elements.logoUrl.value = base64;
   renderBusinessLogoPreview(base64);
   renderDashboardLogo(base64);
+});
+
+function bindModulePhotoInput(inputSelector, formSelector, previewId) {
+  $(inputSelector)?.addEventListener("change", async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+    if (!base64) return;
+    const form = $(formSelector);
+    if (form?.elements.fotoUrl) form.elements.fotoUrl.value = base64;
+    renderNamedImagePreview(previewId, base64);
+  });
+}
+$("#hero-image-file")?.addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.84 });
+  if (!base64) return;
+  const form = $("#settings-form");
+  form.elements.heroImageUrl.value = base64;
+  renderHeroImagePreview(base64);
+});
+$("#clear-hero-image")?.addEventListener("click", () => {
+  const form = $("#settings-form");
+  if (!form?.elements.heroImageUrl) return;
+  form.elements.heroImageUrl.value = "";
+  const input = $("#hero-image-file");
+  if (input) input.value = "";
+  renderHeroImagePreview("");
 });
 $("#add-delivery-fee-row")?.addEventListener("click", () => addDeliveryFeeRow());
 window.addEventListener("hashchange", showCurrentPanelPage);
@@ -400,11 +432,11 @@ function addonScopeLabel(addon) {
 }
 
 function simpleProducts() {
-  return state.products.filter((item) => item.moduleType === "simples");
+  return state.products.filter((item) => item.moduleType === "simples").sort(sortByHighlightAndName);
 }
 
 function moduleItems(type) {
-  return state.flavors.filter((item) => item.tipo === type || item.moduleType === type);
+  return state.flavors.filter((item) => item.tipo === type || item.moduleType === type).sort(sortByHighlightAndName);
 }
 
 function crusts() {
@@ -435,13 +467,26 @@ function renderAllProductsOverview() {
     target.innerHTML = "<p>Nenhum produto encontrado.</p>";
     return;
   }
-  const groups = items.reduce((map, item) => {
+  const featuredItems = items.filter((item) => item.destaque);
+  const regularItems = items.filter((item) => !item.destaque);
+  const groups = regularItems.reduce((map, item) => {
     const key = item.categoria || "Sem categoria";
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(item);
     return map;
   }, new Map());
-  target.innerHTML = Array.from(groups.entries()).map(([category, products]) => `
+  const featuredGroup = featuredItems.length ? `
+    <section class="catalog-group catalog-featured-group">
+      <div class="catalog-group-heading">
+        <strong>Destaques</strong>
+        <span>${featuredItems.length} item(ns)</span>
+      </div>
+      <div class="catalog-cards">
+        ${featuredItems.map(renderCatalogCard).join("")}
+      </div>
+    </section>
+  ` : "";
+  target.innerHTML = featuredGroup + Array.from(groups.entries()).map(([category, products]) => `
     <section class="catalog-group">
       <div class="catalog-group-heading">
         <strong>${category}</strong>
@@ -463,6 +508,7 @@ function allCatalogItems() {
     categoria: categoryName(item.categoriaId),
     tipo: "Produto simples",
     preco: item.preco,
+    destaque: Boolean(item.destaque),
     disponivel: item.disponivel !== false,
     edit: "simple-product"
   }));
@@ -474,6 +520,7 @@ function allCatalogItems() {
     tipo: "Pizza",
     preco: item.valorP ?? item.precoP ?? item.preco,
     valorG: item.valorG ?? item.precoG ?? item.preco,
+    destaque: Boolean(item.destaque),
     disponivel: item.disponivel !== false,
     edit: "pizza-item"
   }));
@@ -485,10 +532,16 @@ function allCatalogItems() {
     tipo: "Porção",
     preco: item.valorP ?? item.precoP ?? item.preco,
     valorG: item.valorG ?? item.precoG ?? item.preco,
+    destaque: Boolean(item.destaque),
     disponivel: item.disponivel !== false,
     edit: "portion-item"
   }));
-  return [...simpleItems, ...pizzaItems, ...portionItems];
+  return [...simpleItems, ...pizzaItems, ...portionItems].sort(sortByHighlightAndName);
+}
+
+function sortByHighlightAndName(a, b) {
+  return Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))
+    || String(a.nome || "").localeCompare(String(b.nome || ""));
 }
 
 function renderCatalogCard(item) {
@@ -498,7 +551,7 @@ function renderCatalogCard(item) {
   return `
     <article class="catalog-card ${item.disponivel ? "" : "is-disabled"}">
       <div>
-        <span class="catalog-type">${item.tipo}</span>
+        <span class="catalog-type">${item.destaque ? "Destaque" : item.tipo}</span>
         <strong>${item.nome}</strong>
         ${item.descricao ? `<small>${item.descricao}</small>` : ""}
       </div>
@@ -1301,6 +1354,7 @@ async function saveModuleFlavor(form, type, successText) {
       valorP: numberValue(data.valorP),
       valorG: numberValue(data.valorG),
       preco: numberValue(data.valorP),
+      fotoUrl: data.fotoUrl || currentItem?.fotoUrl || "",
       precosPorTamanho: {
         P: numberValue(data.valorP),
         G: numberValue(data.valorG)
@@ -1318,6 +1372,7 @@ async function saveModuleFlavor(form, type, successText) {
       valorP: numberValue(data.valorP),
       valorG: numberValue(data.valorG),
       preco: numberValue(data.valorP),
+      fotoUrl: data.fotoUrl || currentItem?.fotoUrl || "",
       precosPorTamanho: {
         P: numberValue(data.valorP),
         G: numberValue(data.valorG)
@@ -1530,8 +1585,10 @@ function resetModuleFlavorForm(form, type = "pizza") {
   form?.reset();
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.tipo) form.elements.tipo.value = type;
+  if (form?.elements.fotoUrl) form.elements.fotoUrl.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
   if (form?.elements.destaque) form.elements.destaque.checked = false;
+  renderNamedImagePreview(previewIdForModuleForm(form), "");
   applyInlineModuleSettings(form, type);
 }
 
@@ -1603,8 +1660,10 @@ function fillModuleFlavor(id, form, type, page) {
   form.elements.valorP.value = item.valorP ?? item.precoP ?? item.preco ?? 0;
   form.elements.valorG.value = item.valorG ?? item.precoG ?? item.preco ?? 0;
   form.elements.descricao.value = item.descricao || "";
+  if (form.elements.fotoUrl) form.elements.fotoUrl.value = item.fotoUrl || "";
   form.elements.disponivel.checked = item.disponivel !== false;
   if (form.elements.destaque) form.elements.destaque.checked = Boolean(item.destaque);
+  renderNamedImagePreview(previewIdForModuleForm(form), item.fotoUrl || "");
   location.hash = page;
   showCurrentPanelPage();
 }
@@ -1839,6 +1898,21 @@ function renderSimpleProductPhotoPreview(src) {
   preview.innerHTML = src ? `<img src="${src}" alt="Prévia da imagem do produto">` : "Sem foto selecionada";
 }
 
+function renderNamedImagePreview(id, src) {
+  if (!id) return;
+  const preview = document.getElementById(id);
+  if (!preview) return;
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto do produto">` : "Sem foto selecionada";
+}
+
+function previewIdForModuleForm(form) {
+  if (!form) return "";
+  if (form.id === "pizza-item-form") return "pizza-photo-preview";
+  if (form.id === "portion-item-form") return "portion-photo-preview";
+  if (form.id === "module-flavor-form") return "module-flavor-photo-preview";
+  return "";
+}
+
 async function loadSettings() {
   const snap = await getDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"));
   const data = snap.data() || {};
@@ -1851,6 +1925,7 @@ async function loadSettings() {
     else field.value = value ?? state.business[field.name] ?? "";
   });
   renderBusinessLogoPreview(form.elements.logoUrl?.value || "");
+  renderHeroImagePreview(form.elements.heroImageUrl?.value || "");
   renderDashboardLogo(form.elements.logoUrl?.value || "");
   renderHeroProductOptions();
   renderDeliveryFeeRows(form.elements.entregaBairrosTaxas?.value || "");
@@ -1956,6 +2031,12 @@ function renderBusinessLogoPreview(src) {
   const preview = $("#business-logo-preview");
   if (!preview) return;
   preview.innerHTML = src ? `<img src="${src}" alt="Prévia do logo do estabelecimento">` : "Sem logo selecionado";
+}
+
+function renderHeroImagePreview(src) {
+  const preview = $("#hero-image-preview");
+  if (!preview) return;
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto de destaque da capa">` : "Sem foto de capa selecionada";
 }
 
 async function loadFees() {

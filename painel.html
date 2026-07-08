@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Painel do estabelecimento - BQ Menu</title>
-  <link rel="stylesheet" href="style.css?v=admin-dashboard-5">
+  <link rel="stylesheet" href="style.css?v=admin-dashboard-6">
 </head>
 <body class="app-page protected-page protected-loading">
   <div class="auth-check-screen">
@@ -18,7 +18,7 @@
       <a href="#produtos">Produtos</a>
       <a href="#produtos-simples">Produtos Simples</a>
       <a href="#pizzas">Pizzas</a>
-      <a href="#porcoes">Porções</a>
+      <a href="#porcoes">PorÃ§Ãµes</a>
       <a href="#categorias">Categorias</a>
       <a href="#sabores">Sabores</a>
       <a href="#bordas">Bordas</a>
@@ -26,7 +26,7 @@
       <a href="#clientes">Clientes</a>
       <a href="#financeiro">Financeiro</a>
       <a href="#taxas">Taxas</a>
-      <a href="#configuracoes">Configurações</a>
+      <a href="#configuracoes">ConfiguraÃ§Ãµes</a>
       <a href="#delivery">Delivery em breve</a>
     </nav>
     <button id="logout-btn" class="btn btn-ghost">Sair</button>
@@ -34,19 +34,19 @@
   <main class="app-main">
     <header class="app-topbar">
       <div><p class="eyebrow">Painel</p><h1 id="business-title">Carregando estabelecimento</h1></div>
-      <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardápio</a>
+      <a id="public-menu-link" class="btn btn-primary" href="cardapio.html" target="_blank">Abrir cardÃ¡pio</a>
     </header>
 
     <section class="dashboard-toolbar panel">
       <div>
-        <p class="eyebrow">Visão do negócio</p>
+        <p class="eyebrow">VisÃ£o do negÃ³cio</p>
         <h2>Indicadores para vender melhor</h2>
       </div>
-      <label class="compact-filter">Período
+      <label class="compact-filter">PerÃ­odo
         <select id="dashboard-period">
           <option value="today">Hoje</option>
-          <option value="7">Últimos 7 dias</option>
-          <option value="30">Últimos 30 dias</option>
+          <option value="7">Ãšltimos 7 dias</option>
+          <option value="30">Ãšltimos 30 dias</option>
           <option value="custom">Personalizado</option>
           <option value="all">Tudo</option>
         </select>
@@ -61,16 +61,16 @@
       <article class="metric-card"><span>Pedidos hoje</span><strong id="orders-today">0</strong></article>
       <article class="metric-card"><span>Vendido hoje</span><strong id="sales-today">R$ 0,00</strong></article>
       <article class="metric-card"><span>Em andamento</span><strong id="orders-open">0</strong></article>
-      <article class="metric-card"><span>Ticket médio</span><strong id="average-ticket">R$ 0,00</strong></article>
-      <article class="metric-card"><span>Próxima renovação</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
+      <article class="metric-card"><span>Ticket mÃ©dio</span><strong id="average-ticket">R$ 0,00</strong></article>
+      <article class="metric-card"><span>PrÃ³xima renovaÃ§Ã£o</span><strong id="next-renewal">--/--/----</strong><small id="renewal-plan">Plano</small></article>
     </section>
 
     <section class="dashboard-insights">
-      <article class="panel insight-card"><span>Produto mais vendido</span><strong id="top-product">--</strong><small id="top-product-detail">Sem pedidos no período.</small></article>
-      <article class="panel insight-card"><span>Cliente que mais compra</span><strong id="top-client">--</strong><small id="top-client-detail">Sem pedidos no período.</small></article>
+      <article class="panel insight-card"><span>Produto mais vendido</span><strong id="top-product">--</strong><small id="top-product-detail">Sem pedidos no perÃ­odo.</small></article>
+      <article class="panel insight-card"><span>Cliente que mais compra</span><strong id="top-client">--</strong><small id="top-client-detail">Sem pedidos no perÃ­odo.</small></article>
       <article class="panel insight-card"><span>Forma de pedido mais usada</span><strong id="top-delivery-type">--</strong><small id="top-delivery-detail">Retirada, entrega ou consumo no local.</small></article>
-      <article class="panel insight-card"><span>Novos clientes</span><strong id="new-clients">0</strong><small>Primeira compra dentro do período escolhido.</small></article>
-      <article class="panel insight-card"><span>Cancelamento</span><strong id="cancellation-rate">0%</strong><small>Pedidos cancelados comparados ao total do período.</small></article>
+      <article class="panel insight-card"><span>Novos clientes</span><strong id="new-clients">0</strong><small>Primeira compra dentro do perÃ­odo escolhido.</small></article>
+      <article class="panel insight-card"><span>Cancelamento</span><strong id="cancellation-rate">0%</strong><small>Pedidos cancelados comparados ao total do perÃ­odo.</small></article>
       <article class="panel insight-card"><span>Entregues</span><strong id="orders-completed">0</strong><small>Pedidos finalizados corretamente.</small></article>
     </section>
 
@@ -84,7 +84,7 @@
       <div class="panel-heading"><h2>Pedidos</h2><button id="refresh-orders" class="btn btn-small">Atualizar</button></div>
       <div class="toolbar-row">
         <label class="search-field">Buscar pedido
-          <input id="order-search" type="search" placeholder="Número, cliente, WhatsApp ou status">
+          <input id="order-search" type="search" placeholder="NÃºmero, cliente, WhatsApp ou status">
         </label>
       </div>
       <div id="orders-list" class="stack-list"></div>
@@ -94,7 +94,7 @@
       <div class="panel-heading">
         <div>
           <h2>Produtos</h2>
-          <p>Veja tudo o que está cadastrado, separado por categoria e módulo.</p>
+          <p>Veja tudo o que estÃ¡ cadastrado, separado por categoria e mÃ³dulo.</p>
         </div>
         <a class="btn btn-small btn-primary" href="#produtos-simples">+ Cadastrar produto</a>
       </div>
@@ -113,12 +113,12 @@
         <label>Nome do produto<input name="nome" required></label>
         <label>Valor<input name="preco" type="number" step="0.01" required></label>
         <label>Categoria<select name="categoriaId" id="simple-product-category"></select></label>
-        <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
+        <label class="full">DescriÃ§Ã£o<textarea name="descricao" rows="2"></textarea></label>
         <input name="fotoUrl" type="hidden">
         <label class="full">Imagem em Base64<input id="simple-product-photo-file" type="file" accept="image/*"></label>
         <div id="simple-product-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
-        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
+        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardÃ¡pio</label>
         <button class="btn btn-primary full" type="submit">Salvar produto simples</button>
       </form>
       <div id="simple-products-list" class="stack-list"></div>
@@ -132,33 +132,40 @@
         <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Ingredientes<textarea name="descricao" rows="2" placeholder="Molho, mussarela, calabresa..."></textarea></label>
+        <input name="fotoUrl" type="hidden">
+        <label class="full">Foto da pizza em Base64<input id="pizza-photo-file" type="file" accept="image/*"></label>
+        <div id="pizza-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <div class="module-inline-settings full">
-          <strong>Meio a meio automático</strong>
+          <strong>Meio a meio automÃ¡tico</strong>
           <label class="check-row"><input name="pizzaMeioP" type="checkbox"> Ativar para tamanho P</label>
           <label class="check-row"><input name="pizzaMeioG" type="checkbox"> Ativar para tamanho G</label>
         </div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
-        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
+        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardÃ¡pio</label>
         <button class="btn btn-primary full" type="submit">Salvar pizza</button>
       </form>
       <div id="pizzas-list" class="stack-list"></div>
     </section>
 
     <section id="porcoes" class="panel module-page">
-      <div class="panel-heading"><h2>Porções</h2><button id="new-portion-btn" class="btn btn-small" type="button">+ Nova porção</button></div>
+      <div class="panel-heading"><h2>PorÃ§Ãµes</h2><button id="new-portion-btn" class="btn btn-small" type="button">+ Nova porÃ§Ã£o</button></div>
       <form id="portion-item-form" class="form-grid panel-inner">
         <input type="hidden" name="id">
-        <label>Nome da porção<input name="nome" required placeholder="Ex: Batata frita"></label>
+        <label>Nome da porÃ§Ã£o<input name="nome" required placeholder="Ex: Batata frita"></label>
         <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
-        <label class="full">Descrição/ingredientes<textarea name="descricao" rows="2"></textarea></label>
+        <label class="full">DescriÃ§Ã£o/ingredientes<textarea name="descricao" rows="2"></textarea></label>
+        <input name="fotoUrl" type="hidden">
+        <label class="full">Foto da porção em Base64<input id="portion-photo-file" type="file" accept="image/*"></label>
+        <div id="portion-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <div class="module-inline-settings full">
-          <strong>Meio a meio automático</strong>
+          <strong>Meio a meio automÃ¡tico</strong>
           <label class="check-row"><input name="porcaoMeioP" type="checkbox"> Ativar para tamanho P</label>
           <label class="check-row"><input name="porcaoMeioG" type="checkbox"> Ativar para tamanho G</label>
         </div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
-        <button class="btn btn-primary full" type="submit">Salvar porção</button>
+        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
+        <button class="btn btn-primary full" type="submit">Salvar porÃ§Ã£o</button>
       </form>
       <div id="portions-list" class="stack-list"></div>
     </section>
@@ -168,11 +175,11 @@
       <form id="module-category-form" class="form-grid panel-inner">
         <input type="hidden" name="id">
         <label>Nome da categoria<input name="nome" required></label>
-        <label>Tipo de módulo
+        <label>Tipo de mÃ³dulo
           <select name="moduleType">
             <option value="simples">Produto simples</option>
             <option value="pizza">Pizza</option>
-            <option value="porcao">Porção</option>
+            <option value="porcao">PorÃ§Ã£o</option>
           </select>
         </label>
         <label>Ordem<input name="ordem" type="number" value="0"></label>
@@ -190,13 +197,17 @@
         <label>Tipo
           <select name="tipo">
             <option value="pizza">Pizza</option>
-            <option value="porcao">Porção</option>
+            <option value="porcao">PorÃ§Ã£o</option>
           </select>
         </label>
         <label>Valor P<input name="valorP" type="number" step="0.01" required></label>
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
-        <label class="full">Ingredientes/descrição<textarea name="descricao" rows="2"></textarea></label>
+        <label class="full">Ingredientes/descriÃ§Ã£o<textarea name="descricao" rows="2"></textarea></label>
+        <input name="fotoUrl" type="hidden">
+        <label class="full">Foto do sabor em Base64<input id="module-flavor-photo-file" type="file" accept="image/*"></label>
+        <div id="module-flavor-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
+        <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
         <button class="btn btn-primary full" type="submit">Salvar sabor</button>
       </form>
       <div id="module-flavors-list" class="stack-list"></div>
@@ -222,15 +233,15 @@
         <label>Valor<input name="preco" type="number" step="0.01" required></label>
         <label>Aplicar por
           <select name="aplicarPor" id="module-addon-apply-mode">
-            <option value="modulo">Módulo</option>
+            <option value="modulo">MÃ³dulo</option>
             <option value="categoria">Categoria</option>
           </select>
         </label>
         <div class="full addon-scope-panel" data-module-addon-panel="modulo">
-          <strong>Módulos</strong>
+          <strong>MÃ³dulos</strong>
           <div class="category-check-grid">
             <label class="category-check is-selected"><input type="checkbox" data-module-addon-module="pizza" checked><span>Pizzas</span></label>
-            <label class="category-check"><input type="checkbox" data-module-addon-module="porcao"><span>Porções</span></label>
+            <label class="category-check"><input type="checkbox" data-module-addon-module="porcao"><span>PorÃ§Ãµes</span></label>
             <label class="category-check"><input type="checkbox" data-module-addon-module="simples"><span>Produtos simples</span></label>
           </div>
         </div>
@@ -245,37 +256,37 @@
     </section>
 
     <section id="cardapio" class="panel legacy-cardapio hidden">
-      <div class="panel-heading"><h2>Cardápio</h2></div>
+      <div class="panel-heading"><h2>CardÃ¡pio</h2></div>
       <div class="menu-admin-grid">
         <form id="pizza-quick-form" class="form-grid panel-inner pizza-module">
           <div class="full">
-            <p class="eyebrow">Módulo pizzaria</p>
-            <h3>Montagem rápida de pizza</h3>
-            <p class="form-hint">Cadastre uma pizza montável, seus tamanhos e vários sabores de uma vez. Depois você pode editar cada item normalmente.</p>
+            <p class="eyebrow">MÃ³dulo pizzaria</p>
+            <h3>Montagem rÃ¡pida de pizza</h3>
+            <p class="form-hint">Cadastre uma pizza montÃ¡vel, seus tamanhos e vÃ¡rios sabores de uma vez. Depois vocÃª pode editar cada item normalmente.</p>
           </div>
-          <label>Nome da categoria no cardápio<input name="categoriaNome" value="Pizzas" required></label>
-          <label>Nome que o cliente verá<input name="produtoNome" value="Pizza Meio a Meio" required></label>
-          <label>Máximo de sabores<input name="maxSabores" type="number" min="1" value="2"></label>
-          <label>Preço base<input name="precoBase" type="number" step="0.01" value="0"></label>
+          <label>Nome da categoria no cardÃ¡pio<input name="categoriaNome" value="Pizzas" required></label>
+          <label>Nome que o cliente verÃ¡<input name="produtoNome" value="Pizza Meio a Meio" required></label>
+          <label>MÃ¡ximo de sabores<input name="maxSabores" type="number" min="1" value="2"></label>
+          <label>PreÃ§o base<input name="precoBase" type="number" step="0.01" value="0"></label>
           <div class="pizza-source-panel full">
-            <strong>De onde vêm os sabores e preços?</strong>
-            <p>Escolha as categorias onde você já cadastrou as pizzas individuais. O sistema usa os produtos dessas categorias como sabores e pega o preço de cada tamanho automaticamente.</p>
+            <strong>De onde vÃªm os sabores e preÃ§os?</strong>
+            <p>Escolha as categorias onde vocÃª jÃ¡ cadastrou as pizzas individuais. O sistema usa os produtos dessas categorias como sabores e pega o preÃ§o de cada tamanho automaticamente.</p>
             <div class="form-grid">
               <label>Categoria das pequenas<select name="categoriaPequenaId" id="pizza-source-small"></select></label>
-              <label>Categoria das médias<select name="categoriaMediaId" id="pizza-source-medium"></select></label>
+              <label>Categoria das mÃ©dias<select name="categoriaMediaId" id="pizza-source-medium"></select></label>
               <label>Categoria das grandes<select name="categoriaGrandeId" id="pizza-source-large"></select></label>
             </div>
           </div>
           <label class="full">Sabores extras em lote<textarea name="sabores" rows="4" placeholder="Mussarela=49.90&#10;Calabresa=52.90"></textarea></label>
           <label class="full">Bordas ou adicionais em lote<textarea name="adicionais" rows="3" placeholder="Borda catupiry=7&#10;Borda cheddar=7"></textarea></label>
-          <button class="btn btn-primary full" type="submit">Criar módulo de pizza</button>
+          <button class="btn btn-primary full" type="submit">Criar mÃ³dulo de pizza</button>
         </form>
         <form id="category-form" class="form-grid panel-inner">
           <h3 class="full">Categorias</h3>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
           <label>Ordem<input name="ordem" type="number" value="0"></label>
-          <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
+          <label class="full">DescriÃ§Ã£o<textarea name="descricao" rows="2"></textarea></label>
           <label class="check-row full"><input name="ativo" type="checkbox" checked> Ativo</label>
           <button class="btn btn-primary full" type="submit">Salvar categoria</button>
           <div id="categories-list" class="full mini-list"></div>
@@ -284,10 +295,10 @@
           <h3 class="full">Sabores</h3>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required placeholder="Ex: Mussarela"></label>
-          <label>Preço<input name="preco" type="number" step="0.01" required></label>
+          <label>PreÃ§o<input name="preco" type="number" step="0.01" required></label>
           <label>Categoria<select name="categoriaId" id="flavor-category"></select></label>
           <label>Ordem<input name="ordem" type="number" value="0"></label>
-          <label class="check-row full"><input name="disponivel" type="checkbox" checked> Disponível</label>
+          <label class="check-row full"><input name="disponivel" type="checkbox" checked> DisponÃ­vel</label>
           <button class="btn btn-primary full" type="submit">Salvar sabor</button>
           <div id="flavors-list" class="full mini-list"></div>
         </form>
@@ -295,12 +306,12 @@
           <h3 class="full">Adicionais</h3>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required placeholder="Ex: Borda recheada"></label>
-          <label>Preço<input name="preco" type="number" step="0.01" required></label>
+          <label>PreÃ§o<input name="preco" type="number" step="0.01" required></label>
           <label>Aplicar em
             <select name="aplicarEm" id="addon-scope">
               <option value="todos">Todos os produtos</option>
               <option value="categoria">Uma categoria</option>
-              <option value="produto">Um produto específico</option>
+              <option value="produto">Um produto especÃ­fico</option>
             </select>
           </label>
           <div class="full">
@@ -309,16 +320,16 @@
           </div>
           <p class="form-hint full">Para aplicar em mais de uma categoria, escolha "Uma categoria" e marque todas as categorias desejadas.</p>
           <label class="full">Produto<select name="produtoId" id="addon-product"></select></label>
-          <label class="check-row full"><input name="disponivel" type="checkbox" checked> Disponível</label>
+          <label class="check-row full"><input name="disponivel" type="checkbox" checked> DisponÃ­vel</label>
           <button class="btn btn-primary full" type="submit">Salvar adicional</button>
           <div id="addons-list" class="full mini-list"></div>
         </form>
         <form id="product-form" class="form-grid panel-inner">
           <h3 class="full">Produtos</h3>
-          <p class="form-hint full">Para pizza meio a meio: crie uma categoria, cadastre os sabores nessa categoria, depois crie o produto como "Produto com sabores", escolha máximo 2 sabores e use "Maior valor prevalece".</p>
+          <p class="form-hint full">Para pizza meio a meio: crie uma categoria, cadastre os sabores nessa categoria, depois crie o produto como "Produto com sabores", escolha mÃ¡ximo 2 sabores e use "Maior valor prevalece".</p>
           <input type="hidden" name="id">
           <label>Nome<input name="nome" required></label>
-          <label>Preço base<input name="preco" type="number" step="0.01" value="0" required></label>
+          <label>PreÃ§o base<input name="preco" type="number" step="0.01" value="0" required></label>
           <label>Categoria<select name="categoriaId" id="product-category"></select></label>
           <label>Tipo
             <select name="tipoProduto" id="product-type">
@@ -326,24 +337,24 @@
               <option value="sabores">Produto com sabores</option>
             </select>
           </label>
-          <label>Máximo de sabores<input name="maxSabores" type="number" min="1" value="1"></label>
-          <label>Regra de preço
+          <label>MÃ¡ximo de sabores<input name="maxSabores" type="number" min="1" value="1"></label>
+          <label>Regra de preÃ§o
             <select name="regraPreco">
-              <option value="fixo">Preço base do produto</option>
+              <option value="fixo">PreÃ§o base do produto</option>
               <option value="maior_valor">Maior valor prevalece</option>
               <option value="media_sabores">Somar sabores e dividir</option>
               <option value="soma_sabores">Somar valores dos sabores</option>
             </select>
           </label>
           <label class="check-row"><input name="pizzaMode" type="checkbox"> Modo pizzaria</label>
-          <label class="full">Tamanhos da pizza<textarea name="pizzaTamanhosTexto" rows="3" placeholder="Pequena=39.90&#10;Média=49.90&#10;Grande=59.90"></textarea></label>
+          <label class="full">Tamanhos da pizza<textarea name="pizzaTamanhosTexto" rows="3" placeholder="Pequena=39.90&#10;MÃ©dia=49.90&#10;Grande=59.90"></textarea></label>
           <input name="fotoUrl" type="hidden">
           <label class="full">Foto do produto em Base64<input id="product-photo-file" type="file" accept="image/*"></label>
           <div id="product-photo-preview" class="image-preview full">Sem foto selecionada</div>
-          <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
-          <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponível</label>
+          <label class="full">DescriÃ§Ã£o<textarea name="descricao" rows="2"></textarea></label>
+          <label class="check-row"><input name="disponivel" type="checkbox" checked> DisponÃ­vel</label>
           <label class="check-row"><input name="destaque" type="checkbox"> Destaque</label>
-          <label class="check-row"><input name="permiteObservacoes" type="checkbox" checked> Observações</label>
+          <label class="check-row"><input name="permiteObservacoes" type="checkbox" checked> ObservaÃ§Ãµes</label>
           <button class="btn btn-primary full" type="submit">Salvar produto</button>
           <div id="products-list" class="full mini-list"></div>
         </form>
@@ -358,11 +369,11 @@
     <section id="financeiro" class="panel">
       <div class="panel-heading">
         <h2>Financeiro</h2>
-        <label class="compact-filter">Período
+        <label class="compact-filter">PerÃ­odo
           <select id="finance-period">
             <option value="today">Hoje</option>
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
+            <option value="7">Ãšltimos 7 dias</option>
+            <option value="30">Ãšltimos 30 dias</option>
             <option value="custom">Personalizado</option>
             <option value="all">Tudo</option>
           </select>
@@ -378,8 +389,8 @@
     <section id="taxas" class="panel">
       <div class="panel-heading"><h2>Taxas por forma de pagamento</h2></div>
       <form id="fees-form" class="form-grid">
-        <label>Crédito %<input name="creditoPercentual" type="number" step="0.01"></label>
-        <label>Débito %<input name="debitoPercentual" type="number" step="0.01"></label>
+        <label>CrÃ©dito %<input name="creditoPercentual" type="number" step="0.01"></label>
+        <label>DÃ©bito %<input name="debitoPercentual" type="number" step="0.01"></label>
         <label>PIX %<input name="pixPercentual" type="number" step="0.01"></label>
         <label>Dinheiro %<input name="dinheiroPercentual" type="number" step="0.01"></label>
         <label>PIX valor fixo<input name="pixFixo" type="number" step="0.01"></label>
@@ -390,32 +401,43 @@
     </section>
 
     <section id="configuracoes" class="panel">
-      <div class="panel-heading"><h2>Configurações</h2></div>
+      <div class="panel-heading"><h2>ConfiguraÃ§Ãµes</h2></div>
       <form id="settings-form" class="form-grid">
-        <label>Nome público<input name="nomePublico"></label>
+        <label>Nome pÃºblico<input name="nomePublico"></label>
         <label>WhatsApp dos pedidos<input name="whatsappPedidos" inputmode="tel"></label>
         <input name="logoUrl" type="hidden">
         <label class="full">Logo do estabelecimento em Base64<input id="business-logo-file" type="file" accept="image/*"></label>
         <div id="business-logo-preview" class="image-preview full">Sem logo selecionado</div>
+        <div class="hero-settings-card full">
+          <div>
+            <p class="eyebrow">PÃ¡gina inicial do cardÃ¡pio</p>
+            <h3>Foto de destaque da capa</h3>
+            <p>Use uma foto bonita do produto ou da loja. Ela aparece no quadrado principal da pÃ¡gina inicial.</p>
+          </div>
+          <input name="heroImageUrl" type="hidden">
+          <label class="full">Imagem da capa em Base64<input id="hero-image-file" type="file" accept="image/*"></label>
+          <div id="hero-image-preview" class="image-preview hero-image-preview full">Sem foto de capa selecionada</div>
+          <button id="clear-hero-image" class="btn btn-small" type="button">Remover foto da capa</button>
+        </div>
         <label class="full">Produto em destaque na capa
           <select name="produtoCapaId" id="hero-product-select">
             <option value="">Escolher automaticamente</option>
           </select>
         </label>
-        <label class="full">Chamada da capa<input name="chamadaCardapio" placeholder="Ex: Peça seu lanche favorito pelo WhatsApp"></label>
+        <label class="full">Chamada da capa<input name="chamadaCardapio" placeholder="Ex: PeÃ§a seu lanche favorito pelo WhatsApp"></label>
         <label class="full">Texto de apoio da capa<input name="subtituloCardapio" placeholder="Ex: Escolha, finalize e acompanhe seu pedido em tempo real."></label>
         <label>Cidade<input name="cidade"></label>
         <h3 class="full compact-title">Modalidades no checkout</h3>
         <label class="check-row"><input name="aceitaRetirada" type="checkbox"> Retirada</label>
         <label class="check-row"><input name="aceitaEntrega" type="checkbox"> Entrega</label>
         <label class="check-row"><input name="aceitaLocal" type="checkbox"> Comer no local</label>
-        <h3 class="full compact-title">Endereço e taxa de entrega</h3>
-        <label>Endereço do estabelecimento<input name="estabelecimentoEndereco"></label>
-        <label>Número<input name="estabelecimentoNumero"></label>
+        <h3 class="full compact-title">EndereÃ§o e taxa de entrega</h3>
+        <label>EndereÃ§o do estabelecimento<input name="estabelecimentoEndereco"></label>
+        <label>NÃºmero<input name="estabelecimentoNumero"></label>
         <label>Bairro<input name="estabelecimentoBairro"></label>
         <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
         <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
-        <label>Taxa padrão de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
+        <label>Taxa padrÃ£o de entrega<input name="entregaTaxaPadrao" type="number" step="0.01" placeholder="Ex: 5.00"></label>
         <textarea class="hidden" name="entregaBairrosTaxas"></textarea>
         <div class="delivery-fees-editor full">
           <div class="delivery-fees-heading">
@@ -424,39 +446,39 @@
           </div>
           <div id="delivery-fees-rows" class="delivery-fees-rows"></div>
         </div>
-        <label class="full">Bairros que não atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
-        <h3 class="full compact-title">Horários de funcionamento</h3>
+        <label class="full">Bairros que nÃ£o atende<textarea name="entregaBairrosBloqueados" rows="3" placeholder="Zona Rural&#10;Bairro Muito Longe"></textarea></label>
+        <h3 class="full compact-title">HorÃ¡rios de funcionamento</h3>
         <label>Domingo abre<input name="horario_domingo_abre" type="time"></label>
         <label>Domingo fecha<input name="horario_domingo_fecha" type="time"></label>
         <label>Segunda abre<input name="horario_segunda_abre" type="time"></label>
         <label>Segunda fecha<input name="horario_segunda_fecha" type="time"></label>
-        <label>Terça abre<input name="horario_terca_abre" type="time"></label>
-        <label>Terça fecha<input name="horario_terca_fecha" type="time"></label>
+        <label>TerÃ§a abre<input name="horario_terca_abre" type="time"></label>
+        <label>TerÃ§a fecha<input name="horario_terca_fecha" type="time"></label>
         <label>Quarta abre<input name="horario_quarta_abre" type="time"></label>
         <label>Quarta fecha<input name="horario_quarta_fecha" type="time"></label>
         <label>Quinta abre<input name="horario_quinta_abre" type="time"></label>
         <label>Quinta fecha<input name="horario_quinta_fecha" type="time"></label>
         <label>Sexta abre<input name="horario_sexta_abre" type="time"></label>
         <label>Sexta fecha<input name="horario_sexta_fecha" type="time"></label>
-        <label>Sábado abre<input name="horario_sabado_abre" type="time"></label>
-        <label>Sábado fecha<input name="horario_sabado_fecha" type="time"></label>
+        <label>SÃ¡bado abre<input name="horario_sabado_abre" type="time"></label>
+        <label>SÃ¡bado fecha<input name="horario_sabado_fecha" type="time"></label>
         <label class="full">Mensagem de boas-vindas<textarea name="mensagem" rows="3"></textarea></label>
-        <button class="btn btn-primary full" type="submit">Salvar configurações</button>
+        <button class="btn btn-primary full" type="submit">Salvar configuraÃ§Ãµes</button>
       </form>
     </section>
 
     <section id="delivery" class="panel">
       <div class="panel-heading"><h2>Delivery</h2></div>
-      <p>Em breve você poderá acionar motoboys diretamente pela plataforma.</p>
+      <p>Em breve vocÃª poderÃ¡ acionar motoboys diretamente pela plataforma.</p>
       <div class="feature-grid small">
         <article class="feature-card"><h3>Acionamento de motoboy</h3></article>
         <article class="feature-card"><h3>Rastreamento</h3></article>
-        <article class="feature-card"><h3>Histórico de entregas</h3></article>
+        <article class="feature-card"><h3>HistÃ³rico de entregas</h3></article>
         <article class="feature-card"><h3>Taxa de entrega</h3></article>
-        <article class="feature-card"><h3>Integração com Cheguei Delivery</h3></article>
+        <article class="feature-card"><h3>IntegraÃ§Ã£o com Cheguei Delivery</h3></article>
       </div>
     </section>
   </main>
-  <script type="module" src="painel.js?v=admin-dashboard-5"></script>
+  <script type="module" src="painel.js?v=admin-dashboard-6"></script>
 </body>
 </html>
