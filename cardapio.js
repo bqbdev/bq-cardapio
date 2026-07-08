@@ -1160,35 +1160,46 @@ function orderTrackingUrl(orderId) {
 function buildWhatsAppMessage(order) {
   const items = order.itens.map((item) => {
     const details = [
-      item.tamanho ? `  Tamanho: ${item.tamanho.nome}` : "",
-      item.sabores?.length ? `  Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}` : "",
-      item.bordas?.length ? `  Borda: ${item.bordas.map((addon) => addon.nome).join(", ")}` : "",
-      item.adicionais?.length ? `  Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}` : "",
-      item.observacao ? `  Obs: ${item.observacao}` : ""
+      item.tamanho ? `Tamanho: ${item.tamanho.nome}` : "",
+      item.sabores?.length ? `Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}` : "",
+      item.bordas?.length ? `Borda: ${item.bordas.map((addon) => addon.nome).join(", ")}` : "",
+      item.adicionais?.length ? `Adicionais: ${item.adicionais.map((addon) => addon.nome).join(", ")}` : "",
+      item.observacao ? `Observação do item: ${item.observacao}` : ""
     ].filter(Boolean).join("\n");
-    return `- ${item.quantidade}x ${item.nome} (${money(item.preco * item.quantidade)})${details ? `\n${details}` : ""}`;
-  }).join("\n");
+    return [
+      `. ${item.quantidade}x ${item.nome}`,
+      `Valor: ${money(item.preco * item.quantidade)}`,
+      details
+    ].filter(Boolean).join("\n");
+  }).join("\n\n");
   const address = order.tipoEntrega === "Entrega"
     ? `${order.endereco.endereco}, ${order.endereco.numero} - ${order.endereco.bairro}. ${order.endereco.referencia || ""}`
     : order.tipoEntrega;
   return [
-    `Pedido ${order.codigo}`,
+    `NOVO PEDIDO ${order.codigo}`,
+    "",
+    "DADOS DO CLIENTE",
     `Cliente: ${order.clienteNome}`,
     `WhatsApp: ${order.whatsapp}`,
-    `Entrega/retirada: ${address}`,
     "",
-    "Itens:",
+    "ENTREGA / RETIRADA",
+    `${address}`,
+    "",
+    "ITENS DO PEDIDO",
     items,
     "",
+    "PAGAMENTO",
     `Pagamento: ${order.formaPagamento}`,
     order.trocoPara ? `Troco para: ${money(order.trocoPara)}` : "",
     order.observacoes ? `Observações: ${order.observacoes}` : "",
+    "",
+    "RESUMO",
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`,
     "",
-    order.trackingUrl ? `Acompanhe seu pedido: ${order.trackingUrl}` : ""
+    order.trackingUrl ? `ACOMPANHAR PEDIDO\n${order.trackingUrl}` : ""
   ].filter(Boolean).join("\n");
 }
 
