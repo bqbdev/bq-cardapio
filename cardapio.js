@@ -12,7 +12,7 @@
   serverTimestamp
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
-import { getClientByWhatsApp, upsertClient } from "./clientes.js";
+import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-upsert-2";
 import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappLink } from "./utils.js";
 
 const state = {
@@ -36,6 +36,7 @@ const state = {
 };
 const $ = (selector) => document.querySelector(selector);
 let checkoutLookupTimer = null;
+let checkoutLookupRequest = 0;
 const businessDays = [
   ["domingo", "Domingo"],
   ["segunda", "Segunda"],
@@ -969,8 +970,22 @@ async function lookupCheckoutClient(whatsappValue, options = {}) {
   const form = $("#checkout-form");
   const whatsapp = normalizePhone(whatsappValue || form.elements.whatsapp.value);
   if (!whatsapp) return;
+  const requestId = ++checkoutLookupRequest;
   setMessage($("#client-lookup-message"), "Buscando cadastro...");
-  const client = await getClientByWhatsApp(state.estabelecimentoId, whatsapp);
+  let client = null;
+  try {
+    client = await withTimeout(
+      getClientByWhatsApp(state.estabelecimentoId, whatsapp),
+      2200,
+      "Tempo esgotado ao buscar cadastro"
+    );
+  } catch (error) {
+    if (requestId !== checkoutLookupRequest) return;
+    console.warn("Não foi possível buscar cadastro do cliente:", error);
+    if (!options.silent) setMessage($("#client-lookup-message"), "Preencha seus dados para finalizar. O cadastro será salvo para a próxima compra.");
+    return;
+  }
+  if (requestId !== checkoutLookupRequest) return;
   if (!client) {
     if (!options.silent) setMessage($("#client-lookup-message"), "Cliente novo. Complete os dados para finalizar.");
     return;
@@ -981,6 +996,14 @@ async function lookupCheckoutClient(whatsappValue, options = {}) {
   updateDeliveryFee();
   saveClientSession(whatsapp);
   setMessage($("#client-lookup-message"), "Cadastro encontrado. Dados preenchidos automaticamente.");
+}
+
+function withTimeout(promise, timeoutMs, message) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 $("#checkout-form")?.addEventListener("submit", async (event) => {

@@ -81,7 +81,8 @@ service cloud.firestore {
       }
 
       match /clientes/{clienteId} {
-        allow read: if isAdmin() || isBusinessOwner(estabelecimentoId);
+        allow get: if true;
+        allow list: if isAdmin() || isBusinessOwner(estabelecimentoId);
         allow create, update: if true;
         allow delete: if isAdmin() || isBusinessOwner(estabelecimentoId);
       }
