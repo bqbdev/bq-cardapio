@@ -1280,10 +1280,12 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   position: relative;
 }
 .menu-hero-art img {
-  width: min(210px, 42vw);
-  height: 150px;
-  object-fit: cover;
+  width: min(178px, 42vw);
+  height: min(178px, 42vw);
+  object-fit: contain;
   border-radius: 22px;
+  background: #fff;
+  padding: 10px;
   filter: drop-shadow(0 20px 26px rgba(23, 32, 27, .18));
 }
 .hero-product-fallback {
@@ -1642,9 +1644,10 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
     font-size: .82rem;
   }
   .menu-hero-art img {
-    width: 116px;
-    height: 104px;
+    width: 108px;
+    height: 108px;
     border-radius: 18px;
+    padding: 7px;
   }
   .menu-hero-art strong {
     display: none;

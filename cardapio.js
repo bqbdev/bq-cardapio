@@ -130,9 +130,6 @@ function ensureMenuActions() {
       <button id="menu-search-shortcut" class="menu-icon-button" type="button" aria-label="Buscar produtos">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4Zm5.2-1.7 4.1 4.1"/></svg>
       </button>
-      <a id="menu-whatsapp-link" class="menu-icon-button whatsapp" href="#" target="_blank" rel="noopener" aria-label="Chamar no WhatsApp">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.2 19.6 4 20.8l1.2-4A8 8 0 1 1 8.2 19.6Z"/><path d="M8.9 8.6c.2 4 2.4 6 6.3 6.7l1.2-1.4-2.2-1.2-.9.8c-1.4-.6-2.3-1.5-2.9-2.9l.8-.9-1.2-2.2-1.1 1.1Z"/></svg>
-      </a>
       <button id="menu-cart-shortcut" class="menu-icon-button cart-shortcut" type="button" aria-label="Ver carrinho">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l2 10h9l2-7H7"/><path d="M9 20h.1M17 20h.1"/></svg>
         <span id="menu-cart-count">0</span>
@@ -189,6 +186,9 @@ function timeToMinutes(value) {
 function renderMenuHero() {
   const target = $("#menu-hero");
   if (!target) return;
+  const phone = state.settings.whatsappPedidos || state.business.whatsapp || "";
+  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "cardapio";
+  const heroWhatsappHref = phone ? whatsappLink(phone, `Ola, vim pelo cardapio digital de ${name}.`) : "#";
   const product = bestHeroProduct();
   const title = state.settings.chamadaCardapio || "Peça seus favoritos em poucos cliques.";
   const subtitle = state.settings.subtituloCardapio || "Escolha, finalize pelo WhatsApp e acompanhe seu pedido em tempo real.";
@@ -197,7 +197,7 @@ function renderMenuHero() {
       <span>Pedido rapido</span>
       <h2>${escapeHtml(title)}</h2>
       <p>${escapeHtml(subtitle)}</p>
-      <a class="hero-whatsapp-link" href="${$("#menu-whatsapp-link")?.href || "#"}" target="_blank" rel="noopener">Peca pelo WhatsApp</a>
+      <a class="hero-whatsapp-link" href="${heroWhatsappHref}" target="_blank" rel="noopener">Peca pelo WhatsApp</a>
     </div>
     <div class="menu-hero-art">
       ${product?.fotoUrl ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}">` : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
@@ -207,8 +207,8 @@ function renderMenuHero() {
 
 function bestHeroProduct() {
   const chosenId = state.settings.produtoCapaId || "";
-  return menuProducts().find((item) => item.id === chosenId && item.fotoUrl)
-    || menuProducts().find((item) => item.destaque && item.fotoUrl)
+  return menuProducts().find((item) => item.destaque && item.fotoUrl)
+    || menuProducts().find((item) => item.id === chosenId && item.fotoUrl)
     || menuProducts().find((item) => item.fotoUrl)
     || menuProducts()[0]
     || null;
@@ -300,7 +300,12 @@ function menuProducts() {
     });
     virtual.push(...portionFlavors.map((flavor) => moduleFlavorProduct(flavor, "porcao")));
   }
-  return [...virtual, ...publicSimpleProducts()];
+  return [...virtual, ...publicSimpleProducts()].sort(sortMenuProducts);
+}
+
+function sortMenuProducts(a, b) {
+  return Number(Boolean(b.destaque)) - Number(Boolean(a.destaque))
+    || String(a.nome || "").localeCompare(String(b.nome || ""));
 }
 
 function moduleFlavorProduct(flavor, type) {
@@ -318,6 +323,7 @@ function moduleFlavorProduct(flavor, type) {
     regraPreco: "maior_valor",
     pizzaMode: true,
     pizzaTamanhos: moduleSizes(type),
+    destaque: Boolean(flavor.destaque),
     disponivel: true
   };
 }

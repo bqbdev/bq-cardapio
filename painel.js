@@ -18,7 +18,6 @@ import {
 } from "./firebase.js";
 import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
-import { fillCoordinatesFromAddress } from "./geocoding.js";
 
 const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", dashboardPeriod: "today", financePeriod: "today", dashboardStartDate: "", dashboardEndDate: "", financeStartDate: "", financeEndDate: "", knownOrderIds: new Set(), ordersLoadedOnce: false };
 const $ = (selector) => document.querySelector(selector);
@@ -134,28 +133,6 @@ $("#business-logo-file")?.addEventListener("change", async (event) => {
   form.elements.logoUrl.value = base64;
   renderBusinessLogoPreview(base64);
   renderDashboardLogo(base64);
-});
-$("#use-business-location")?.addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    alert("Seu navegador não permite pegar localização.");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition((position) => {
-    const form = $("#settings-form");
-    form.elements.estabelecimentoLatitude.value = position.coords.latitude.toFixed(6);
-    form.elements.estabelecimentoLongitude.value = position.coords.longitude.toFixed(6);
-  }, () => {
-    alert("Não foi possível pegar a localização. Verifique a permissão do navegador.");
-  }, { enableHighAccuracy: true, timeout: 12000 });
-});
-
-$("#geocode-business-address")?.addEventListener("click", async () => {
-  try {
-    await fillCoordinatesFromAddress($("#settings-form"));
-    alert("Coordenadas preenchidas pelo endereço.");
-  } catch (error) {
-    alert(error.message);
-  }
 });
 $("#add-delivery-fee-row")?.addEventListener("click", () => addDeliveryFeeRow());
 window.addEventListener("hashchange", showCurrentPanelPage);
@@ -538,11 +515,13 @@ function renderSimpleProducts() {
   const target = $("#simple-products-list");
   if (!target) return;
   target.innerHTML = simpleProducts().map((item) => moduleListItem({
-    title: item.nome,
+    title: `${item.nome}${item.destaque ? " <span class='pill'>Destaque</span>" : ""}`,
     meta: `${money(item.preco)} - ${categoryName(item.categoriaId)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
     id: item.id,
     edit: "simple-product",
-    remove: "product"
+    remove: "product",
+    highlight: "product",
+    highlighted: Boolean(item.destaque)
   })).join("") || "<p>Nenhum produto simples cadastrado.</p>";
   bindModuleActions(target);
 }
@@ -551,12 +530,14 @@ function renderPizzas() {
   const target = $("#pizzas-list");
   if (!target) return;
   target.innerHTML = moduleItems("pizza").map((item) => moduleListItem({
-    title: item.nome,
+    title: `${item.nome}${item.destaque ? " <span class='pill'>Destaque</span>" : ""}`,
     meta: `P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
     description: item.descricao || "",
     id: item.id,
     edit: "pizza-item",
-    remove: "flavor"
+    remove: "flavor",
+    highlight: "flavor",
+    highlighted: Boolean(item.destaque)
   })).join("") || "<p>Nenhuma pizza cadastrada.</p>";
   bindModuleActions(target);
 }
@@ -565,12 +546,14 @@ function renderPortions() {
   const target = $("#portions-list");
   if (!target) return;
   target.innerHTML = moduleItems("porcao").map((item) => moduleListItem({
-    title: item.nome,
+    title: `${item.nome}${item.destaque ? " <span class='pill'>Destaque</span>" : ""}`,
     meta: `P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
     description: item.descricao || "",
     id: item.id,
     edit: "portion-item",
-    remove: "flavor"
+    remove: "flavor",
+    highlight: "flavor",
+    highlighted: Boolean(item.destaque)
   })).join("") || "<p>Nenhuma porção cadastrada.</p>";
   bindModuleActions(target);
 }
@@ -593,12 +576,14 @@ function renderModuleFlavors() {
   if (!target) return;
   const items = state.flavors.filter((item) => item.tipo === "pizza" || item.tipo === "porcao" || item.moduleType === "pizza" || item.moduleType === "porcao");
   target.innerHTML = items.map((item) => moduleListItem({
-    title: item.nome,
+    title: `${item.nome}${item.destaque ? " <span class='pill'>Destaque</span>" : ""}`,
     meta: `${moduleTypeLabel(item.tipo || item.moduleType)} - P: ${money(item.valorP ?? item.precoP ?? item.preco)} - G: ${money(item.valorG ?? item.precoG ?? item.preco)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
     description: item.descricao || "",
     id: item.id,
     edit: "module-flavor",
-    remove: "flavor"
+    remove: "flavor",
+    highlight: "flavor",
+    highlighted: Boolean(item.destaque)
   })).join("") || "<p>Nenhum sabor cadastrado.</p>";
   bindModuleActions(target);
 }
@@ -637,7 +622,7 @@ function renderExtras() {
   bindModuleActions(target);
 }
 
-function moduleListItem({ title, meta, description = "", id, edit, remove }) {
+function moduleListItem({ title, meta, description = "", id, edit, remove, highlight = "", highlighted = false }) {
   return `
     <article class="list-item module-list-item">
       <div>
@@ -647,6 +632,7 @@ function moduleListItem({ title, meta, description = "", id, edit, remove }) {
       </div>
       <div class="item-actions">
         <button class="btn btn-small" data-module-edit="${edit}" data-id="${id}" type="button">Editar</button>
+        ${highlight ? `<button class="btn btn-small ${highlighted ? "btn-primary" : ""}" data-module-highlight="${highlight}" data-id="${id}" type="button">${highlighted ? "Remover destaque" : "Destacar"}</button>` : ""}
         <button class="btn btn-small" data-module-delete="${remove}" data-id="${id}" type="button">Excluir</button>
       </div>
     </article>
@@ -659,6 +645,9 @@ function bindModuleActions(root = document) {
   });
   root.querySelectorAll("[data-module-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.id));
+  });
+  root.querySelectorAll("[data-module-highlight]").forEach((button) => {
+    button.addEventListener("click", () => toggleModuleHighlight(button.dataset.moduleHighlight, button.dataset.id));
   });
 }
 
@@ -1272,7 +1261,7 @@ async function saveSimpleProduct(form) {
       tipoProduto: "simples",
       moduleType: "simples",
       disponivel: Boolean(data.disponivel),
-      destaque: false,
+      destaque: Boolean(data.destaque),
       permiteObservacoes: true,
       atualizadoEm: serverTimestamp()
     }, { merge: true });
@@ -1301,6 +1290,8 @@ async function saveModuleFlavor(form, type, successText) {
   await runFormSave(form, async () => {
     const data = formToObject(form);
     const id = data.id || doc(collection(db, "tmp")).id;
+    const currentItem = state.flavors.find((item) => item.id === id);
+    const destaque = form.elements.destaque ? Boolean(data.destaque) : Boolean(currentItem?.destaque);
     await persistInlineModuleSettings(form, type);
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
       nome: data.nome,
@@ -1315,6 +1306,7 @@ async function saveModuleFlavor(form, type, successText) {
         G: numberValue(data.valorG)
       },
       disponivel: Boolean(data.disponivel),
+      destaque,
       atualizadoEm: serverTimestamp()
     }, { merge: true });
     const savedItem = {
@@ -1330,7 +1322,8 @@ async function saveModuleFlavor(form, type, successText) {
         P: numberValue(data.valorP),
         G: numberValue(data.valorG)
       },
-      disponivel: Boolean(data.disponivel)
+      disponivel: Boolean(data.disponivel),
+      destaque
     };
     state.flavors = [
       savedItem,
@@ -1529,6 +1522,7 @@ function resetSimpleProductForm(form = $("#simple-product-form")) {
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.fotoUrl) form.elements.fotoUrl.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  if (form?.elements.destaque) form.elements.destaque.checked = false;
   renderSimpleProductPhotoPreview("");
 }
 
@@ -1537,6 +1531,7 @@ function resetModuleFlavorForm(form, type = "pizza") {
   if (form?.elements.id) form.elements.id.value = "";
   if (form?.elements.tipo) form.elements.tipo.value = type;
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
+  if (form?.elements.destaque) form.elements.destaque.checked = false;
   applyInlineModuleSettings(form, type);
 }
 
@@ -1593,6 +1588,7 @@ function fillSimpleProduct(id) {
   form.elements.descricao.value = item.descricao || "";
   form.elements.fotoUrl.value = item.fotoUrl || "";
   form.elements.disponivel.checked = item.disponivel !== false;
+  if (form.elements.destaque) form.elements.destaque.checked = Boolean(item.destaque);
   renderSimpleProductPhotoPreview(item.fotoUrl || "");
   location.hash = "produtos-simples";
   showCurrentPanelPage();
@@ -1608,6 +1604,7 @@ function fillModuleFlavor(id, form, type, page) {
   form.elements.valorG.value = item.valorG ?? item.precoG ?? item.preco ?? 0;
   form.elements.descricao.value = item.descricao || "";
   form.elements.disponivel.checked = item.disponivel !== false;
+  if (form.elements.destaque) form.elements.destaque.checked = Boolean(item.destaque);
   location.hash = page;
   showCurrentPanelPage();
 }
@@ -1721,6 +1718,21 @@ async function toggleProductHighlight(id) {
     atualizadoEm: serverTimestamp()
   });
   await loadProducts();
+}
+
+async function toggleModuleHighlight(type, id) {
+  if (type === "product") {
+    await toggleProductHighlight(id);
+    return;
+  }
+  if (type !== "flavor") return;
+  const flavor = state.flavors.find((item) => item.id === id);
+  if (!flavor) return;
+  await updateDoc(doc(db, `estabelecimentos/${state.businessId}/sabores`, id), {
+    destaque: !Boolean(flavor.destaque),
+    atualizadoEm: serverTimestamp()
+  });
+  await loadFlavors();
 }
 
 async function toggleProductAvailability(id) {
