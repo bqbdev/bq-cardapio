@@ -39,19 +39,19 @@ let checkoutLookupTimer = null;
 const businessDays = [
   ["domingo", "Domingo"],
   ["segunda", "Segunda"],
-  ["terca", "TerÃ§a"],
+  ["terca", "Terça"],
   ["quarta", "Quarta"],
   ["quinta", "Quinta"],
   ["sexta", "Sexta"],
-  ["sabado", "SÃ¡bado"]
+  ["sabado", "Sábado"]
 ];
 
 init();
 
 async function init() {
   if (!state.estabelecimentoId) {
-    $("#menu-business-name").textContent = "CardÃ¡pio indisponÃ­vel";
-    $("#menu-message").textContent = "Informe o estabelecimento no link do cardÃ¡pio.";
+    $("#menu-business-name").textContent = "Cardápio indisponível";
+    $("#menu-message").textContent = "Informe o estabelecimento no link do cardápio.";
     return;
   }
   await Promise.all([loadBusiness(), loadSettings(), loadFees(), loadCategories(), loadProducts(), loadFlavors(), loadAddons()]);
@@ -108,7 +108,7 @@ async function loadAddons() {
 
 function renderHeader() {
   ensureMenuActions();
-  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "CardÃ¡pio";
+  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "Cardápio";
   $("#menu-business-name").textContent = name;
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
   if (state.settings.logoUrl) {
@@ -148,14 +148,14 @@ function renderOpeningHours() {
   target.innerHTML = `
     <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
     <div class="hours-list"><span>${todayLabel}</span></div>
-    ${openNow ? "" : "<em>Pedidos indisponÃ­veis no momento</em>"}
+    ${openNow ? "" : "<em>Pedidos indisponíveis no momento</em>"}
   `;
   updateOrderingAvailability();
   return;
   const rows = businessDays.map(([key, label]) => {
     const open = state.settings[`horario_${key}_abre`];
     const close = state.settings[`horario_${key}_fecha`];
-    return `<span>${label}: ${open && close ? `${open} Ã s ${close}` : "Fechado"}</span>`;
+    return `<span>${label}: ${open && close ? `${open} às ${close}` : "Fechado"}</span>`;
   }).join("");
   target.innerHTML = `
     <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
@@ -188,7 +188,7 @@ function renderMenuHero() {
   const heroWhatsappHref = phone ? whatsappLink(phone, `Ola, vim pelo cardapio digital de ${name}.`) : "#";
   const heroImage = state.settings.heroImageUrl || "";
   const product = bestHeroProduct();
-  const title = state.settings.chamadaCardapio || "PeÃ§a seus favoritos em poucos cliques.";
+  const title = state.settings.chamadaCardapio || "Peça seus favoritos em poucos cliques.";
   const subtitle = state.settings.subtituloCardapio || "Escolha, finalize pelo WhatsApp e acompanhe seu pedido em tempo real.";
   target.innerHTML = `
     <div class="menu-hero-copy">
@@ -240,7 +240,8 @@ function categoryIcon(item) {
 
 function renderProducts(categoryId = "todos") {
   const allProducts = menuProducts();
-  const products = categoryId === "todos" ? allProducts : allProducts.filter((item) => item.categoriaId === categoryId);
+  const products = (categoryId === "todos" ? allProducts : allProducts.filter((item) => item.categoriaId === categoryId))
+    .sort((a, b) => moduleBuilderPriority(a, b, categoryId));
   $("#menu-products").innerHTML = products.map((item) => `
     <article class="product-card ${item.destaque ? "is-featured" : ""}">
       ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}">` : `<div class="product-image-fallback">BQ</div>`}
@@ -252,7 +253,7 @@ function renderProducts(categoryId = "todos") {
       </div>
       <button class="menu-add-button" data-add="${item.id}" aria-label="Adicionar ${escapeHtml(item.nome)}">+</button>
     </article>
-  `).join("") || "<p>Nenhum produto disponÃ­vel nesta categoria.</p>";
+  `).join("") || "<p>Nenhum produto disponível nesta categoria.</p>";
   document.querySelectorAll("[data-add]").forEach((button) => button.addEventListener("click", () => addToCart(button.dataset.add)));
   updateOrderingAvailability();
 }
@@ -260,7 +261,7 @@ function renderProducts(categoryId = "todos") {
 function virtualCategories() {
   const categories = [];
   if (moduleFlavors("pizza").length) categories.push({ id: "__pizza", nome: "Pizzas" });
-  if (moduleFlavors("porcao").length) categories.push({ id: "__porcao", nome: "PorÃ§Ãµes" });
+  if (moduleFlavors("porcao").length) categories.push({ id: "__porcao", nome: "Porções" });
   return categories;
 }
 
@@ -271,7 +272,7 @@ function menuProducts() {
     virtual.push({
       id: "__pizza_builder",
       nome: "Pizza meio a meio",
-      descricao: "Escolha atÃ© 2 sabores. O maior valor prevalece.",
+      descricao: "Escolha até 2 sabores. O maior valor prevalece.",
       categoriaId: "__pizza",
       tipoProduto: "sabores",
       moduleType: "pizza",
@@ -288,8 +289,8 @@ function menuProducts() {
   if (portionFlavors.length) {
     virtual.push({
       id: "__portion_builder",
-      nome: "PorÃ§Ã£o meio a meio",
-      descricao: "Escolha atÃ© 2 opÃ§Ãµes. O maior valor prevalece.",
+      nome: "Porção meio a meio",
+      descricao: "Escolha até 2 opções. O maior valor prevalece.",
       categoriaId: "__porcao",
       tipoProduto: "sabores",
       moduleType: "porcao",
@@ -310,11 +311,20 @@ function sortMenuProducts(a, b) {
     || String(a.nome || "").localeCompare(String(b.nome || ""));
 }
 
+function moduleBuilderPriority(a, b, categoryId = "todos") {
+  if (categoryId === "__pizza" || categoryId === "__porcao") {
+    const aBuilder = a.id === "__pizza_builder" || a.id === "__portion_builder";
+    const bBuilder = b.id === "__pizza_builder" || b.id === "__portion_builder";
+    if (aBuilder !== bBuilder) return aBuilder ? -1 : 1;
+  }
+  return sortMenuProducts(a, b);
+}
+
 function moduleFlavorProduct(flavor, type) {
   return {
     id: `__${type}_flavor_${flavor.id}`,
-    nome: flavor.nome || (type === "pizza" ? "Pizza" : "PorÃ§Ã£o"),
-    descricao: flavor.descricao || (type === "pizza" ? "Escolha o tamanho da pizza." : "Escolha o tamanho da porÃ§Ã£o."),
+    nome: flavor.nome || (type === "pizza" ? "Pizza" : "Porção"),
+    descricao: flavor.descricao || (type === "pizza" ? "Escolha o tamanho da pizza." : "Escolha o tamanho da porção."),
     fotoUrl: flavor.fotoUrl || "",
     categoriaId: type === "pizza" ? "__pizza" : "__porcao",
     tipoProduto: "individual_module",
@@ -369,7 +379,7 @@ function addToCart(productId) {
 
 function canOrderNow() {
   if (state.isOpenNow) return true;
-  alert("A loja estÃ¡ fechada agora. NÃ£o Ã© possÃ­vel fazer pedidos no momento.");
+  alert("A loja está fechada agora. Não é possível fazer pedidos no momento.");
   return false;
 }
 
@@ -402,7 +412,7 @@ function renderCart() {
       </div>
       <div><strong>${money(item.preco * item.quantidade)}</strong><button class="btn btn-small" data-remove="${index}">Remover</button></div>
     </div>
-  `).join("") || "<p>Seu carrinho estÃ¡ vazio.</p>";
+  `).join("") || "<p>Seu carrinho está vazio.</p>";
   $("#cart-total").textContent = money(cartSubtotal());
   const count = state.cart.reduce((sum, item) => sum + Number(item.quantidade || 0), 0);
   if ($("#menu-cart-count")) $("#menu-cart-count").textContent = String(count);
@@ -522,7 +532,7 @@ function openProductBuilder(product) {
   const addons = availableAddons(product);
   const crusts = addons.filter((addon) => addon.tipoAdicional === "borda");
   const extras = addons.filter((addon) => addon.tipoAdicional !== "borda");
-  $("#builder-title").textContent = product.generatedModule === "porcao" ? "PorÃ§Ã£o meio a meio" : product.generatedModule === "pizza" ? "Pizza meio a meio" : product.pizzaMode ? "Monte a sua pizza" : product.nome;
+  $("#builder-title").textContent = product.generatedModule === "porcao" ? "Porção meio a meio" : product.generatedModule === "pizza" ? "Pizza meio a meio" : product.pizzaMode ? "Monte a sua pizza" : product.nome;
   $("#builder-subtitle").textContent = builderSubtitle(product, flavors, addons);
   $("#builder-message").textContent = "";
   $("#product-builder-form").reset();
@@ -567,24 +577,24 @@ function openProductBuilder(product) {
 function builderSubtitle(product, flavors, addons) {
   const parts = [];
   if (product.tipoProduto === "individual_module") {
-    parts.push(product.generatedModule === "porcao" ? "Escolha o tamanho da porÃ§Ã£o" : "Escolha o tamanho da pizza");
+    parts.push(product.generatedModule === "porcao" ? "Escolha o tamanho da porção" : "Escolha o tamanho da pizza");
     if (addons.length) parts.push("Adicionais opcionais");
-    return parts.join(" Â· ");
+    return parts.join(" · ");
   }
   if (product.generatedModule === "porcao") {
-    parts.push("Meio a meio: escolha tamanho, opÃ§Ãµes e adicionais");
-    return parts.join(" Â· ");
+    parts.push("Meio a meio: escolha tamanho, opções e adicionais");
+    return parts.join(" · ");
   }
   if (product.pizzaMode) {
     parts.push("Meio a meio: escolha tamanho, sabores e borda");
-    return parts.join(" Â· ");
+    return parts.join(" · ");
   }
   if (product.tipoProduto === "sabores") {
-    parts.push(`Escolha atÃ© ${Math.max(1, Number(product.maxSabores || 1))} sabor(es)`);
+    parts.push(`Escolha até ${Math.max(1, Number(product.maxSabores || 1))} sabor(es)`);
     parts.push(priceRuleLabel(product.regraPreco));
   }
   if (addons.length) parts.push("Adicionais opcionais");
-  return parts.join(" Â· ");
+  return parts.join(" · ");
 }
 
 function renderPizzaBuilderTop(product) {
@@ -637,11 +647,11 @@ function renderPizzaBuilderTop(product) {
   return `
     <section class="pizza-builder-intro">
       <strong>${escapeHtml(product.nome)}</strong>
-      <span>${isPortion ? "Escolha o tamanho e a porÃ§Ã£o." : showSizePrices ? "Escolha o tamanho e os sabores." : "Escolha o tamanho. O preÃ§o serÃ¡ definido pelos sabores."}</span>
+      <span>${isPortion ? "Escolha o tamanho e a porção." : showSizePrices ? "Escolha o tamanho e os sabores." : "Escolha o tamanho. O preço será definido pelos sabores."}</span>
     </section>
     ${sizes.length ? `
       <section class="builder-section">
-        <div class="builder-section-heading"><strong>Tamanho</strong><span>ObrigatÃ³rio</span></div>
+        <div class="builder-section-heading"><strong>Tamanho</strong><span>Obrigatório</span></div>
         <div class="segmented-options">
           ${sizes.map((size, index) => `
             <label class="segment-card">
@@ -654,7 +664,7 @@ function renderPizzaBuilderTop(product) {
       </section>
     ` : ""}
     ${isIndividual ? "" : `<section class="builder-section">
-      <div class="builder-section-heading"><strong>${isPortion ? "Quantidade de opÃ§Ãµes" : "Quantidade de sabores"}</strong><span>ObrigatÃ³rio</span></div>
+      <div class="builder-section-heading"><strong>${isPortion ? "Quantidade de opções" : "Quantidade de sabores"}</strong><span>Obrigatório</span></div>
       <div class="segmented-options">
         <label class="segment-card">
           <input data-flavor-mode name="flavorMode" value="1" type="radio" checked>
@@ -663,7 +673,7 @@ function renderPizzaBuilderTop(product) {
         ${max > 1 ? `
           <label class="segment-card">
             <input data-flavor-mode name="flavorMode" value="${max}" type="radio">
-            <span>${max} ${isPortion ? "opÃ§Ãµes" : "sabores"}</span>
+            <span>${max} ${isPortion ? "opções" : "sabores"}</span>
           </label>
         ` : ""}
       </div>
@@ -677,7 +687,7 @@ function renderFlavorPicker(product, flavors) {
   return `
     <section class="builder-section">
       <div class="builder-section-heading">
-        <strong>${isPortion ? "OpÃ§Ãµes" : "Sabores"}</strong>
+        <strong>${isPortion ? "Opções" : "Sabores"}</strong>
         <span id="flavor-counter">0 de ${max}</span>
       </div>
       <p id="builder-flavor-help" class="builder-help">${flavorHelpText(product, max)}</p>
@@ -685,7 +695,7 @@ function renderFlavorPicker(product, flavors) {
         ${flavors.map((flavor) => `
           <label class="option-card flavor-option-card">
             <input data-builder-option data-builder-flavor value="${flavor.id}" type="checkbox">
-            <span><b>${flavor.nome}</b>${max > 1 ? "<small>DisponÃ­vel para meio a meio</small>" : `<small>${isPortion ? "PorÃ§Ã£o inteira" : "Pizza inteira"}</small>`}</span>
+            <span><b>${flavor.nome}</b>${max > 1 ? "<small>Disponível para meio a meio</small>" : `<small>${isPortion ? "Porção inteira" : "Pizza inteira"}</small>`}</span>
             <strong data-flavor-price="${flavor.id}">${money(flavorPriceForSelection(flavor))}</strong>
           </label>
         `).join("") || "<p>Nenhum sabor cadastrado para esta categoria.</p>"}
@@ -695,12 +705,12 @@ function renderFlavorPicker(product, flavors) {
 }
 
 function flavorHelpText(product, max) {
-  if (product.generatedModule === "porcao") return max > 1 ? `Escolha atÃ© ${max} opÃ§Ãµes. No meio a meio, o maior valor prevalece.` : "Escolha 1 porÃ§Ã£o.";
-  if (product.pizzaMode) return max > 1 ? `Escolha atÃ© ${max} sabores. No meio a meio, o maior valor prevalece.` : "Escolha 1 sabor para a pizza inteira.";
-  if (product.regraPreco === "maior_valor") return `Para meio a meio, selecione ${max} sabores. O valor da pizza serÃ¡ o maior preÃ§o escolhido.`;
+  if (product.generatedModule === "porcao") return max > 1 ? `Escolha até ${max} opções. No meio a meio, o maior valor prevalece.` : "Escolha 1 porção.";
+  if (product.pizzaMode) return max > 1 ? `Escolha até ${max} sabores. No meio a meio, o maior valor prevalece.` : "Escolha 1 sabor para a pizza inteira.";
+  if (product.regraPreco === "maior_valor") return `Para meio a meio, selecione ${max} sabores. O valor da pizza será o maior preço escolhido.`;
   if (product.regraPreco === "media_sabores") return "O sistema soma os sabores escolhidos e divide pela quantidade.";
   if (product.regraPreco === "soma_sabores") return "O sistema soma o valor dos sabores escolhidos.";
-  return "O preÃ§o base do produto serÃ¡ mantido, independente dos sabores.";
+  return "O preço base do produto será mantido, independente dos sabores.";
 }
 
 function renderAddonPicker(addons, title = "Adicionais") {
@@ -725,10 +735,10 @@ function enforceFlavorLimit(product) {
   const checked = Array.from(document.querySelectorAll("[data-builder-flavor]:checked"));
   if (checked.length <= max) return;
   checked.slice(max).forEach((input) => input.checked = false);
-  const label = product.generatedModule === "porcao" ? "opÃ§Ã£o(Ãµes)" : "sabor(es)";
-  setMessage($("#builder-message"), `Escolha no mÃ¡ximo ${max} ${label}.`, "error");
+  const label = product.generatedModule === "porcao" ? "opção(ões)" : "sabor(es)";
+  setMessage($("#builder-message"), `Escolha no máximo ${max} ${label}.`, "error");
   return;
-  setMessage($("#builder-message"), `Escolha no mÃ¡ximo ${max} sabor(es).`, "error");
+  setMessage($("#builder-message"), `Escolha no máximo ${max} sabor(es).`, "error");
 }
 
 function selectedBuilderFlavors() {
@@ -785,7 +795,7 @@ function updateBuilderSelectionState(product) {
     card?.classList.toggle("is-selected", input.checked);
     card?.classList.toggle("is-disabled", !available);
     const priceTarget = document.querySelector(`[data-flavor-price="${input.value}"]`);
-    if (priceTarget && flavor) priceTarget.textContent = available ? money(flavorPriceForSelection(flavor)) : "IndisponÃ­vel";
+    if (priceTarget && flavor) priceTarget.textContent = available ? money(flavorPriceForSelection(flavor)) : "Indisponível";
   });
   document.querySelectorAll("[data-builder-addon]").forEach((input) => {
     input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
@@ -802,15 +812,15 @@ function updateBuilderHalfCopy(product, max) {
   }
   if (!title || !text) return;
   if (product.generatedModule === "porcao") {
-    title.textContent = max > 1 ? `Escolha atÃ© ${max} opÃ§Ãµes` : "Escolha 1 opÃ§Ã£o";
+    title.textContent = max > 1 ? `Escolha até ${max} opções` : "Escolha 1 opção";
     text.textContent = max > 1
-      ? "Esta porÃ§Ã£o serÃ¡ montada no formato meio a meio. O maior valor escolhido prevalece."
-      : "Este tamanho aceita uma opÃ§Ã£o de porÃ§Ã£o.";
+      ? "Esta porção será montada no formato meio a meio. O maior valor escolhido prevalece."
+      : "Este tamanho aceita uma opção de porção.";
     return;
   }
-  title.textContent = max > 1 ? `Escolha atÃ© ${max} sabores` : "Escolha 1 sabor";
+  title.textContent = max > 1 ? `Escolha até ${max} sabores` : "Escolha 1 sabor";
   text.textContent = max > 1
-    ? "Esta pizza serÃ¡ montada no formato meio a meio. O maior valor escolhido prevalece."
+    ? "Esta pizza será montada no formato meio a meio. O maior valor escolhido prevalece."
     : "Este tamanho aceita um sabor.";
 }
 
@@ -884,7 +894,7 @@ function priceRuleLabel(rule = "fixo") {
   if (rule === "maior_valor") return "Maior valor prevalece";
   if (rule === "media_sabores") return "Somar e dividir";
   if (rule === "soma_sabores") return "Somar sabores";
-  return "PreÃ§o base";
+  return "Preço base";
 }
 
 $("#product-dialog-close")?.addEventListener("click", () => $("#product-dialog").close());
@@ -898,7 +908,7 @@ $("#product-builder-form")?.addEventListener("submit", (event) => {
   const addons = selectedBuilderAddons();
   if (product.tipoProduto === "sabores" && !flavors.length) {
     if (product.generatedModule === "porcao") {
-      setMessage($("#builder-message"), "Escolha pelo menos uma opÃ§Ã£o.", "error");
+      setMessage($("#builder-message"), "Escolha pelo menos uma opção.", "error");
       return;
     }
     setMessage($("#builder-message"), "Escolha pelo menos um sabor.", "error");
@@ -1007,7 +1017,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       cidade: data.cidade || "",
       referencia: data.referencia || ""
     },
-    status: "Aguardando aprovaÃ§Ã£o",
+    status: "Aguardando aprovação",
     subtotal,
     taxaConfigurada: paymentFee,
     taxaEntrega: deliveryFee,
@@ -1022,7 +1032,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
   const phone = await latestOrderWhatsApp();
   if (!phone) {
-    setMessage($("#checkout-message"), "WhatsApp do estabelecimento nÃ£o configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
+    setMessage($("#checkout-message"), "WhatsApp do estabelecimento não configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
     return;
   }
   const link = whatsappLink(phone, message);
@@ -1041,7 +1051,7 @@ async function latestOrderWhatsApp() {
     if (settingsSnap.exists()) state.settings = { ...state.settings, ...settingsSnap.data() };
     if (businessSnap.exists()) state.business = { ...state.business, ...businessSnap.data() };
   } catch (error) {
-    console.warn("NÃ£o foi possÃ­vel atualizar o WhatsApp antes do envio:", error);
+    console.warn("Não foi possível atualizar o WhatsApp antes do envio:", error);
   }
   return state.settings.whatsappPedidos || state.business.whatsapp || "";
 }
@@ -1078,7 +1088,7 @@ function buildWhatsAppMessage(order) {
     "",
     `Pagamento: ${order.formaPagamento}`,
     order.trocoPara ? `Troco para: ${money(order.trocoPara)}` : "",
-    order.observacoes ? `ObservaÃ§Ãµes: ${order.observacoes}` : "",
+    order.observacoes ? `Observações: ${order.observacoes}` : "",
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
     order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
@@ -1123,8 +1133,8 @@ function watchClientOrders(whatsapp) {
       .sort((a, b) => timestampMillis(b.criadoEm) - timestampMillis(a.criadoEm));
     renderClientOrders();
   }, (error) => {
-    console.error("NÃ£o foi possÃ­vel acompanhar pedidos:", error);
-    $("#client-orders-list").innerHTML = "<p>NÃ£o foi possÃ­vel carregar seus pedidos agora.</p>";
+    console.error("Não foi possível acompanhar pedidos:", error);
+    $("#client-orders-list").innerHTML = "<p>Não foi possível carregar seus pedidos agora.</p>";
   });
 }
 
@@ -1147,7 +1157,7 @@ function renderClientOrders() {
     ${activeOrders.length ? activeOrders.map(renderClientOrderCard).join("") : "<p>Nenhum pedido em andamento.</p>"}
     ${historyOrders.length ? `
       <details class="client-history">
-        <summary>HistÃ³rico (${historyOrders.length})</summary>
+        <summary>Histórico (${historyOrders.length})</summary>
         ${historyOrders.map(renderClientOrderCard).join("")}
       </details>
     ` : ""}
@@ -1159,7 +1169,7 @@ function renderClientOrderCard(order) {
     <article class="client-order-card ${isFinalOrder(order) ? "is-history" : ""}">
       <div>
         <strong>Pedido ${escapeHtml(order.codigo || order.numeroPedido || order.id)}</strong>
-        <span>${escapeHtml(order.status || "Aguardando aprovaÃ§Ã£o")}</span>
+        <span>${escapeHtml(order.status || "Aguardando aprovação")}</span>
       </div>
       ${renderCurrentStatus(order.status)}
       <small>${escapeHtml(order.tipoEntrega || "")} - ${money(order.totalFinal)}</small>
@@ -1169,7 +1179,7 @@ function renderClientOrderCard(order) {
 }
 
 function renderCurrentStatus(status = "") {
-  const label = status || "Aguardando aprovaÃ§Ã£o";
+  const label = status || "Aguardando aprovação";
   const canceled = normalizeStatus(label) === "cancelado";
   return `<div class="current-status ${canceled ? "is-canceled" : ""}">${escapeHtml(label)}</div>`;
 }
@@ -1180,7 +1190,7 @@ function isFinalOrder(order) {
 
 function renderOrderStatusSteps(status = "") {
   const current = normalizeStatus(status);
-  const steps = ["Aguardando aprovaÃ§Ã£o", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
+  const steps = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue"];
   if (current === normalizeStatus("Cancelado")) {
     return `<div class="status-timeline is-canceled"><span class="active">Cancelado</span></div>`;
   }
@@ -1253,8 +1263,8 @@ function updateDeliveryFee() {
   const blockedAreas = parseBlockedAreas(state.settings.entregaBairrosBloqueados);
   if (blockedAreas.includes(normalizedBairro)) {
     state.deliveryFee = 0;
-    state.deliveryRule = `Bairro nÃ£o atendido: ${bairro}`;
-    setMessage($("#delivery-fee-message"), "Este bairro nÃ£o estÃ¡ na Ã¡rea de entrega.", "error");
+    state.deliveryRule = `Bairro não atendido: ${bairro}`;
+    setMessage($("#delivery-fee-message"), "Este bairro não está na área de entrega.", "error");
     return false;
   }
   const specialFees = parseAreaFees(state.settings.entregaBairrosTaxas);
@@ -1262,7 +1272,7 @@ function updateDeliveryFee() {
   const hasSpecialFee = Boolean(matchedKey);
   const fee = hasSpecialFee ? specialFees[matchedKey].valor : configNumber(state.settings.entregaTaxaPadrao);
   state.deliveryFee = Math.max(0, fee);
-  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${specialFees[matchedKey].label}` : "Taxa padrÃ£o";
+  state.deliveryRule = hasSpecialFee ? `Taxa especial: ${specialFees[matchedKey].label}` : "Taxa padrão";
   setMessage($("#delivery-fee-message"), `Taxa de entrega: ${money(state.deliveryFee)} (${state.deliveryRule}).`);
   return true;
 }
