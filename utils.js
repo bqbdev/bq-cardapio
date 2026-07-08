@@ -73,7 +73,14 @@ export const formToObject = (form) => {
 
 export const requireParam = (name, fallback = "") => new URLSearchParams(location.search).get(name) || fallback;
 
-export const whatsappLink = (phone, message) => `https://wa.me/55${normalizePhone(phone)}?text=${encodeURIComponent(message)}`;
+export const whatsappRecipient = (phone = "") => {
+  const digits = normalizePhone(phone);
+  if (!digits) return "";
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) return digits;
+  return `55${digits}`;
+};
+
+export const whatsappLink = (phone, message) => `https://wa.me/${whatsappRecipient(phone)}?text=${encodeURIComponent(message)}`;
 
 export const orderCode = () => `BQ-${Date.now().toString(36).toUpperCase()}`;
 

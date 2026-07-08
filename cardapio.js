@@ -1012,13 +1012,31 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const ref = await addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order);
   const trackingUrl = orderTrackingUrl(ref.id);
   const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
-  const phone = state.settings.whatsappPedidos || state.business.whatsapp;
+  const phone = await latestOrderWhatsApp();
+  if (!phone) {
+    setMessage($("#checkout-message"), "WhatsApp do estabelecimento não configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
+    return;
+  }
   const link = whatsappLink(phone, message);
   sessionStorage.setItem("lastOrderLink", link);
   sessionStorage.setItem("lastOrderCode", codigo);
   sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
   location.href = link;
 });
+
+async function latestOrderWhatsApp() {
+  try {
+    const [settingsSnap, businessSnap] = await Promise.all([
+      getDoc(doc(db, `estabelecimentos/${state.estabelecimentoId}/configuracoes`, "geral")),
+      getDoc(doc(db, "estabelecimentos", state.estabelecimentoId))
+    ]);
+    if (settingsSnap.exists()) state.settings = { ...state.settings, ...settingsSnap.data() };
+    if (businessSnap.exists()) state.business = { ...state.business, ...businessSnap.data() };
+  } catch (error) {
+    console.warn("Não foi possível atualizar o WhatsApp antes do envio:", error);
+  }
+  return state.settings.whatsappPedidos || state.business.whatsapp || "";
+}
 
 function orderTrackingUrl(orderId) {
   const url = new URL("pedido.html", location.href);
