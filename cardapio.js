@@ -986,60 +986,84 @@ async function lookupCheckoutClient(whatsappValue, options = {}) {
 $("#checkout-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
+  const submitButton = form.querySelector("button[type='submit']");
   const data = formToObject(form);
   const subtotal = cartSubtotal();
   if (data.tipoEntrega === "Entrega" && !updateDeliveryFee()) {
     setMessage($("#checkout-message"), "Confira o bairro para calcular a entrega antes de finalizar.", "error");
     return;
   }
-  const paymentFee = calculatePaymentFee(subtotal, data.formaPagamento, state.fees);
-  const deliveryFee = data.tipoEntrega === "Entrega" ? state.deliveryFee : 0;
-  const totalFinal = subtotal + deliveryFee + (state.fees.somarAoPedido ? paymentFee : 0);
-  const numeroPedido = generateOrderNumber();
-  const codigo = `#${numeroPedido}`;
-  const cleanPhone = await upsertClient(state.estabelecimentoId, data, totalFinal);
-  saveClientSession(cleanPhone);
-  const order = {
-    estabelecimentoId: state.estabelecimentoId,
-    clienteId: cleanPhone,
-    clienteNome: data.nome,
-    whatsapp: cleanPhone,
-    itens: state.cart,
-    observacoes: data.observacao || "",
-    formaPagamento: data.formaPagamento,
-    trocoPara: data.formaPagamento === "Dinheiro" ? data.trocoPara || "" : "",
-    tipoEntrega: data.tipoEntrega,
-    endereco: {
-      endereco: data.endereco || "",
-      numero: data.numero || "",
-      complemento: data.complemento || "",
-      bairro: data.bairro || "",
-      cidade: data.cidade || "",
-      referencia: data.referencia || ""
-    },
-    status: "Aguardando aprovação",
-    subtotal,
-    taxaConfigurada: paymentFee,
-    taxaEntrega: deliveryFee,
-    regraTaxaEntrega: state.deliveryRule,
-    totalFinal,
-    numeroPedido,
-    codigo,
-    criadoEm: serverTimestamp()
-  };
-  const ref = await addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order);
-  const trackingUrl = orderTrackingUrl(ref.id);
-  const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
-  const phone = await latestOrderWhatsApp();
-  if (!phone) {
-    setMessage($("#checkout-message"), "WhatsApp do estabelecimento não configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
-    return;
+  const reservedWindow = reserveWhatsAppWindow();
+  try {
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Gerando pedido...";
+    }
+    setMessage($("#checkout-message"), "Salvando pedido e abrindo WhatsApp...");
+    const paymentFee = calculatePaymentFee(subtotal, data.formaPagamento, state.fees);
+    const deliveryFee = data.tipoEntrega === "Entrega" ? state.deliveryFee : 0;
+    const totalFinal = subtotal + deliveryFee + (state.fees.somarAoPedido ? paymentFee : 0);
+    const numeroPedido = generateOrderNumber();
+    const codigo = `#${numeroPedido}`;
+    const cleanPhone = await upsertClient(state.estabelecimentoId, data, totalFinal);
+    saveClientSession(cleanPhone);
+    const order = {
+      estabelecimentoId: state.estabelecimentoId,
+      clienteId: cleanPhone,
+      clienteNome: data.nome,
+      whatsapp: cleanPhone,
+      itens: state.cart,
+      observacoes: data.observacao || "",
+      formaPagamento: data.formaPagamento,
+      trocoPara: data.formaPagamento === "Dinheiro" ? data.trocoPara || "" : "",
+      tipoEntrega: data.tipoEntrega,
+      endereco: {
+        endereco: data.endereco || "",
+        numero: data.numero || "",
+        complemento: data.complemento || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        referencia: data.referencia || ""
+      },
+      status: "Aguardando aprovação",
+      subtotal,
+      taxaConfigurada: paymentFee,
+      taxaEntrega: deliveryFee,
+      regraTaxaEntrega: state.deliveryRule,
+      totalFinal,
+      numeroPedido,
+      codigo,
+      criadoEm: serverTimestamp()
+    };
+    const ref = await addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order);
+    const trackingUrl = orderTrackingUrl(ref.id);
+    const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
+    const phone = await latestOrderWhatsApp();
+    if (!phone) {
+      closeReservedWindow(reservedWindow);
+      setMessage($("#checkout-message"), "WhatsApp do estabelecimento não configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
+      return;
+    }
+    const link = whatsappLink(phone, message);
+    sessionStorage.setItem("lastOrderLink", link);
+    sessionStorage.setItem("lastOrderCode", codigo);
+    sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
+    const openedInReservedWindow = openWhatsAppLink(link, reservedWindow);
+    if (openedInReservedWindow) {
+      setTimeout(() => {
+        location.href = trackingUrl;
+      }, 900);
+    }
+  } catch (error) {
+    closeReservedWindow(reservedWindow);
+    console.error("Erro ao finalizar pedido:", error);
+    setMessage($("#checkout-message"), `Não foi possível finalizar o pedido: ${error.message}`, "error");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "Salvar e enviar pelo WhatsApp";
+    }
   }
-  const link = whatsappLink(phone, message);
-  sessionStorage.setItem("lastOrderLink", link);
-  sessionStorage.setItem("lastOrderCode", codigo);
-  sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
-  location.href = link;
 });
 
 async function latestOrderWhatsApp() {
@@ -1054,6 +1078,43 @@ async function latestOrderWhatsApp() {
     console.warn("Não foi possível atualizar o WhatsApp antes do envio:", error);
   }
   return state.settings.whatsappPedidos || state.business.whatsapp || "";
+}
+
+function reserveWhatsAppWindow() {
+  const win = window.open("", "_blank");
+  if (!win) return null;
+  try {
+    win.document.write(`
+      <html lang="pt-BR">
+        <head><title>Abrindo WhatsApp</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body style="font-family: Arial, sans-serif; padding: 24px;">
+          <strong>Abrindo WhatsApp...</strong>
+          <p>Se nada acontecer, volte ao cardápio e toque em finalizar novamente.</p>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  } catch (error) {
+    console.warn("Não foi possível preparar a aba do WhatsApp:", error);
+  }
+  return win;
+}
+
+function openWhatsAppLink(link, reservedWindow) {
+  if (reservedWindow && !reservedWindow.closed) {
+    reservedWindow.location.href = link;
+    return true;
+  }
+  location.href = link;
+  return false;
+}
+
+function closeReservedWindow(win) {
+  try {
+    if (win && !win.closed) win.close();
+  } catch (error) {
+    console.warn("Não foi possível fechar a aba reservada:", error);
+  }
 }
 
 function orderTrackingUrl(orderId) {
