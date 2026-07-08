@@ -1,1 +1,1 @@
-Inieramente de propriedade da bqsystems
+Inteiramente de propriedade da bqsystems
