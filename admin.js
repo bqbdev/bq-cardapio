@@ -9,6 +9,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   orderBy,
   sendPasswordResetEmail,
@@ -270,6 +271,7 @@ function renderBusinesses() {
         <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="ativo">Ativar</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="bloqueado">Bloquear</button>
+        <button class="btn btn-small" data-delete-business="${item.id}">Excluir</button>
       </td>
     </tr>
   `).join("") || "<tr><td colspan='6'>Nenhum estabelecimento cadastrado.</td></tr>";
@@ -278,6 +280,7 @@ function renderBusinesses() {
   document.querySelectorAll("[data-password-reset]").forEach((button) => button.addEventListener("click", () => sendPasswordReset(button.dataset.passwordReset)));
   document.querySelectorAll("[data-access-reset]").forEach((button) => button.addEventListener("click", () => resetBusinessAccess(button.dataset.accessReset)));
   document.querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
+  document.querySelectorAll("[data-delete-business]").forEach((button) => button.addEventListener("click", () => deleteBusiness(button.dataset.deleteBusiness)));
 }
 
 function renderClientBusinessFilter() {
@@ -445,6 +448,16 @@ async function rejectRequest(id) {
 
 async function changeStatus(id, status) {
   await updateDoc(doc(db, "estabelecimentos", id), { status });
+  await loadAdminData();
+}
+
+async function deleteBusiness(id) {
+  const business = state.businesses.find((item) => item.id === id);
+  if (!business) return;
+  const name = business.nomeEstabelecimento || business.responsavel || id;
+  const confirmed = confirm(`Excluir o estabelecimento "${name}" do painel administrativo?\n\nUse isso quando o usuário já foi apagado no Firebase Authentication ou quando o cadastro não deve mais aparecer no admin.`);
+  if (!confirmed) return;
+  await deleteDoc(doc(db, "estabelecimentos", id));
   await loadAdminData();
 }
 
