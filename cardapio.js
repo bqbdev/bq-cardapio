@@ -186,7 +186,7 @@ function renderMenuHero() {
   if (!target) return;
   const phone = state.settings.whatsappPedidos || state.business.whatsapp || "";
   const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "cardapio";
-  const heroWhatsappHref = phone ? whatsappLink(phone, `Ola, vim pelo cardapio digital de ${name}.`) : "#";
+  const heroWhatsappHref = phone ? whatsappLink(phone, `Olá, vim pelo cardápio digital de ${name}.`) : "#";
   const heroImage = state.settings.heroImageUrl || "";
   const product = bestHeroProduct();
   const title = state.settings.chamadaCardapio || "Peça seus favoritos em poucos cliques.";
@@ -196,7 +196,7 @@ function renderMenuHero() {
       <span>Pedido rapido</span>
       <h2>${escapeHtml(title)}</h2>
       <p>${escapeHtml(subtitle)}</p>
-      <a class="hero-whatsapp-link" href="${heroWhatsappHref}" target="_blank" rel="noopener">Peca pelo WhatsApp</a>
+      <a class="hero-whatsapp-link" href="${heroWhatsappHref}" target="_blank" rel="noopener">Peça pelo WhatsApp</a>
     </div>
     <div class="menu-hero-art">
       ${heroImage
