@@ -46,7 +46,10 @@ service cloud.firestore {
     }
 
     match /estabelecimentos/{estabelecimentoId} {
-      allow read: if isAdmin() || isBusinessUser() || resource.data.status == "ativo";
+      allow read: if isAdmin()
+        || isBusinessUser()
+        || resource.data.status == "ativo"
+        || (resource.data.status == "aguardando_ativacao" && resource.data.uid == "");
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || canActivateBusiness();
 

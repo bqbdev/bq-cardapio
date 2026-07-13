@@ -17,6 +17,8 @@ const email = params.get("email") || "";
 const nome = params.get("nome") || "seu estabelecimento";
 const form = document.querySelector("#activation-form");
 const message = document.querySelector("#activation-message");
+const submitButton = form?.querySelector("button[type='submit']");
+let activationEmail = email;
 
 document.querySelector("#activation-intro").textContent = `Crie sua senha para ativar a conta de ${nome}.`;
 if (form?.elements.email) form.elements.email.value = email;
@@ -31,9 +33,11 @@ document.querySelectorAll("[data-toggle-password]").forEach((button) => {
   });
 });
 
-if (!estabelecimentoId || !token || !email) {
-  setMessage(message, "Link de ativacao invalido. Solicite um novo link ao administrador.", "error");
-  form?.querySelector("button[type='submit']")?.setAttribute("disabled", "disabled");
+if (!estabelecimentoId || !token) {
+  setMessage(message, "Link de ativação inválido. Solicite um novo link ao administrador.", "error");
+  submitButton?.setAttribute("disabled", "disabled");
+} else {
+  loadActivationData();
 }
 
 form?.addEventListener("submit", async (event) => {
@@ -66,7 +70,12 @@ form?.addEventListener("submit", async (event) => {
       return;
     }
 
-    const credential = await createOrSignInActivationUser(email, data.password);
+    activationEmail = currentBusiness.email || activationEmail;
+    if (!activationEmail) {
+      throw new Error("E-mail de acesso não encontrado. Solicite um novo link ao administrador.");
+    }
+
+    const credential = await createOrSignInActivationUser(activationEmail, data.password);
     const activationDate = new Date();
     const renewalDate = addMonths(activationDate, planMonths(params.get("plano") || ""));
     await updateDoc(businessRef, {
@@ -86,6 +95,39 @@ form?.addEventListener("submit", async (event) => {
     setMessage(message, `Não foi possível ativar: ${error.message}`, "error");
   }
 });
+
+async function loadActivationData() {
+  try {
+    submitButton?.setAttribute("disabled", "disabled");
+    const businessSnap = await getDoc(doc(db, "estabelecimentos", estabelecimentoId));
+    if (!businessSnap.exists()) {
+      throw new Error("Estabelecimento não encontrado. Solicite um novo link ao administrador.");
+    }
+    const business = businessSnap.data() || {};
+    if (business.activationToken && business.activationToken !== token) {
+      throw new Error("Link de ativação inválido. Solicite um novo link ao administrador.");
+    }
+
+    activationEmail = business.email || activationEmail;
+    const businessName = business.nomeEstabelecimento || nome;
+    document.querySelector("#activation-intro").textContent = `Crie sua senha para ativar a conta de ${businessName}.`;
+    if (form?.elements.email) form.elements.email.value = activationEmail;
+
+    if (business.uid && business.status === "ativo") {
+      sessionStorage.setItem("businessId", estabelecimentoId);
+      setMessage(message, "Conta já ativada. Redirecionando para o painel...");
+      setTimeout(() => {
+        location.href = "painel.html";
+      }, 900);
+      return;
+    }
+
+    submitButton?.removeAttribute("disabled");
+  } catch (error) {
+    setMessage(message, error.message, "error");
+    submitButton?.setAttribute("disabled", "disabled");
+  }
+}
 
 async function createOrSignInActivationUser(email, password) {
   try {
