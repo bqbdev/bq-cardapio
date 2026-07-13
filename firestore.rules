@@ -27,7 +27,7 @@ service cloud.firestore {
     function canActivateBusiness() {
       return signedIn()
         && (resource.data.status == "aguardando_ativacao" || resource.data.status == "ativo")
-        && resource.data.uid == ""
+        && (resource.data.uid == "" || resource.data.uid == null)
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.status == "ativo"
         && request.resource.data.email == resource.data.email
@@ -49,7 +49,7 @@ service cloud.firestore {
       allow read: if isAdmin()
         || isBusinessUser()
         || resource.data.status == "ativo"
-        || (resource.data.status == "aguardando_ativacao" && resource.data.uid == "");
+        || (resource.data.status == "aguardando_ativacao" && (resource.data.uid == "" || resource.data.uid == null));
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || canActivateBusiness();
 

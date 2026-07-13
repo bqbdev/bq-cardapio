@@ -20,9 +20,14 @@ const form = document.querySelector("#activation-form");
 const message = document.querySelector("#activation-message");
 const submitButton = form?.querySelector("button[type='submit']");
 let activationEmail = email;
+let activationReady = false;
 
 document.querySelector("#activation-intro").textContent = `Crie sua senha para ativar a conta de ${nome}.`;
 if (form?.elements.email) form.elements.email.value = email;
+
+["password", "passwordConfirm"].forEach((fieldName) => {
+  form?.elements[fieldName]?.addEventListener("input", refreshSubmitButton);
+});
 
 document.querySelectorAll("[data-toggle-password]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -53,6 +58,7 @@ form?.addEventListener("submit", async (event) => {
     return;
   }
   try {
+    setActivationLoading(true);
     const businessRef = doc(db, "estabelecimentos", estabelecimentoId);
     const businessSnap = await getDoc(businessRef);
     if (!businessSnap.exists()) {
@@ -94,6 +100,8 @@ form?.addEventListener("submit", async (event) => {
     }, 1200);
   } catch (error) {
     setMessage(message, activationErrorMessage(error), "error");
+    setActivationLoading(false);
+    refreshSubmitButton();
   }
 });
 
@@ -123,10 +131,30 @@ async function loadActivationData() {
       return;
     }
 
-    submitButton?.removeAttribute("disabled");
+    activationReady = true;
+    refreshSubmitButton();
   } catch (error) {
     setMessage(message, error.message, "error");
     submitButton?.setAttribute("disabled", "disabled");
+  }
+}
+
+function refreshSubmitButton() {
+  if (!submitButton || !activationReady) return;
+  const password = form?.elements.password?.value || "";
+  const passwordConfirm = form?.elements.passwordConfirm?.value || "";
+  if (password.length >= 6 && password === passwordConfirm) {
+    submitButton.removeAttribute("disabled");
+  } else {
+    submitButton.setAttribute("disabled", "disabled");
+  }
+}
+
+function setActivationLoading(isLoading) {
+  if (!submitButton) return;
+  submitButton.textContent = isLoading ? "Ativando conta..." : "Ativar minha conta";
+  if (isLoading) {
+    submitButton.setAttribute("disabled", "disabled");
   }
 }
 
