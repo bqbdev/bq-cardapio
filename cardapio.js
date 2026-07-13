@@ -12,7 +12,7 @@
   serverTimestamp
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
-import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-upsert-2";
+import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-lookup-3";
 import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js";
 
 const state = {
@@ -976,7 +976,7 @@ async function lookupCheckoutClient(whatsappValue, options = {}) {
   try {
     client = await withTimeout(
       getClientByWhatsApp(state.estabelecimentoId, whatsapp),
-      2200,
+      4500,
       "Tempo esgotado ao buscar cadastro"
     );
   } catch (error) {
@@ -1028,7 +1028,11 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     const totalFinal = subtotal + deliveryFee + (state.fees.somarAoPedido ? paymentFee : 0);
     const numeroPedido = generateOrderNumber();
     const codigo = `#${numeroPedido}`;
-    const cleanPhone = await upsertClient(state.estabelecimentoId, data, totalFinal);
+    const cleanPhone = await withTimeout(
+      upsertClient(state.estabelecimentoId, data, totalFinal),
+      10000,
+      "Tempo esgotado ao salvar o cadastro do cliente"
+    );
     saveClientSession(cleanPhone);
     const order = {
       estabelecimentoId: state.estabelecimentoId,
@@ -1058,10 +1062,18 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       codigo,
       criadoEm: serverTimestamp()
     };
-    const ref = await addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order);
+    const ref = await withTimeout(
+      addDoc(collection(db, `estabelecimentos/${state.estabelecimentoId}/pedidos`), order),
+      10000,
+      "Tempo esgotado ao salvar o pedido"
+    );
     const trackingUrl = orderTrackingUrl(ref.id);
     const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
-    const phone = await latestOrderWhatsApp();
+    const phone = await withTimeout(
+      latestOrderWhatsApp(),
+      6000,
+      "Tempo esgotado ao buscar o WhatsApp do estabelecimento"
+    );
     if (!phone) {
       closeReservedWindow(reservedWindow);
       setMessage($("#checkout-message"), "WhatsApp do estabelecimento não configurado. Avise o estabelecimento para preencher o WhatsApp dos pedidos.", "error");
@@ -1072,8 +1084,9 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     sessionStorage.setItem("lastOrderLink", link);
     sessionStorage.setItem("lastOrderCode", codigo);
     sessionStorage.setItem("lastOrderTrackingUrl", trackingUrl);
-    const openedInReservedWindow = openWhatsAppLink(link, reservedWindow, directAppLink);
-    if (openedInReservedWindow) {
+    setMessage($("#checkout-message"), "Pedido salvo. Abrindo WhatsApp...");
+    const openedInReservedWindow = openWhatsAppLink(link, reservedWindow, directAppLink, trackingUrl);
+    if (openedInReservedWindow && !isMobileDevice()) {
       setTimeout(() => {
         location.href = trackingUrl;
       }, 900);
@@ -1124,10 +1137,15 @@ function reserveWhatsAppWindow() {
   return win;
 }
 
-function openWhatsAppLink(link, reservedWindow, directAppLink = link) {
+function openWhatsAppLink(link, reservedWindow, directAppLink = link, trackingUrl = "") {
   if (isMobileDevice()) {
+    if (trackingUrl) {
+      setTimeout(() => {
+        location.href = trackingUrl;
+      }, 1800);
+    }
     location.href = directAppLink;
-    return false;
+    return true;
   }
   const targetLink = link;
   if (reservedWindow && !reservedWindow.closed) {

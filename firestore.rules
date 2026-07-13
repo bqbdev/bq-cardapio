@@ -82,7 +82,9 @@ service cloud.firestore {
 
       match /clientes/{clienteId} {
         allow get: if true;
-        allow list: if isAdmin() || isBusinessOwner(estabelecimentoId);
+        allow list: if isAdmin()
+          || isBusinessOwner(estabelecimentoId)
+          || (request.query.limit != null && request.query.limit <= 3);
         allow create, update: if true;
         allow delete: if isAdmin() || isBusinessOwner(estabelecimentoId);
       }
