@@ -879,6 +879,7 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
   return {
     id: product.id,
     nome: product.nome,
+    categoria: cartItemCategory(product),
     preco,
     quantidade: 1,
     observacao,
@@ -889,6 +890,13 @@ function buildCartItem(product, flavors = [], addons = [], observacao = "") {
     regraPreco: product.regraPreco || "fixo",
     signature: [product.id, state.builderPizzaSize?.nome || "", flavorIds.join(","), addonIds.join(","), observacao].join("|")
   };
+}
+
+function cartItemCategory(product) {
+  if (product.generatedModule === "pizza" || product.moduleType === "pizza") return "Pizza";
+  if (product.generatedModule === "porcao" || product.moduleType === "porcao") return "Porção";
+  const category = state.categories.find((item) => item.id === product.categoriaId);
+  return category?.nome || product.categoriaNome || "Produto";
 }
 
 function priceRuleLabel(rule = "fixo") {
@@ -1070,7 +1078,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
     const trackingUrl = orderTrackingUrl(ref.id);
     const message = buildWhatsAppMessage({ ...order, id: ref.id, trackingUrl });
     const phone = await withTimeout(
-      latestOrderWhatsApp(),
+      latestOrderWhatsApp(cleanPhone),
       6000,
       "Tempo esgotado ao buscar o WhatsApp do estabelecimento"
     );
@@ -1103,7 +1111,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   }
 });
 
-async function latestOrderWhatsApp() {
+async function latestOrderWhatsApp(customerPhone = "") {
   try {
     const [settingsSnap, businessSnap] = await Promise.all([
       getDoc(doc(db, `estabelecimentos/${state.estabelecimentoId}/configuracoes`, "geral")),
@@ -1114,7 +1122,17 @@ async function latestOrderWhatsApp() {
   } catch (error) {
     console.warn("Não foi possível atualizar o WhatsApp antes do envio:", error);
   }
-  return state.settings.whatsappPedidos || state.business.whatsapp || "";
+  const customerDigits = normalizePhone(customerPhone);
+  const candidates = [
+    state.settings.whatsappPedidos,
+    state.settings.whatsapp,
+    state.settings.telefonePedidos,
+    state.business.whatsappPedidos,
+    state.business.whatsapp,
+    state.business.telefone
+  ].map((value) => normalizePhone(value)).filter(Boolean);
+  const uniqueCandidates = Array.from(new Set(candidates));
+  return uniqueCandidates.find((phone) => phone !== customerDigits) || uniqueCandidates[0] || "";
 }
 
 function reserveWhatsAppWindow() {
@@ -1179,6 +1197,7 @@ function buildWhatsAppMessage(order) {
   const separator = "--------------------------------";
   const items = order.itens.map((item) => {
     const details = [
+      item.categoria ? `Categoria: ${item.categoria}` : "",
       item.tamanho ? `Tamanho: ${item.tamanho.nome}` : "",
       item.sabores?.length ? `Sabores: ${item.sabores.map((flavor) => flavor.nome).join(", ")}` : "",
       item.bordas?.length ? `Borda: ${item.bordas.map((addon) => addon.nome).join(", ")}` : "",
