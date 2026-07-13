@@ -34,10 +34,8 @@
         <label>Bairro<input name="estabelecimentoBairro" required></label>
         <label>CEP<input name="estabelecimentoCep" inputmode="numeric"></label>
         <label class="full">Complemento<input name="estabelecimentoComplemento"></label>
-        <label>Latitude do estabelecimento<input name="estabelecimentoLatitude" type="number" step="0.000001"></label>
-        <label>Longitude do estabelecimento<input name="estabelecimentoLongitude" type="number" step="0.000001"></label>
-        <button id="signup-geocode" class="btn btn-small full" type="button">Buscar coordenadas pelo endereço</button>
-        <button id="signup-location" class="btn btn-small full" type="button">Usar localização atual do estabelecimento</button>
+        <input name="estabelecimentoLatitude" type="hidden">
+        <input name="estabelecimentoLongitude" type="hidden">
         <label>Segmento
           <select name="segmento" required>
             <option value="">Selecione</option>
@@ -51,6 +49,6 @@
     </section>
   </main>
   <script type="module" src="firebase.js"></script>
-  <script type="module" src="auth.js"></script>
+  <script type="module" src="auth.js?v=sem-coordenadas-cadastro-1"></script>
 </body>
 </html>
