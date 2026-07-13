@@ -801,6 +801,7 @@ function updateBuilderSelectionState(product) {
   document.querySelectorAll("[data-builder-addon]").forEach((input) => {
     input.closest(".option-card")?.classList.toggle("is-selected", input.checked);
   });
+  updateBuilderSubmitState(product, flavors.length, max);
 }
 
 function updateBuilderHalfCopy(product, max) {
@@ -823,6 +824,27 @@ function updateBuilderHalfCopy(product, max) {
   text.textContent = max > 1
     ? "Esta pizza será montada no formato meio a meio. O maior valor escolhido prevalece."
     : "Este tamanho aceita um sabor.";
+}
+
+function requiredBuilderFlavorCount(product, max = selectedFlavorLimit(product)) {
+  const isHalfModule = product.tipoProduto === "sabores"
+    && (product.generatedModule === "pizza" || product.generatedModule === "porcao")
+    && max >= 2;
+  if (isHalfModule) return 2;
+  if (product.tipoProduto === "sabores") return 1;
+  return 0;
+}
+
+function updateBuilderSubmitState(product, selectedCount = selectedBuilderFlavors().length, max = selectedFlavorLimit(product)) {
+  const button = document.querySelector("#product-builder-form button[type='submit']");
+  if (!button) return;
+  const required = requiredBuilderFlavorCount(product, max);
+  const disabled = required > 0 && selectedCount < required;
+  button.disabled = disabled;
+  button.classList.toggle("is-disabled", disabled);
+  button.textContent = disabled
+    ? `Escolha ${required} ${product.generatedModule === "porcao" ? "opções" : "sabores"}`
+    : "Adicionar ao carrinho";
 }
 
 function renderBuilderSummary(product, flavors = [], addons = []) {
@@ -915,6 +937,13 @@ $("#product-builder-form")?.addEventListener("submit", (event) => {
   if (!product) return;
   const flavors = selectedBuilderFlavors();
   const addons = selectedBuilderAddons();
+  const requiredFlavors = requiredBuilderFlavorCount(product);
+  if (requiredFlavors && flavors.length < requiredFlavors) {
+    const label = product.generatedModule === "porcao" ? "opções" : "sabores";
+    setMessage($("#builder-message"), `Escolha ${requiredFlavors} ${label} para continuar.`, "error");
+    updateBuilderSelectionState(product);
+    return;
+  }
   if (product.tipoProduto === "sabores" && !flavors.length) {
     if (product.generatedModule === "porcao") {
       setMessage($("#builder-message"), "Escolha pelo menos uma opção.", "error");
