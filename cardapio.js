@@ -114,7 +114,7 @@ function renderHeader() {
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
   if (state.settings.logoUrl) {
     $("#menu-logo").classList.add("has-image");
-    $("#menu-logo").innerHTML = `<img src="${state.settings.logoUrl}" alt="${name}">`;
+    $("#menu-logo").innerHTML = `<img src="${state.settings.logoUrl}" alt="${name}" decoding="async">`;
   } else {
     $("#menu-logo").classList.remove("has-image");
   }
@@ -200,9 +200,9 @@ function renderMenuHero() {
     </div>
     <div class="menu-hero-art">
       ${heroImage
-        ? `<img src="${heroImage}" alt="Foto de destaque do cardapio">`
+        ? `<img src="${heroImage}" alt="Foto de destaque do cardapio" decoding="async">`
         : product?.fotoUrl
-          ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}">`
+          ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}" decoding="async">`
           : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
     </div>
   `;
@@ -245,7 +245,7 @@ function renderProducts(categoryId = "todos") {
     .sort((a, b) => moduleBuilderPriority(a, b, categoryId));
   $("#menu-products").innerHTML = products.map((item) => `
     <article class="product-card ${item.destaque ? "is-featured" : ""}">
-      ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}">` : `<div class="product-image-fallback">BQ</div>`}
+      ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}" loading="lazy" decoding="async">` : `<div class="product-image-fallback">BQ</div>`}
       <div class="product-body">
         ${item.destaque ? "<span class='menu-badge'>Mais pedido</span>" : ""}
         <strong>${item.nome}</strong>

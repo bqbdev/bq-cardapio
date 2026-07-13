@@ -1861,6 +1861,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   padding: 9px;
   box-shadow: 0 12px 28px rgba(23, 32, 27, .055);
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 108px;
 }
 .product-card.is-featured { border-color: rgba(20, 108, 67, .28); }
 .product-card img, .product-image-fallback {

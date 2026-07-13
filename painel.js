@@ -23,6 +23,11 @@ const state = { businessId: "", business: null, settings: {}, categories: [], pr
 const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
 let notificationAudioCtx = null;
+const IMAGE_PRESETS = {
+  product: { maxDimension: 560, quality: 0.76, maxBytes: 180 * 1024 },
+  hero: { maxDimension: 720, quality: 0.78, maxBytes: 220 * 1024 },
+  logo: { maxDimension: 260, quality: 0.82, maxBytes: 80 * 1024 }
+};
 const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
@@ -109,7 +114,7 @@ $("#finance-end-date")?.addEventListener("change", (event) => {
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
   if (!base64) return;
   const form = $("#product-form");
   form.elements.fotoUrl.value = base64;
@@ -118,7 +123,7 @@ $("#product-photo-file")?.addEventListener("change", async (event) => {
 $("#simple-product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
   if (!base64) return;
   const form = $("#simple-product-form");
   form.elements.fotoUrl.value = base64;
@@ -130,7 +135,7 @@ bindModulePhotoInput("#module-flavor-photo-file", "#module-flavor-form", "module
 $("#business-logo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 512, quality: 0.86 });
+  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.logo);
   if (!base64) return;
   const form = $("#settings-form");
   form.elements.logoUrl.value = base64;
@@ -142,7 +147,7 @@ function bindModulePhotoInput(inputSelector, formSelector, previewId) {
   $(inputSelector)?.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.82 });
+    const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
     if (!base64) return;
     const form = $(formSelector);
     if (form?.elements.fotoUrl) form.elements.fotoUrl.value = base64;
@@ -152,7 +157,7 @@ function bindModulePhotoInput(inputSelector, formSelector, previewId) {
 $("#hero-image-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, { maxDimension: 900, quality: 0.84 });
+  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.hero);
   if (!base64) return;
   const form = $("#settings-form");
   form.elements.heroImageUrl.value = base64;
@@ -271,7 +276,7 @@ function renderDashboardLogo(src = "") {
   const target = $("#dashboard-logo");
   if (!target) return;
   const logo = src || $("#settings-form")?.elements.logoUrl?.value || "";
-  target.innerHTML = logo ? `<img src="${logo}" alt="Logo do estabelecimento">` : "BQ";
+  target.innerHTML = logo ? `<img src="${logo}" alt="Logo do estabelecimento" decoding="async">` : "BQ";
   target.classList.toggle("has-image", Boolean(logo));
 }
 
@@ -372,7 +377,7 @@ async function loadProducts() {
   $("#products-list").innerHTML = state.products.map((item) => `
     <div class="list-item product-list-item ${item.disponivel === false ? "is-disabled" : ""}">
       <div class="product-admin-thumb">
-        ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}">` : "<span>Sem foto</span>"}
+        ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}" loading="lazy" decoding="async">` : "<span>Sem foto</span>"}
       </div>
       <div class="product-admin-info">
         <strong>${item.nome} ${item.destaque ? "<span class='pill'>Destaque</span>" : ""}</strong>
@@ -1810,7 +1815,7 @@ async function toggleProductAvailability(id) {
 
 async function updateProductPhoto(id, file, input) {
   if (!file) return;
-  const base64 = await imageFileToBase64(file, input, { maxDimension: 900, quality: 0.82 });
+  const base64 = await imageFileToBase64(file, input, IMAGE_PRESETS.product);
   if (!base64) return;
   const scrollTop = window.scrollY;
   await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
@@ -1843,8 +1848,9 @@ async function imageFileToBase64(file, input, options = {}) {
   }
   try {
     const base64 = await compressImageFile(file, options);
-    if (base64.length > 750 * 1024) {
-      alert("A imagem foi comprimida, mas ainda ficou pesada. Escolha uma imagem menor para salvar no perfil.");
+    const maxBytes = options.maxBytes || 220 * 1024;
+    if (base64.length > maxBytes) {
+      alert("A imagem foi comprimida, mas ainda ficou pesada. Escolha uma imagem menor.");
       if (input) input.value = "";
       return "";
     }
@@ -1852,7 +1858,7 @@ async function imageFileToBase64(file, input, options = {}) {
   } catch (error) {
     console.warn("Não foi possível compactar a imagem:", error);
     const base64 = await fileToBase64(file);
-    if (base64.length > 750 * 1024) {
+    if (base64.length > (options.maxBytes || 220 * 1024)) {
       alert("Não foi possível compactar esta imagem. Escolha uma imagem menor para salvar em Base64.");
       if (input) input.value = "";
       return "";
@@ -1864,6 +1870,7 @@ async function imageFileToBase64(file, input, options = {}) {
 function compressImageFile(file, options = {}) {
   const maxDimension = options.maxDimension || 900;
   const quality = options.quality || 0.82;
+  const maxBytes = options.maxBytes || 220 * 1024;
   return new Promise((resolve, reject) => {
     const image = new Image();
     const objectUrl = URL.createObjectURL(file);
@@ -1878,7 +1885,7 @@ function compressImageFile(file, options = {}) {
       context.clearRect(0, 0, width, height);
       context.drawImage(image, 0, 0, width, height);
       URL.revokeObjectURL(objectUrl);
-      resolve(canvas.toDataURL("image/webp", quality));
+      resolve(canvasToCompactDataUrl(canvas, quality, maxBytes));
     };
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
@@ -1888,23 +1895,45 @@ function compressImageFile(file, options = {}) {
   });
 }
 
+function canvasToCompactDataUrl(canvas, initialQuality, maxBytes) {
+  const qualities = [initialQuality, 0.72, 0.66, 0.58, 0.5, 0.42];
+  let best = "";
+  for (const quality of qualities) {
+    best = canvas.toDataURL("image/webp", quality);
+    if (best.length <= maxBytes) return best;
+  }
+  const scaleSteps = [0.82, 0.68, 0.56];
+  for (const scale of scaleSteps) {
+    const resized = document.createElement("canvas");
+    resized.width = Math.max(1, Math.round(canvas.width * scale));
+    resized.height = Math.max(1, Math.round(canvas.height * scale));
+    const context = resized.getContext("2d");
+    context.drawImage(canvas, 0, 0, resized.width, resized.height);
+    for (const quality of qualities.slice(2)) {
+      best = resized.toDataURL("image/webp", quality);
+      if (best.length <= maxBytes) return best;
+    }
+  }
+  return best;
+}
+
 function renderPhotoPreview(src) {
   const preview = $("#product-photo-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da foto do produto">` : "Sem foto selecionada";
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da foto do produto" decoding="async">` : "Sem foto selecionada";
 }
 
 function renderSimpleProductPhotoPreview(src) {
   const preview = $("#simple-product-photo-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da imagem do produto">` : "Sem foto selecionada";
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia da imagem do produto" decoding="async">` : "Sem foto selecionada";
 }
 
 function renderNamedImagePreview(id, src) {
   if (!id) return;
   const preview = document.getElementById(id);
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto do produto">` : "Sem foto selecionada";
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto do produto" decoding="async">` : "Sem foto selecionada";
 }
 
 function previewIdForModuleForm(form) {
@@ -2032,13 +2061,13 @@ async function runFormSave(form, action, successText = "Salvo com sucesso") {
 function renderBusinessLogoPreview(src) {
   const preview = $("#business-logo-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Prévia do logo do estabelecimento">` : "Sem logo selecionado";
+  preview.innerHTML = src ? `<img src="${src}" alt="Prévia do logo do estabelecimento" decoding="async">` : "Sem logo selecionado";
 }
 
 function renderHeroImagePreview(src) {
   const preview = $("#hero-image-preview");
   if (!preview) return;
-  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto de destaque da capa">` : "Sem foto de capa selecionada";
+  preview.innerHTML = src ? `<img src="${src}" alt="Previa da foto de destaque da capa" decoding="async">` : "Sem foto de capa selecionada";
 }
 
 async function loadFees() {
