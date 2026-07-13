@@ -48,12 +48,28 @@ form?.addEventListener("submit", async (event) => {
     return;
   }
   try {
-    const credential = await createOrSignInActivationUser(email, data.password);
-    const businessSnap = await getDoc(doc(db, "estabelecimentos", estabelecimentoId));
+    const businessRef = doc(db, "estabelecimentos", estabelecimentoId);
+    const businessSnap = await getDoc(businessRef);
+    if (!businessSnap.exists()) {
+      throw new Error("Estabelecimento não encontrado. Solicite um novo link ao administrador.");
+    }
     const currentBusiness = businessSnap.data() || {};
+    if (currentBusiness.activationToken && currentBusiness.activationToken !== token) {
+      throw new Error("Link de ativação inválido. Solicite um novo link ao administrador.");
+    }
+    if (currentBusiness.uid && currentBusiness.status === "ativo") {
+      sessionStorage.setItem("businessId", estabelecimentoId);
+      setMessage(message, "Conta já ativada. Redirecionando para o painel...");
+      setTimeout(() => {
+        location.href = "painel.html";
+      }, 900);
+      return;
+    }
+
+    const credential = await createOrSignInActivationUser(email, data.password);
     const activationDate = new Date();
     const renewalDate = addMonths(activationDate, planMonths(params.get("plano") || ""));
-    await updateDoc(doc(db, "estabelecimentos", estabelecimentoId), {
+    await updateDoc(businessRef, {
       uid: credential.user.uid,
       status: "ativo",
       dataAtivacao: currentBusiness.dataAtivacao || Timestamp.fromDate(activationDate),
