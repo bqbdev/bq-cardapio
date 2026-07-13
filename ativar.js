@@ -3,6 +3,7 @@ import {
   db,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   doc,
   getDoc,
   updateDoc,
@@ -92,7 +93,7 @@ form?.addEventListener("submit", async (event) => {
       location.href = "painel.html";
     }, 1200);
   } catch (error) {
-    setMessage(message, `Não foi possível ativar: ${error.message}`, "error");
+    setMessage(message, activationErrorMessage(error), "error");
   }
 });
 
@@ -134,8 +135,29 @@ async function createOrSignInActivationUser(email, password) {
     return await createUserWithEmailAndPassword(auth, email, password);
   } catch (error) {
     if (String(error.code || "").includes("email-already-in-use")) {
-      return signInWithEmailAndPassword(auth, email, password);
+      try {
+        return await signInWithEmailAndPassword(auth, email, password);
+      } catch (signInError) {
+        if (isInvalidCredential(signInError)) {
+          await sendPasswordResetEmail(auth, email);
+          throw new Error("Este e-mail já existe no Firebase Authentication com outra senha. Enviei um e-mail de redefinição de senha. Depois de redefinir, entre pelo painel.");
+        }
+        throw signInError;
+      }
     }
     throw error;
   }
+}
+
+function isInvalidCredential(error) {
+  const code = String(error?.code || "");
+  return code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found");
+}
+
+function activationErrorMessage(error) {
+  const messageText = String(error?.message || "");
+  if (messageText.includes("Firebase: Error")) {
+    return messageText.replace(/^Firebase:\s*/i, "").replace(/\.$/, "");
+  }
+  return `Não foi possível ativar: ${messageText}`;
 }
