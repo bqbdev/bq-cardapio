@@ -1263,7 +1263,6 @@ function buildWhatsAppMessage(order) {
     "RESUMO",
     `Subtotal: ${money(order.subtotal)}`,
     order.taxaEntrega ? `Taxa de entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}` : "",
-    order.taxaConfigurada ? `Taxa de pagamento: ${money(order.taxaConfigurada)}` : "",
     `Total: ${money(order.totalFinal)}`,
     separator,
     order.trackingUrl ? `ACOMPANHAR PEDIDO\n${order.trackingUrl}` : ""
