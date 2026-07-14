@@ -32,7 +32,11 @@ const state = {
   clientUnsubscribe: null,
   deliveryFee: 0,
   deliveryRule: "",
-  isOpenNow: true
+  isOpenNow: true,
+  catalogDetailsLoaded: false,
+  catalogDetailsLoading: null,
+  feesLoaded: false,
+  feesLoading: null
 };
 const $ = (selector) => document.querySelector(selector);
 let checkoutLookupTimer = null;
@@ -55,7 +59,7 @@ async function init() {
     $("#menu-message").textContent = "Informe o estabelecimento no link do cardápio.";
     return;
   }
-  await Promise.all([loadBusiness(), loadSettings(), loadFees(), loadCategories(), loadProducts(), loadFlavors(), loadAddons()]);
+  await Promise.all([loadBusiness(), loadSettings(), loadCategories(), loadProducts()]);
   renderHeader();
   renderMenuHero();
   renderCategories();
@@ -63,7 +67,8 @@ async function init() {
   renderCart();
   renderDeliveryOptions();
   renderNeighborhoodOptions();
-  restoreClientSession();
+  scheduleCatalogDetailsLoad();
+  setTimeout(restoreClientSession, 800);
 }
 
 async function loadBusiness() {
@@ -79,6 +84,7 @@ async function loadSettings() {
 async function loadFees() {
   const snap = await getDoc(doc(db, `estabelecimentos/${state.estabelecimentoId}/taxas`, "padrao"));
   state.fees = snap.data() || {};
+  state.feesLoaded = true;
 }
 
 async function loadCategories() {
@@ -105,6 +111,52 @@ async function loadFlavors() {
 async function loadAddons() {
   const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/adicionais`), orderBy("nome", "asc")));
   state.addons = snap.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.disponivel !== false);
+}
+
+function scheduleCatalogDetailsLoad() {
+  const run = () => {
+    ensureCatalogDetailsLoaded().catch((error) => {
+      console.warn("Não foi possível carregar detalhes do cardápio:", error);
+    });
+    ensureFeesLoaded().catch((error) => {
+      console.warn("Não foi possível carregar taxas do cardápio:", error);
+    });
+  };
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(run, { timeout: 1200 });
+  } else {
+    setTimeout(run, 250);
+  }
+}
+
+async function ensureCatalogDetailsLoaded() {
+  if (state.catalogDetailsLoaded) return;
+  if (!state.catalogDetailsLoading) {
+    state.catalogDetailsLoading = Promise.all([loadFlavors(), loadAddons()])
+      .then(() => {
+        state.catalogDetailsLoaded = true;
+        renderCategories(currentCategoryId());
+        renderProducts(currentCategoryId());
+      })
+      .finally(() => {
+        state.catalogDetailsLoading = null;
+      });
+  }
+  await state.catalogDetailsLoading;
+}
+
+async function ensureFeesLoaded() {
+  if (state.feesLoaded) return;
+  if (!state.feesLoading) {
+    state.feesLoading = loadFees().finally(() => {
+      state.feesLoading = null;
+    });
+  }
+  await state.feesLoading;
+}
+
+function currentCategoryId() {
+  return document.querySelector("[data-category].active")?.dataset.category || "todos";
 }
 
 function renderHeader() {
@@ -193,16 +245,16 @@ function renderMenuHero() {
   const subtitle = state.settings.subtituloCardapio || "Escolha, finalize pelo WhatsApp e acompanhe seu pedido em tempo real.";
   target.innerHTML = `
     <div class="menu-hero-copy">
-      <span>Pedido rapido</span>
+      <span>Pedido rápido</span>
       <h2>${escapeHtml(title)}</h2>
       <p>${escapeHtml(subtitle)}</p>
-      <a class="hero-whatsapp-link" href="${heroWhatsappHref}" target="_blank" rel="noopener">Peca pelo WhatsApp</a>
+      <a class="hero-whatsapp-link" href="${heroWhatsappHref}" target="_blank" rel="noopener">Peça pelo WhatsApp</a>
     </div>
     <div class="menu-hero-art">
       ${heroImage
-        ? `<img src="${heroImage}" alt="Foto de destaque do cardapio" decoding="async">`
+        ? `<img src="${heroImage}" alt="Foto de destaque do cardápio" loading="eager" decoding="async" fetchpriority="high">`
         : product?.fotoUrl
-          ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}" decoding="async">`
+          ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}" loading="eager" decoding="async" fetchpriority="high">`
           : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
     </div>
   `;
@@ -363,8 +415,9 @@ function moduleSizes(type) {
   return sizes.length ? sizes : [{ nome: "G", preco: 0 }];
 }
 
-function addToCart(productId) {
+async function addToCart(productId) {
   if (!canOrderNow()) return;
+  await ensureCatalogDetailsLoaded();
   const product = menuProducts().find((item) => item.id === productId);
   if (!product) return;
   if (productNeedsBuilder(product)) {
@@ -1060,6 +1113,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       submitButton.textContent = "Gerando pedido...";
     }
     setMessage($("#checkout-message"), "Salvando pedido e abrindo WhatsApp...");
+    await ensureFeesLoaded();
     const paymentFee = calculatePaymentFee(subtotal, data.formaPagamento, state.fees);
     const deliveryFee = data.tipoEntrega === "Entrega" ? state.deliveryFee : 0;
     const totalFinal = subtotal + deliveryFee + (state.fees.somarAoPedido ? paymentFee : 0);
