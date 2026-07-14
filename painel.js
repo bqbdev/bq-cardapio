@@ -1866,7 +1866,7 @@ async function imageFileToBase64(file, input, options = {}) {
     console.warn("Não foi possível compactar a imagem:", error);
     const base64 = await fileToBase64(file);
     if (base64.length > (options.maxBytes || 220 * 1024)) {
-      alert("Não foi possível compactar esta imagem. Escolha uma imagem menor para salvar em Base64.");
+      alert("Não foi possível compactar esta imagem. Escolha uma imagem menor para salvar.");
       if (input) input.value = "";
       return "";
     }

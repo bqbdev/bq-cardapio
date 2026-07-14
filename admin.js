@@ -12,6 +12,10 @@ import {
   deleteDoc,
   query,
   orderBy,
+  storage,
+  storageRef,
+  uploadString,
+  getDownloadURL,
   sendPasswordResetEmail,
   serverTimestamp
 } from "./firebase.js";
@@ -269,6 +273,7 @@ function renderBusinesses() {
         ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativação</button>` : ""}
         <button class="btn btn-small" data-password-reset="${item.id}">Resetar senha</button>
         <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
+        <button class="btn btn-small" data-migrate-images="${item.id}">Migrar imagens</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="ativo">Ativar</button>
         <button class="btn btn-small" data-status="${item.id}" data-value="bloqueado">Bloquear</button>
         <button class="btn btn-small" data-delete-business="${item.id}">Excluir</button>
@@ -279,6 +284,7 @@ function renderBusinesses() {
   document.querySelectorAll("[data-activation]").forEach((button) => button.addEventListener("click", () => sendActivationMessage(button.dataset.activation)));
   document.querySelectorAll("[data-password-reset]").forEach((button) => button.addEventListener("click", () => sendPasswordReset(button.dataset.passwordReset)));
   document.querySelectorAll("[data-access-reset]").forEach((button) => button.addEventListener("click", () => resetBusinessAccess(button.dataset.accessReset)));
+  document.querySelectorAll("[data-migrate-images]").forEach((button) => button.addEventListener("click", () => migrateBusinessImages(button.dataset.migrateImages, button)));
   document.querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
   document.querySelectorAll("[data-delete-business]").forEach((button) => button.addEventListener("click", () => deleteBusiness(button.dataset.deleteBusiness)));
 }
@@ -459,6 +465,99 @@ async function deleteBusiness(id) {
   if (!confirmed) return;
   await deleteDoc(doc(db, "estabelecimentos", id));
   await loadAdminData();
+}
+
+async function migrateBusinessImages(id, button) {
+  const business = state.businesses.find((item) => item.id === id);
+  const name = business?.nomeEstabelecimento || business?.responsavel || id;
+  const confirmed = confirm(`Migrar imagens antigas em Base64 de "${name}" para o Firebase Storage?\n\nO sistema vai manter os mesmos campos no Firestore, trocando apenas o Base64 por um link público do Storage.`);
+  if (!confirmed) return;
+  const originalText = button?.textContent || "Migrar imagens";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Migrando...";
+  }
+  try {
+    let migrated = 0;
+    migrated += await migrateDocumentImageFields(doc(db, "estabelecimentos", id), business || {}, id, "estabelecimento");
+    migrated += await migrateDocumentImageFields(doc(db, `estabelecimentos/${id}/configuracoes`, "geral"), null, id, "configuracoes");
+    for (const collectionName of ["produtos", "sabores", "categorias", "adicionais"]) {
+      migrated += await migrateCollectionImageFields(id, collectionName);
+    }
+    await loadAdminData();
+    alert(migrated
+      ? `Migração concluída. ${migrated} imagem(ns) antiga(s) foram enviadas para o Storage.`
+      : "Nenhuma imagem antiga em Base64 foi encontrada para este estabelecimento.");
+  } catch (error) {
+    console.error("Erro ao migrar imagens:", error);
+    alert(`Não foi possível migrar as imagens: ${error.message}`);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+}
+
+async function migrateCollectionImageFields(estabelecimentoId, collectionName) {
+  const snap = await getDocs(collection(db, `estabelecimentos/${estabelecimentoId}/${collectionName}`));
+  let migrated = 0;
+  for (const item of snap.docs) {
+    migrated += await migrateDocumentImageFields(item.ref, item.data(), estabelecimentoId, collectionName);
+  }
+  return migrated;
+}
+
+async function migrateDocumentImageFields(ref, currentData, estabelecimentoId, folder) {
+  const snapData = currentData || (await getDoc(ref)).data();
+  if (!snapData) return 0;
+  const imageFields = ["fotoUrl", "logoUrl", "heroImageUrl", "imagemUrl", "capaUrl"];
+  const updates = {};
+  for (const fieldName of imageFields) {
+    const value = snapData[fieldName];
+    if (!isDataImageUrl(value)) continue;
+    updates[fieldName] = await uploadDataUrlToStorage(value, estabelecimentoId, folder, fieldName);
+  }
+  const migratedCount = Object.keys(updates).length;
+  if (!migratedCount) return 0;
+  await updateDoc(ref, {
+    ...updates,
+    atualizadoEm: serverTimestamp()
+  });
+  return migratedCount;
+}
+
+async function uploadDataUrlToStorage(dataUrl, estabelecimentoId, folder, fieldName) {
+  const contentType = dataUrlContentType(dataUrl);
+  const filePath = `estabelecimentos/${estabelecimentoId}/migrados/${sanitizePathPart(folder)}/${sanitizePathPart(fieldName)}-${Date.now()}-${Math.random().toString(36).slice(2)}.${extensionFromContentType(contentType)}`;
+  const ref = storageRef(storage, filePath);
+  await uploadString(ref, dataUrl, "data_url", { contentType });
+  return getDownloadURL(ref);
+}
+
+function isDataImageUrl(value) {
+  return String(value || "").startsWith("data:image/");
+}
+
+function dataUrlContentType(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:([^;]+);base64,/);
+  return match?.[1] || "image/jpeg";
+}
+
+function extensionFromContentType(contentType) {
+  if (contentType.includes("png")) return "png";
+  if (contentType.includes("webp")) return "webp";
+  if (contentType.includes("gif")) return "gif";
+  return "jpg";
+}
+
+function sanitizePathPart(value) {
+  return String(value || "imagem")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "imagem";
 }
 
 function sendActivationMessage(id) {
