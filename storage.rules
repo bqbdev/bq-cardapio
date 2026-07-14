@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    function isBusinessOwner(estabelecimentoId) {
+      return signedIn()
+        && firestore.get(/databases/(default)/documents/estabelecimentos/$(estabelecimentoId)).data.uid == request.auth.uid
+        && firestore.get(/databases/(default)/documents/estabelecimentos/$(estabelecimentoId)).data.status == "ativo";
+    }
+
+    match /estabelecimentos/{estabelecimentoId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isBusinessOwner(estabelecimentoId))
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin() || isBusinessOwner(estabelecimentoId);
+    }
+  }
+}

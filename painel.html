@@ -125,7 +125,7 @@
         <label>Categoria<select name="categoriaId" id="simple-product-category"></select></label>
         <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
         <input name="fotoUrl" type="hidden">
-        <label class="full">Imagem em Base64<input id="simple-product-photo-file" type="file" accept="image/*"></label>
+        <label class="full">Imagem do produto<input id="simple-product-photo-file" type="file" accept="image/*"></label>
         <div id="simple-product-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
         <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
@@ -143,7 +143,7 @@
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Ingredientes<textarea name="descricao" rows="2" placeholder="Molho, mussarela, calabresa..."></textarea></label>
         <input name="fotoUrl" type="hidden">
-        <label class="full">Foto da pizza em Base64<input id="pizza-photo-file" type="file" accept="image/*"></label>
+        <label class="full">Foto da pizza<input id="pizza-photo-file" type="file" accept="image/*"></label>
         <div id="pizza-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <div class="module-inline-settings full">
           <strong>Meio a meio automático</strong>
@@ -166,7 +166,7 @@
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Descrição/ingredientes<textarea name="descricao" rows="2"></textarea></label>
         <input name="fotoUrl" type="hidden">
-        <label class="full">Foto da porção em Base64<input id="portion-photo-file" type="file" accept="image/*"></label>
+        <label class="full">Foto da porção<input id="portion-photo-file" type="file" accept="image/*"></label>
         <div id="portion-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <div class="module-inline-settings full">
           <strong>Meio a meio automático</strong>
@@ -214,7 +214,7 @@
         <label>Valor G<input name="valorG" type="number" step="0.01" required></label>
         <label class="full">Ingredientes/descrição<textarea name="descricao" rows="2"></textarea></label>
         <input name="fotoUrl" type="hidden">
-        <label class="full">Foto do sabor em Base64<input id="module-flavor-photo-file" type="file" accept="image/*"></label>
+        <label class="full">Foto do sabor<input id="module-flavor-photo-file" type="file" accept="image/*"></label>
         <div id="module-flavor-photo-preview" class="image-preview full">Sem foto selecionada</div>
         <label class="check-row"><input name="disponivel" type="checkbox" checked> Ativo</label>
         <label class="check-row"><input name="destaque" type="checkbox"> Destaque no cardápio</label>
@@ -359,7 +359,7 @@
           <label class="check-row"><input name="pizzaMode" type="checkbox"> Modo pizzaria</label>
           <label class="full">Tamanhos da pizza<textarea name="pizzaTamanhosTexto" rows="3" placeholder="Pequena=39.90&#10;Média=49.90&#10;Grande=59.90"></textarea></label>
           <input name="fotoUrl" type="hidden">
-          <label class="full">Foto do produto em Base64<input id="product-photo-file" type="file" accept="image/*"></label>
+          <label class="full">Foto do produto<input id="product-photo-file" type="file" accept="image/*"></label>
           <div id="product-photo-preview" class="image-preview full">Sem foto selecionada</div>
           <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
           <label class="check-row"><input name="disponivel" type="checkbox" checked> Disponível</label>
@@ -416,7 +416,7 @@
         <label>Nome público<input name="nomePublico"></label>
         <label>WhatsApp dos pedidos<input name="whatsappPedidos" inputmode="tel"></label>
         <input name="logoUrl" type="hidden">
-        <label class="full">Logo do estabelecimento em Base64<input id="business-logo-file" type="file" accept="image/*"></label>
+        <label class="full">Logo do estabelecimento<input id="business-logo-file" type="file" accept="image/*"></label>
         <div id="business-logo-preview" class="image-preview full">Sem logo selecionado</div>
         <div class="hero-settings-card full">
           <div>
@@ -425,7 +425,7 @@
             <p>Use uma foto bonita do produto ou da loja. Ela aparece no quadrado principal da página inicial.</p>
           </div>
           <input name="heroImageUrl" type="hidden">
-          <label class="full">Imagem da capa em Base64<input id="hero-image-file" type="file" accept="image/*"></label>
+          <label class="full">Imagem da capa<input id="hero-image-file" type="file" accept="image/*"></label>
           <div id="hero-image-preview" class="image-preview hero-image-preview full">Sem foto de capa selecionada</div>
           <button id="clear-hero-image" class="btn btn-small" type="button">Remover foto da capa</button>
         </div>
@@ -489,6 +489,6 @@
       </div>
     </section>
   </main>
-  <script type="module" src="painel.js?v=base64-fast-1"></script>
+  <script type="module" src="painel.js?v=firebase-storage-imagens-1"></script>
 </body>
 </html>

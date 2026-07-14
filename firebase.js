@@ -27,6 +27,12 @@ import {
   serverTimestamp,
   Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import {
+  getStorage,
+  ref as storageRef,
+  uploadString,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAc5AunmIuRg7BQo_v09nkbVmcBPdU4Xm8",
@@ -40,6 +46,7 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export {
   onAuthStateChanged,
@@ -63,7 +70,10 @@ export {
   limit,
   increment,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  storageRef,
+  uploadString,
+  getDownloadURL
 };
 
 export const paths = {

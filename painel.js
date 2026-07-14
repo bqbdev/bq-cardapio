@@ -14,7 +14,11 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  storage,
+  storageRef,
+  uploadString,
+  getDownloadURL
 } from "./firebase.js";
 import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
@@ -114,20 +118,20 @@ $("#finance-end-date")?.addEventListener("change", (event) => {
 $("#product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
-  if (!base64) return;
+  const imageUrl = await imageFileToStorageUrl(file, event.target, IMAGE_PRESETS.product, "produtos");
+  if (!imageUrl) return;
   const form = $("#product-form");
-  form.elements.fotoUrl.value = base64;
-  renderPhotoPreview(base64);
+  form.elements.fotoUrl.value = imageUrl;
+  renderPhotoPreview(imageUrl);
 });
 $("#simple-product-photo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
-  if (!base64) return;
+  const imageUrl = await imageFileToStorageUrl(file, event.target, IMAGE_PRESETS.product, "produtos-simples");
+  if (!imageUrl) return;
   const form = $("#simple-product-form");
-  form.elements.fotoUrl.value = base64;
-  renderSimpleProductPhotoPreview(base64);
+  form.elements.fotoUrl.value = imageUrl;
+  renderSimpleProductPhotoPreview(imageUrl);
 });
 bindModulePhotoInput("#pizza-photo-file", "#pizza-item-form", "pizza-photo-preview");
 bindModulePhotoInput("#portion-photo-file", "#portion-item-form", "portion-photo-preview");
@@ -135,33 +139,33 @@ bindModulePhotoInput("#module-flavor-photo-file", "#module-flavor-form", "module
 $("#business-logo-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.logo);
-  if (!base64) return;
+  const imageUrl = await imageFileToStorageUrl(file, event.target, IMAGE_PRESETS.logo, "logo");
+  if (!imageUrl) return;
   const form = $("#settings-form");
-  form.elements.logoUrl.value = base64;
-  renderBusinessLogoPreview(base64);
-  renderDashboardLogo(base64);
+  form.elements.logoUrl.value = imageUrl;
+  renderBusinessLogoPreview(imageUrl);
+  renderDashboardLogo(imageUrl);
 });
 
 function bindModulePhotoInput(inputSelector, formSelector, previewId) {
   $(inputSelector)?.addEventListener("change", async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.product);
-    if (!base64) return;
+    const imageUrl = await imageFileToStorageUrl(file, event.target, IMAGE_PRESETS.product, previewId.replace("-photo-preview", ""));
+    if (!imageUrl) return;
     const form = $(formSelector);
-    if (form?.elements.fotoUrl) form.elements.fotoUrl.value = base64;
-    renderNamedImagePreview(previewId, base64);
+    if (form?.elements.fotoUrl) form.elements.fotoUrl.value = imageUrl;
+    renderNamedImagePreview(previewId, imageUrl);
   });
 }
 $("#hero-image-file")?.addEventListener("change", async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const base64 = await imageFileToBase64(file, event.target, IMAGE_PRESETS.hero);
-  if (!base64) return;
+  const imageUrl = await imageFileToStorageUrl(file, event.target, IMAGE_PRESETS.hero, "capa");
+  if (!imageUrl) return;
   const form = $("#settings-form");
-  form.elements.heroImageUrl.value = base64;
-  renderHeroImagePreview(base64);
+  form.elements.heroImageUrl.value = imageUrl;
+  renderHeroImagePreview(imageUrl);
 });
 $("#clear-hero-image")?.addEventListener("click", () => {
   const form = $("#settings-form");
@@ -309,6 +313,9 @@ async function loadPanelData() {
   await loadCategories();
   await loadProducts();
   await Promise.all([loadFlavors(), loadAddons(), loadOrders(), loadClients(), loadSettings(), loadFees()]);
+  migrateBase64ImagesToStorage().catch((error) => {
+    console.warn("Não foi possível migrar imagens antigas para o Storage:", error);
+  });
   renderModuleProducts();
   renderModuleFlavors();
   renderModuleAddons();
@@ -1815,17 +1822,17 @@ async function toggleProductAvailability(id) {
 
 async function updateProductPhoto(id, file, input) {
   if (!file) return;
-  const base64 = await imageFileToBase64(file, input, IMAGE_PRESETS.product);
-  if (!base64) return;
+  const imageUrl = await imageFileToStorageUrl(file, input, IMAGE_PRESETS.product, "produtos");
+  if (!imageUrl) return;
   const scrollTop = window.scrollY;
   await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
-    fotoUrl: base64,
+    fotoUrl: imageUrl,
     atualizadoEm: serverTimestamp()
   });
   const form = $("#product-form");
   if (form.elements.id.value === id) {
-    form.elements.fotoUrl.value = base64;
-    renderPhotoPreview(base64);
+    form.elements.fotoUrl.value = imageUrl;
+    renderPhotoPreview(imageUrl);
   }
   await loadProducts();
   window.scrollTo({ top: scrollTop });
@@ -1865,6 +1872,93 @@ async function imageFileToBase64(file, input, options = {}) {
     }
     return base64;
   }
+}
+
+async function imageFileToStorageUrl(file, input, options = {}, folder = "imagens") {
+  const dataUrl = await imageFileToBase64(file, input, options);
+  if (!dataUrl) return "";
+  try {
+    return await uploadDataUrlToStorage(dataUrl, folder, file);
+  } catch (error) {
+    console.error("Falha ao enviar imagem para o Firebase Storage:", error);
+    alert("Não foi possível enviar a imagem para o Storage. Verifique as regras do Firebase Storage e tente novamente.");
+    if (input) input.value = "";
+    return "";
+  }
+}
+
+async function uploadDataUrlToStorage(dataUrl, folder = "imagens", file = null) {
+  const path = storageImagePath(folder, file);
+  const ref = storageRef(storage, path);
+  await uploadString(ref, dataUrl, "data_url", {
+    contentType: dataUrlContentType(dataUrl),
+    customMetadata: {
+      estabelecimentoId: state.businessId || ""
+    }
+  });
+  return getDownloadURL(ref);
+}
+
+async function migrateBase64ImagesToStorage() {
+  if (!state.businessId) return;
+  let settingsChanged = false;
+  const settingsUpdates = {};
+  for (const fieldName of ["logoUrl", "heroImageUrl"]) {
+    const value = state.settings?.[fieldName] || "";
+    if (!isDataImageUrl(value)) continue;
+    const folder = fieldName === "logoUrl" ? "logo" : "capa";
+    const url = await uploadDataUrlToStorage(value, `migrados-${folder}`);
+    settingsUpdates[fieldName] = url;
+    state.settings[fieldName] = url;
+    settingsChanged = true;
+  }
+  if (settingsChanged) {
+    await setDoc(doc(db, `estabelecimentos/${state.businessId}/configuracoes`, "geral"), settingsUpdates, { merge: true });
+    const form = $("#settings-form");
+    if (form?.elements.logoUrl && settingsUpdates.logoUrl) {
+      form.elements.logoUrl.value = settingsUpdates.logoUrl;
+      renderBusinessLogoPreview(settingsUpdates.logoUrl);
+      renderDashboardLogo(settingsUpdates.logoUrl);
+    }
+    if (form?.elements.heroImageUrl && settingsUpdates.heroImageUrl) {
+      form.elements.heroImageUrl.value = settingsUpdates.heroImageUrl;
+      renderHeroImagePreview(settingsUpdates.heroImageUrl);
+    }
+  }
+
+  let productsChanged = false;
+  for (const product of state.products) {
+    if (!isDataImageUrl(product.fotoUrl)) continue;
+    const url = await uploadDataUrlToStorage(product.fotoUrl, "migrados-produtos");
+    await updateDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, product.id), {
+      fotoUrl: url,
+      atualizadoEm: serverTimestamp()
+    });
+    product.fotoUrl = url;
+    productsChanged = true;
+  }
+  if (productsChanged) {
+    renderProducts();
+    renderSimpleProducts();
+    renderModuleProducts();
+    renderHeroProductOptions();
+  }
+}
+
+function isDataImageUrl(value) {
+  return String(value || "").startsWith("data:image/");
+}
+
+function dataUrlContentType(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:([^;,]+)/);
+  return match?.[1] || "image/webp";
+}
+
+function storageImagePath(folder, file) {
+  const safeFolder = String(folder || "imagens").replace(/[^a-z0-9_-]/gi, "-").toLowerCase();
+  const random = crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const originalName = String(file?.name || "imagem").replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]/gi, "-").toLowerCase().slice(0, 40) || "imagem";
+  return `estabelecimentos/${state.businessId}/${safeFolder}/${Date.now()}-${random}-${originalName}.webp`;
 }
 
 function compressImageFile(file, options = {}) {
