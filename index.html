@@ -3,60 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BQ Menu - Cardápio digital e gestão para estabelecimentos</title>
-  <meta name="description" content="Cardápio digital, pedidos pelo WhatsApp, clientes, financeiro e gestão completa para estabelecimentos com custo fixo mensal.">
+  <title>bq menu - Cardápio digital e gestão para estabelecimentos</title>
+  <meta name="description" content="Cardápio digital, pedidos pelo WhatsApp, clientes, financeiro e gestão para estabelecimentos com mensalidade fixa e sem comissão por pedido.">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
-  <meta property="og:site_name" content="BQ Menu">
+  <meta property="og:site_name" content="bq menu">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="BQ Menu - Cardápio digital e gestão para estabelecimentos">
-  <meta property="og:description" content="Cardápio digital, pedidos pelo WhatsApp, clientes, financeiro e gestão completa para estabelecimentos.">
-  <meta property="og:url" content="https://bqbdev.github.io/bq-cardapio/">
-  <meta property="og:image" content="https://bqbdev.github.io/bq-cardapio/logo.png">
-  <meta property="og:image:secure_url" content="https://bqbdev.github.io/bq-cardapio/logo.png">
+  <meta property="og:title" content="bq menu - Cardápio digital e gestão para estabelecimentos">
+  <meta property="og:description" content="Venda pelo WhatsApp com cardápio online, pedidos organizados, clientes salvos e painel de gestão.">
+  <meta property="og:url" content="https://bqmenu.bqsystems.com.br/">
+  <meta property="og:image" content="https://bqmenu.bqsystems.com.br/logo.png">
+  <meta property="og:image:secure_url" content="https://bqmenu.bqsystems.com.br/logo.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="BQ Menu - Cardápio digital e gestão">
-  <meta name="twitter:description" content="Pedidos pelo WhatsApp, clientes, financeiro e gestão para estabelecimentos.">
-  <meta name="twitter:image" content="https://bqbdev.github.io/bq-cardapio/logo.png">
-  <link rel="stylesheet" href="style.css?v=index-sem-card-flutuante-1">
+  <meta name="twitter:title" content="bq menu - Cardápio digital e gestão">
+  <meta name="twitter:description" content="Pedidos pelo WhatsApp, clientes, financeiro e controle do negócio em um só painel.">
+  <meta name="twitter:image" content="https://bqmenu.bqsystems.com.br/logo.png">
+  <link rel="stylesheet" href="style.css?v=index-google-negocio-1">
 </head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="index.html"><img class="brand-logo" src="logo.png" alt="BQ Menu"><span>BQ Menu</span></a>
+<body class="landing-modern">
+  <header class="site-header landing-nav">
+    <a class="brand" href="index.html">
+      <img class="brand-logo" src="logo.png" alt="bq menu">
+      <span>bq menu</span>
+    </a>
     <nav class="nav-links">
-      <a href="#beneficios">Benefícios</a>
-      <a href="#gestao">Gestão</a>
-      <a href="#plano">Preço</a>
+      <a href="#controle">Controle</a>
+      <a href="#funciona">Como funciona</a>
+      <a href="#plano">Plano</a>
       <a href="login.html">Entrar</a>
     </nav>
-    <a class="btn btn-primary" href="cadastro.html">Quero vender pelo WhatsApp</a>
+    <a class="btn btn-primary" href="cadastro.html">Quero meu cardápio</a>
   </header>
 
+  <div class="trial-popup-overlay" id="trial-popup">
+    <div class="trial-popup" role="dialog" aria-label="Teste grátis bq menu">
+      <button class="trial-popup-close" type="button" aria-label="Fechar aviso" onclick="document.getElementById('trial-popup').classList.add('is-hidden')">×</button>
+      <div class="trial-popup-logo">
+        <img src="logo.png" alt="bq menu">
+      </div>
+      <div class="trial-popup-copy">
+        <span>Oferta imperdível</span>
+        <strong>Teste o bq menu grátis por 1 mês</strong>
+        <p>Aumente suas vendas com cardápio digital, pedidos pelo WhatsApp, controle do negócio e todo o suporte necessário para começar.</p>
+      </div>
+      <a
+        class="trial-popup-button"
+        href="https://wa.me/5519995016307?text=Ol%C3%A1%2C%20quero%20testar%20o%20bq%20menu%20gr%C3%A1tis%20por%201%20m%C3%AAs%20e%20aumentar%20minhas%20vendas."
+        target="_blank"
+        rel="noopener">
+        Quero aumentar minhas vendas
+      </a>
+    </div>
+  </div>
+
   <main>
-    <section class="hero landing-hero owner-hero">
+    <section class="hero landing-hero owner-hero modern-owner-hero">
       <div class="hero-content">
-        <div class="hero-brand-card">
-          <img src="logo.png" alt="BQ Menu">
-          <div>
-            <strong>BQ Menu</strong>
-            <span>Cardápio digital e gestão para vender mais pelo WhatsApp</span>
-          </div>
+        <div class="hero-logo-focus">
+          <img src="logo.png" alt="bq menu">
+          <span>Cardápio digital e gestão para negócios que merecem vender mais</span>
         </div>
-        <p class="eyebrow">Para lanchonetes, pizzarias, açaíterias, porções e pequenos negócios</p>
-        <h1>Seu cardápio online com cara profissional e pedido direto no WhatsApp.</h1>
-        <p class="hero-copy">O BQ Menu ajuda seu estabelecimento a vender melhor, organizar pedidos, salvar clientes e acompanhar o financeiro em um painel simples. Tudo com custo fixo, sem comissão por pedido.</p>
+        <p class="eyebrow">Para lanchonetes, pizzarias, açaíterias, porções, docerias e restaurantes</p>
+        <h1>Seu negócio vendendo pelo WhatsApp com mais controle e cara profissional.</h1>
+        <p class="hero-copy">
+          O bq menu transforma seu cardápio em uma experiência de pedido simples para o cliente
+          e entrega para você um painel para acompanhar pedidos, produtos, clientes e financeiro.
+        </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="cadastro.html">Cadastrar meu estabelecimento</a>
-          <a class="btn btn-ghost" href="#plano">Ver preço</a>
+          <a class="btn btn-primary" href="cadastro.html">Cadastrar com CPF ou CNPJ</a>
+          <a class="btn btn-ghost" href="https://bqbdev.github.io/bq-cardapio/cardapio.html?estabelecimento=Wa48RZBsxu9RMFyaoOcg" target="_blank" rel="noopener">Testar cardápio real</a>
         </div>
         <div class="hero-proof owner-proof">
+          <span>Sem comissão por pedido</span>
           <span>Pedido direto no WhatsApp</span>
-          <span>Sem taxa por venda</span>
           <span>Clientes salvos automaticamente</span>
         </div>
       </div>
 
-      <div class="sales-showcase" aria-label="Teste o cardápio digital BQ Menu">
+      <div class="sales-showcase modern-sales-showcase" aria-label="Demonstração do cardápio digital bq menu">
         <a class="showcase-live-cta" href="https://bqbdev.github.io/bq-cardapio/cardapio.html?estabelecimento=Wa48RZBsxu9RMFyaoOcg" target="_blank" rel="noopener">
           <span>Teste agora</span>
           <strong>Abrir cardápio real</strong>
@@ -65,85 +89,114 @@
           <div class="showcase-status"></div>
           <iframe
             class="showcase-demo-frame"
-            title="Cardápio de teste BQ Menu"
+            title="Cardápio de teste bq menu"
             src="https://bqbdev.github.io/bq-cardapio/cardapio.html?estabelecimento=Wa48RZBsxu9RMFyaoOcg"
             loading="lazy"></iframe>
           <a class="showcase-frame-link" href="https://bqbdev.github.io/bq-cardapio/cardapio.html?estabelecimento=Wa48RZBsxu9RMFyaoOcg" target="_blank" rel="noopener">
-            Abrir teste em tela cheia
+            Abrir em tela cheia
           </a>
         </div>
-
       </div>
     </section>
 
-    <section id="beneficios" class="section">
+    <section id="controle" class="section control-section">
       <div class="section-heading">
-        <p class="eyebrow">O que muda no dia a dia</p>
-        <h2>Menos bagunça no atendimento. Mais controle para vender.</h2>
-        <p>O cliente monta o pedido no cardápio, envia pelo WhatsApp e o estabelecimento acompanha tudo pelo painel.</p>
+        <p class="eyebrow">Controle real do estabelecimento</p>
+        <h2>Não é só um cardápio. É uma central para organizar suas vendas.</h2>
+        <p>Você acompanha o que entrou, quem comprou, quais produtos vendem mais e onde precisa melhorar.</p>
       </div>
-      <div class="feature-grid business-grid owner-benefits">
-        <article class="feature-card">
-          <span class="feature-icon">01</span>
-          <h3>Cardápio mais bonito</h3>
-          <p>Produtos com foto, categorias, destaques, pizzas meio a meio, porções, adicionais e disponibilidade.</p>
+
+      <div class="control-grid">
+        <article class="control-card is-large">
+          <span class="feature-icon">Pedidos</span>
+          <h3>Pedidos chegam prontos para atendimento</h3>
+          <p>Número do pedido, cliente, WhatsApp, retirada ou entrega, itens, pagamento e link de acompanhamento.</p>
         </article>
-        <article class="feature-card">
-          <span class="feature-icon">02</span>
-          <h3>Pedido organizado</h3>
-          <p>Chega no WhatsApp com número do pedido, itens separados, forma de pagamento e link de acompanhamento.</p>
+        <article class="control-card">
+          <span class="feature-icon">Clientes</span>
+          <h3>Base de clientes</h3>
+          <p>O cliente volta a comprar e o sistema puxa os dados pelo WhatsApp.</p>
         </article>
-        <article class="feature-card">
-          <span class="feature-icon">03</span>
-          <h3>Cliente cadastrado</h3>
-          <p>Na próxima compra, o sistema reconhece o WhatsApp e recupera os dados para acelerar a finalização.</p>
+        <article class="control-card">
+          <span class="feature-icon">Financeiro</span>
+          <h3>Visão do dinheiro</h3>
+          <p>Veja faturamento, ticket médio, histórico e produtos mais vendidos.</p>
         </article>
-        <article class="feature-card">
-          <span class="feature-icon">04</span>
-          <h3>Gestão no painel</h3>
-          <p>Veja pedidos, clientes, produtos mais vendidos, faturamento, taxas por bairro e histórico de compras.</p>
+        <article class="control-card">
+          <span class="feature-icon">Cardápio</span>
+          <h3>Produtos com liberdade</h3>
+          <p>Pizzas, porções, adicionais, bordas, destaque, disponibilidade e fotos.</p>
+        </article>
+        <article class="control-card">
+          <span class="feature-icon">Entrega</span>
+          <h3>Taxas por bairro</h3>
+          <p>Configure retirada, entrega, consumo no local e valores por região atendida.</p>
         </article>
       </div>
     </section>
 
-    <section id="gestao" class="section owner-dashboard-section">
+    <section class="section google-business-section">
+      <div class="google-business-card">
+        <div class="google-business-copy">
+          <p class="eyebrow">Mais visibilidade local</p>
+          <h2>Integração com Google Meu Negócio para seu estabelecimento aparecer mais e vender melhor.</h2>
+          <p>
+            Com o uso da nossa ferramenta, seu negócio ganha mais presença local, fica mais fácil de encontrar
+            no Google e aumenta as oportunidades de receber novos pedidos pelo WhatsApp.
+          </p>
+          <div class="google-business-points">
+            <span>Mais pessoas encontrando sua loja</span>
+            <span>Presença local mais profissional</span>
+            <span>Mais vendas pelo WhatsApp</span>
+          </div>
+        </div>
+        <div class="google-business-media">
+          <img
+            src="google-meu-negocio.png"
+            alt="Google Meu Negócio"
+            onerror="this.onerror=null; this.src='googl-meu-negocio.png';">
+        </div>
+      </div>
+    </section>
+
+    <section id="funciona" class="section owner-dashboard-section modern-flow-section">
       <div class="section-heading">
-        <p class="eyebrow">Painel feito para o estabelecimento</p>
-        <h2>Você sabe o que vendeu, quem comprou e o que precisa melhorar.</h2>
+        <p class="eyebrow">Como funciona na prática</p>
+        <h2>O cliente pede fácil. Você atende com mais segurança.</h2>
       </div>
       <div class="owner-dashboard-grid">
-        <div class="dashboard-mock">
+        <div class="dashboard-mock modern-dashboard-mock">
           <div class="dashboard-mock-head">
-            <div><small>Painel</small><strong>Seu Estabelecimento</strong></div>
-            <span>Aberto</span>
+            <div><small>Painel do estabelecimento</small><strong>Resumo de hoje</strong></div>
+            <span>Ao vivo</span>
           </div>
           <div class="dashboard-metrics">
-            <div><small>Pedidos hoje</small><strong>24</strong></div>
+            <div><small>Pedidos</small><strong>24</strong></div>
             <div><small>Faturamento</small><strong>R$ 1.248</strong></div>
             <div><small>Ticket médio</small><strong>R$ 52</strong></div>
           </div>
-          <div class="dashboard-row"><span>Produto mais vendido</span><strong>X-Bacon</strong></div>
-          <div class="dashboard-row"><span>Cliente que mais compra</span><strong>João</strong></div>
+          <div class="dashboard-row"><span>Produto mais vendido</span><strong>X-Bacon artesanal</strong></div>
+          <div class="dashboard-row"><span>Cliente que mais compra</span><strong>Maria Souza</strong></div>
           <div class="dashboard-row"><span>Novos clientes</span><strong>18 esta semana</strong></div>
         </div>
-        <div class="owner-copy-card">
-          <h3>Feito para pequenos negócios que precisam agir rápido.</h3>
+        <div class="owner-copy-card modern-check-card">
+          <h3>O fluxo que deixa o atendimento mais profissional</h3>
           <ul class="check-list">
-            <li>Pedidos com status: aguardando, aceito, em preparo, pronto e entregue</li>
-            <li>Taxa de entrega por bairro, retirada e consumo no local</li>
-            <li>Lista de clientes para campanhas e relacionamento</li>
-            <li>Relatórios para entender produtos, vendas e recorrência</li>
-            <li>Cardápio com aparência de aplicativo, sem comissão por venda</li>
+            <li>O cliente escolhe os produtos no cardápio online.</li>
+            <li>O pedido é salvo e enviado direto para o WhatsApp do estabelecimento.</li>
+            <li>Você acompanha status, histórico, clientes e financeiro pelo painel.</li>
+            <li>Seu estabelecimento aceita cadastro com CPF ou CNPJ.</li>
+            <li>Sem comissão por venda e sem taxa por pedido.</li>
           </ul>
         </div>
       </div>
     </section>
 
-    <section class="section zero-cost-band owner-cost-band">
+    <section class="section owner-cost-band modern-cost-band">
       <div>
-        <p class="eyebrow">Custo fixo e previsível</p>
-        <h2>Venda sem medo da taxa comer sua margem.</h2>
-        <p>Você paga uma mensalidade fixa para usar a ferramenta. O pedido é seu, o cliente é seu e a conversa continua direto no WhatsApp do estabelecimento.</p>
+        <p class="eyebrow">Mais margem para o seu negócio</p>
+        <h2>Controle o atendimento sem perder dinheiro em comissão.</h2>
+        <p>O pedido é feito pelo seu cardápio, enviado para o seu WhatsApp e o cliente fica salvo para novas compras.</p>
       </div>
       <div class="zero-cost-items">
         <span>0% comissão</span>
@@ -153,33 +206,42 @@
     </section>
 
     <section id="plano" class="section single-price-section">
-      <div class="single-price-card">
+      <div class="single-price-card modern-price-card">
         <div>
           <p class="eyebrow">Plano único</p>
           <h2>R$ 89,90 por mês</h2>
-          <p>Uma mensalidade simples para colocar seu cardápio no ar, receber pedidos pelo WhatsApp e gerenciar seu estabelecimento.</p>
+          <p>Uma mensalidade simples para colocar seu cardápio no ar e gerenciar o dia a dia do estabelecimento.</p>
         </div>
         <ul class="plan-list">
-          <li>Cardápio digital com produtos, fotos e destaques</li>
+          <li>Cadastro com CPF ou CNPJ</li>
+          <li>Cardápio digital com fotos, categorias e produtos em destaque</li>
           <li>Pedido direto no WhatsApp, sem comissão por venda</li>
-          <li>Clientes, endereços e histórico salvos</li>
-          <li>Dashboard, financeiro, relatórios e produtos mais vendidos</li>
-          <li>Configuração de taxas, horários e formas de atendimento</li>
+          <li>Integração com Google Meu Negócio para atrair mais clientes locais</li>
+          <li>Clientes, endereços e histórico salvos automaticamente</li>
+          <li>Dashboard, financeiro, relatórios e controle de pedidos</li>
+          <li>Taxas por bairro, horários e formas de atendimento</li>
         </ul>
-        <a class="btn btn-primary" href="cadastro.html">Quero começar por R$ 89,90/mês</a>
+        <a class="btn btn-primary" href="cadastro.html">Quero começar agora</a>
       </div>
     </section>
 
-    <section class="section final-cta owner-final-cta">
-      <p class="eyebrow">Comece a vender com mais controle</p>
-      <h2>Transforme seu WhatsApp em um canal de pedidos mais profissional.</h2>
+    <section class="section final-cta owner-final-cta modern-final-cta">
+      <p class="eyebrow">Pronto para vender com mais controle?</p>
+      <h2>Coloque seu cardápio no ar e profissionalize os pedidos do seu WhatsApp.</h2>
       <a class="btn btn-primary" href="cadastro.html">Cadastrar meu estabelecimento</a>
     </section>
   </main>
 
-  <footer class="footer">
-    <span>BQ Menu</span>
-    <span>Cardápio digital, pedidos online e gestão simples para estabelecimentos.</span>
+  <footer class="footer modern-footer">
+    <div>
+      <strong>bq menu</strong>
+      <span>Cardápio digital, pedidos pelo WhatsApp e gestão simples para estabelecimentos.</span>
+    </div>
+    <a class="bqsystems-credit" href="https://bqsystems.com.br/" target="_blank" rel="noopener">
+      <span>Desenvolvido pela</span>
+      <img src="bqsystems.png" alt="BQ Systems" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+      <strong style="display:none">BQ Systems</strong>
+    </a>
   </footer>
 </body>
 </html>
