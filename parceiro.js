@@ -60,6 +60,14 @@ function formatDate(value) {
   return millis ? new Date(millis).toLocaleDateString("pt-BR") : "-";
 }
 
+function addMonths(date, months) {
+  const next = new Date(date);
+  const day = next.getDate();
+  next.setMonth(next.getMonth() + months);
+  if (next.getDate() !== day) next.setDate(0);
+  return next;
+}
+
 function monthKeyFromMillis(millis) {
   if (!millis) return "";
   const date = new Date(millis);
@@ -85,6 +93,15 @@ function commissionPaidMillis(item) {
   return dateMillis(item.dataPagamentoComissao || item.dataPagamentoConfirmado);
 }
 
+function nextCommissionMillis(item) {
+  const explicit = dateMillis(item.proximoVencimento);
+  if (explicit) return explicit;
+  const paid = commissionPaidMillis(item);
+  if (paid) return addMonths(new Date(paid), 1).getTime();
+  const activated = dateMillis(item.dataAtivacaoEstabelecimento || item.atualizadoEm || item.criadoEm);
+  return activated ? addMonths(new Date(activated), 1).getTime() : 0;
+}
+
 function isActiveReferral(item) {
   return ["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase());
 }
@@ -99,7 +116,7 @@ function populateMonthFilter(referrals) {
   const months = new Set();
   referrals.forEach((item) => {
     const paidKey = monthKeyFromMillis(commissionPaidMillis(item));
-    const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
+    const nextKey = monthKeyFromMillis(nextCommissionMillis(item));
     if (paidKey) months.add(paidKey);
     if (nextKey) months.add(nextKey);
   });
@@ -120,14 +137,11 @@ function filterReferralsByMonth(referrals, monthValue) {
   if (!monthValue || monthValue === "all") return referrals;
   const current = currentMonthKey();
   if (monthValue === "next") {
-    return referrals.filter((item) => {
-      const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
-      return isActiveReferral(item) && nextKey && nextKey >= current;
-    });
+    return referrals.filter(isActiveReferral);
   }
   return referrals.filter((item) => {
     const paidKey = monthKeyFromMillis(commissionPaidMillis(item));
-    const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
+    const nextKey = monthKeyFromMillis(nextCommissionMillis(item));
     return paidKey === monthValue || (isActiveReferral(item) && nextKey === monthValue);
   });
 }
@@ -196,14 +210,17 @@ function renderPartnerPanel(phone, referrals) {
   const pending = filteredReferrals.filter((item) => !isActiveReferral(item));
   const paidValue = paid.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
   const projectedValue = filteredActive.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
-  const nextBilling = active
-    .map((item) => ({ item, millis: dateMillis(item.proximoVencimento) }))
+  const nextCommission = active
+    .map((item) => ({ item, millis: nextCommissionMillis(item) }))
     .filter((entry) => entry.millis)
-    .sort((a, b) => a.millis - b.millis)[0]?.item;
+    .sort((a, b) => a.millis - b.millis)[0];
 
   syncPartnerLink(phone);
+  const recurringMessage = active.length
+    ? `${active.length} estabelecimento(s) ativo(s). Se continuarem ativos e em dia com os pagamentos, a comissão recorrente prevista é ${money(active.length * 20)}/mês.`
+    : "Nenhum estabelecimento ativo para comissão recorrente no momento.";
   setMessage(partnerPanelMessage, referrals.length
-    ? `${referrals.length} indicação(ões) encontrada(s). Exibindo ${filteredReferrals.length} em ${monthLabel(monthValue)}. Previsão recorrente atual: ${money(active.length * 20)}/mês.`
+    ? `${referrals.length} indicação(ões) encontrada(s). Exibindo ${filteredReferrals.length} em ${monthLabel(monthValue)}. ${recurringMessage}`
     : "Nenhuma indicação encontrada para este WhatsApp.", referrals.length ? "success" : "error");
 
   if (partnerPanelSummary) {
@@ -214,7 +231,7 @@ function renderPartnerPanel(phone, referrals) {
       <article><span>Em análise</span><strong>${pending.length}</strong></article>
       <article><span>Pago no período</span><strong>${money(paidValue)}</strong></article>
       <article><span>Previsão do período</span><strong>${money(projectedValue)}</strong></article>
-      <article><span>Próxima cobrança</span><strong>${nextBilling ? formatDate(nextBilling.proximoVencimento) : "-"}</strong></article>
+      <article><span>Próxima comissão prevista</span><strong>${nextCommission ? formatDate(nextCommission.millis) : "-"}</strong></article>
     ` : "";
   }
 
@@ -227,10 +244,11 @@ function renderPartnerPanel(phone, referrals) {
       <p>${escapeHtml(item.cidade || "-")} · ${escapeHtml(item.segmento || "-")}</p>
       <dl>
         <div><dt>Comissão</dt><dd>${money(Number(item.comissaoMensalPrevista || 20))}/mês</dd></div>
-        <div><dt>Próxima cobrança</dt><dd>${formatDate(item.proximoVencimento)}</dd></div>
+        <div><dt>Próxima comissão prevista</dt><dd>${isActiveReferral(item) ? formatDate(nextCommissionMillis(item)) : "-"}</dd></div>
         <div><dt>Pago em</dt><dd>${formatDate(item.dataPagamentoComissao || item.dataPagamentoConfirmado)}</dd></div>
         <div><dt>Status do pagamento</dt><dd>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</dd></div>
       </dl>
+      ${isActiveReferral(item) ? `<small class="partner-recurring-note">Enquanto este estabelecimento continuar ativo e em conformidade com os pagamentos, você segue recebendo ${money(Number(item.comissaoMensalPrevista || 20))}/mês.</small>` : ""}
     </article>
   `).join("") : "<p class=\"partner-empty-state\">Nenhuma indicação encontrada para o mês selecionado.</p>";
 }

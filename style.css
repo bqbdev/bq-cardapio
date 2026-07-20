@@ -636,6 +636,16 @@ button, input, select, textarea { font: inherit; }
   margin: 3px 0 0;
   font-weight: 900;
 }
+.partner-recurring-note {
+  display: block;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #075f3a;
+  background: rgba(20,108,67,.08);
+  font-weight: 850;
+  line-height: 1.45;
+}
 .partner-empty-state {
   border: 1px dashed rgba(20,108,67,.22);
   border-radius: 14px;
