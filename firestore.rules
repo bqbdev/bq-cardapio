@@ -48,14 +48,18 @@ service cloud.firestore {
     match /parceiros/{parceiroId} {
       allow create, update: if parceiroId == request.resource.data.whatsapp
         && request.resource.data.status in ["ativo", "pendente"];
-      allow read, delete: if isAdmin();
+      allow get: if true;
+      allow list: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     match /indicacoes_parceiros/{indicacaoId} {
       allow create: if request.resource.data.status == "novo"
         && request.resource.data.parceiroWhatsapp is string
         && request.resource.data.whatsappEstabelecimento is string;
-      allow read, update, delete: if isAdmin();
+      allow get: if true;
+      allow list: if isAdmin() || (request.query.limit != null && request.query.limit <= 50);
+      allow update, delete: if isAdmin();
     }
 
     match /estabelecimentos/{estabelecimentoId} {

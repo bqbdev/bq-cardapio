@@ -332,6 +332,277 @@ button, input, select, textarea { font: inherit; }
   }
 }
 
+/* bq parceiro - refinamento visual */
+.partner-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(192, 255, 55, .28), transparent 30%),
+    radial-gradient(circle at 90% 14%, rgba(0, 149, 92, .18), transparent 30%),
+    linear-gradient(135deg, #f8fff9 0%, #edf8f1 48%, #ffffff 100%);
+  color: #14221a;
+}
+.partner-nav {
+  background: rgba(255, 255, 255, .92);
+  color: #14221a;
+  border-bottom: 1px solid rgba(13, 84, 51, .13);
+  backdrop-filter: blur(18px);
+}
+.partner-nav .brand {
+  gap: 18px;
+}
+.partner-nav .brand-logo {
+  width: 150px;
+  height: auto;
+  max-height: 68px;
+  object-fit: contain;
+}
+.partner-nav .nav-links,
+.partner-nav .nav-links a {
+  color: #4b5e54;
+}
+.partner-hero {
+  min-height: calc(100vh - 78px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(330px, 440px);
+  gap: clamp(24px, 5vw, 72px);
+  align-items: center;
+  padding: clamp(38px, 7vw, 96px);
+  position: relative;
+  overflow: hidden;
+}
+.partner-hero::before {
+  content: "";
+  position: absolute;
+  inset: 12% 4% auto auto;
+  width: 440px;
+  height: 440px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(185,255,41,.44), rgba(0,128,79,.1));
+  filter: blur(8px);
+  opacity: .8;
+}
+.partner-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 920px;
+}
+.partner-hero-logo {
+  width: min(390px, 74vw);
+  height: auto;
+  display: block;
+  margin: 0 0 22px;
+  object-fit: contain;
+}
+.partner-hero h1 {
+  font-size: clamp(3.2rem, 7vw, 6.4rem);
+  line-height: .92;
+  margin: 0 0 24px;
+  letter-spacing: 0;
+  color: #14221a;
+  text-transform: none;
+}
+.partner-hero-copy p {
+  color: #4f665b;
+  font-size: clamp(1.08rem, 1.8vw, 1.34rem);
+  max-width: 760px;
+}
+.partner-hero-copy strong {
+  color: #087346;
+}
+.partner-proof span {
+  border: 1px solid rgba(13, 118, 72, .18);
+  color: #075f3a;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 12px 30px rgba(12, 71, 45, .08);
+}
+.partner-reward-card {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(14, 115, 72, .16);
+  border-radius: 28px;
+  padding: clamp(24px, 4vw, 38px);
+  background:
+    linear-gradient(145deg, rgba(196, 255, 50, .2), rgba(255,255,255,.82)),
+    #ffffff;
+  color: #14221a;
+  box-shadow: 0 34px 90px rgba(20, 78, 48, .16);
+}
+.partner-reward-card img {
+  width: min(300px, 82%);
+  display: block;
+  margin: 0 auto 30px;
+  object-fit: contain;
+}
+.partner-reward-card span {
+  display: block;
+  color: #087346;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.partner-reward-card > strong {
+  display: block;
+  font-size: clamp(3.2rem, 7vw, 5.3rem);
+  line-height: .9;
+  margin: 10px 0 14px;
+  color: #9ce800;
+  text-shadow: 0 4px 0 rgba(8, 61, 37, .13);
+}
+.partner-reward-card p,
+.reward-card-line small {
+  color: #4f665b;
+}
+.reward-card-line {
+  border: 1px solid rgba(14, 115, 72, .13);
+  background: rgba(255,255,255,.75);
+}
+.reward-card-line b {
+  color: #075f3a;
+}
+.partner-steps-section,
+.partner-earnings-section,
+.partner-forms-section,
+.partner-panel-section {
+  background: transparent;
+}
+.partner-calculator-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 16px;
+  align-items: end;
+}
+.partner-calculator input[type="number"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-height: 50px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 850;
+}
+.partner-calculator-note {
+  display: block;
+  margin-top: 12px;
+  color: #5a6d62;
+  font-weight: 750;
+}
+.partner-calculator-result {
+  background: linear-gradient(135deg, #0e7448, #13241b);
+  box-shadow: 0 18px 44px rgba(9, 87, 52, .18);
+}
+.partner-calculator-result strong {
+  color: #c8ff21;
+}
+.earning-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.earning-grid article {
+  min-height: 168px;
+  background:
+    linear-gradient(145deg, rgba(204, 255, 56, .13), transparent),
+    rgba(255,255,255,.9);
+}
+.partner-form-card.is-dark {
+  background: rgba(255,255,255,.9);
+  color: #14221a;
+}
+.partner-form-card.is-dark label,
+.partner-form-card.is-dark .form-card-heading p {
+  color: #4f665b;
+}
+.partner-panel-section {
+  padding-top: 0;
+}
+.partner-panel-card {
+  border: 1px solid rgba(20,108,67,.14);
+  border-radius: 22px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 18px 48px rgba(23,32,27,.08);
+  padding: clamp(22px, 4vw, 36px);
+}
+.partner-panel-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-top: 18px;
+}
+.partner-panel-form input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-weight: 800;
+}
+.partner-panel-results {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+.partner-panel-item {
+  border: 1px solid rgba(20,108,67,.15);
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+}
+.partner-panel-item > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.partner-panel-item span {
+  color: #087346;
+  font-weight: 900;
+}
+.partner-panel-item p {
+  color: var(--muted);
+  margin: 8px 0 12px;
+}
+.partner-panel-item dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.partner-panel-item dt {
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 850;
+}
+.partner-panel-item dd {
+  margin: 3px 0 0;
+  font-weight: 900;
+}
+
+@media (max-width: 900px) {
+  .partner-hero,
+  .partner-earnings-section,
+  .partner-forms-section {
+    grid-template-columns: 1fr;
+  }
+  .partner-calculator-controls,
+  .partner-panel-form {
+    grid-template-columns: 1fr;
+  }
+  .earning-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .partner-nav .brand-logo {
+    width: 118px;
+  }
+  .partner-hero {
+    padding: 28px 18px;
+  }
+  .partner-hero h1 {
+    font-size: 2.75rem;
+  }
+  .earning-grid,
+  .partner-panel-item dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(280px, .65fr);

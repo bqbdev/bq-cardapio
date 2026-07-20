@@ -1,4 +1,4 @@
-import {
+﻿import {
   auth,
   db,
   onAuthStateChanged,
@@ -143,8 +143,8 @@ async function loadAdminData() {
     updateNavigationBadges();
   } catch (error) {
     console.error("Erro ao carregar dados do admin:", error);
-    $("#requests-list").innerHTML = `<p class="form-message error">Não foi possível carregar as solicitações: ${escapeHtml(error.message)}</p>`;
-    $("#business-table").innerHTML = "<tr><td colspan='6'>Não foi possível carregar os estabelecimentos.</td></tr>";
+    $("#requests-list").innerHTML = `<p class="form-message error">NÃ£o foi possÃ­vel carregar as solicitaÃ§Ãµes: ${escapeHtml(error.message)}</p>`;
+    $("#business-table").innerHTML = "<tr><td colspan='6'>NÃ£o foi possÃ­vel carregar os estabelecimentos.</td></tr>";
   }
 }
 
@@ -160,7 +160,7 @@ async function loadAllClients(businesses) {
         ...item.data()
       }));
     } catch (error) {
-      console.warn(`Não foi possível carregar clientes de ${business.nomeEstabelecimento || business.id}:`, error);
+      console.warn(`NÃ£o foi possÃ­vel carregar clientes de ${business.nomeEstabelecimento || business.id}:`, error);
       return [];
     }
   }));
@@ -215,14 +215,14 @@ function renderAdminInsights() {
   setText("#insight-clientes-reativar", reactivationClients.length);
   setText("#insight-ticket-clientes", totalOrders ? money(totalValue / totalOrders) : money(0));
   setText("#admin-tip-1", clientsInPeriod.length
-    ? `${clientsInPeriod.length} cliente(s) compraram no período selecionado. Use a aba Clientes para filtrar e exportar essa base.`
-    : "Nenhum cliente com compra registrada no período selecionado. Vale estimular os estabelecimentos a divulgarem o cardápio.");
+    ? `${clientsInPeriod.length} cliente(s) compraram no perÃ­odo selecionado. Use a aba Clientes para filtrar e exportar essa base.`
+    : "Nenhum cliente com compra registrada no perÃ­odo selecionado. Vale estimular os estabelecimentos a divulgarem o cardÃ¡pio.");
   setText("#admin-tip-2", reactivationClients.length
-    ? `${reactivationClients.length} cliente(s) estão sem compra há mais de 45 dias e podem receber uma campanha de retorno.`
-    : "A base não tem clientes claros para reativação no momento.");
+    ? `${reactivationClients.length} cliente(s) estÃ£o sem compra hÃ¡ mais de 45 dias e podem receber uma campanha de retorno.`
+    : "A base nÃ£o tem clientes claros para reativaÃ§Ã£o no momento.");
   setText("#admin-tip-3", dueSoon.length
-    ? `${dueSoon.length} estabelecimento(s) vencem nos próximos 15 dias. Priorize contato antes do bloqueio.`
-    : "Nenhum vencimento crítico nos próximos 15 dias.");
+    ? `${dueSoon.length} estabelecimento(s) vencem nos prÃ³ximos 15 dias. Priorize contato antes do bloqueio.`
+    : "Nenhum vencimento crÃ­tico nos prÃ³ximos 15 dias.");
 }
 
 function renderRequests() {
@@ -237,7 +237,7 @@ function renderRequests() {
         <button class="btn btn-small" data-reject="${item.id}">Recusar</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhuma solicitação pendente.</p>";
+  `).join("") || "<p>Nenhuma solicitaÃ§Ã£o pendente.</p>";
   document.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveRequest(button.dataset.approve)));
   document.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => rejectRequest(button.dataset.reject)));
 }
@@ -259,6 +259,7 @@ function updateNavigationBadges() {
 function renderPartners() {
   const activeReferrals = state.referrals.filter((item) => ["ativo", "convertido", "pagando"].includes(String(item.status || "").toLowerCase()));
   const monthlyCommission = activeReferrals.length * 20;
+  const partnersByPhone = new Map(state.partners.map((partner) => [normalizePhone(partner.whatsapp || partner.id), partner]));
   setText("#metric-partners", state.partners.length);
   setText("#metric-referrals", state.referrals.length);
   setText("#metric-referral-active", activeReferrals.length);
@@ -279,19 +280,24 @@ function renderPartners() {
   }).join("");
   $("#partners-table").innerHTML = partnerRows || "<tr><td colspan='5'>Nenhum parceiro cadastrado.</td></tr>";
 
-  $("#referrals-table").innerHTML = state.referrals.map((item) => `
-    <tr>
-      <td><strong>${escapeHtml(item.nomeEstabelecimento || "-")}</strong><br><small>${escapeHtml(item.responsavel || "")}</small></td>
-      <td>${escapeHtml(normalizePhone(item.whatsappEstabelecimento) || "-")}</td>
-      <td>${escapeHtml(normalizePhone(item.parceiroWhatsapp || item.parceiroId) || "-")}</td>
-      <td>${escapeHtml(item.segmento || "-")}</td>
-      <td>${escapeHtml(item.cidade || "-")}</td>
-      <td><span class="pill">${escapeHtml(item.status || "novo")}</span></td>
-      <td>${toBrazilDate(item.criadoEm) || "-"}</td>
-    </tr>
-  `).join("") || "<tr><td colspan='7'>Nenhuma indicação registrada.</td></tr>";
+  $("#referrals-table").innerHTML = state.referrals.map((item) => {
+    const partnerPhone = normalizePhone(item.parceiroWhatsapp || item.parceiroId);
+    const partner = partnersByPhone.get(partnerPhone) || {};
+    return `
+      <tr>
+        <td><strong>${escapeHtml(item.nomeEstabelecimento || "-")}</strong><br><small>${escapeHtml(item.responsavel || "")}</small></td>
+        <td>${escapeHtml(normalizePhone(item.whatsappEstabelecimento || item.whatsapp) || "-")}</td>
+        <td><strong>${escapeHtml(partner.nome || "Parceiro")}</strong><br><small>${escapeHtml(partnerPhone || "-")}</small><br><small>PIX: ${escapeHtml(partner.pix || "-")}</small></td>
+        <td>${money(Number(item.comissaoMensalPrevista || 20))}<br><small>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</small></td>
+        <td>${toBrazilDate(item.proximoVencimento) || "-"}</td>
+        <td>${escapeHtml(item.segmento || "-")}</td>
+        <td>${escapeHtml(item.cidade || "-")}</td>
+        <td><span class="pill">${escapeHtml(item.status || "novo")}</span></td>
+        <td>${toBrazilDate(item.criadoEm) || "-"}</td>
+      </tr>
+    `;
+  }).join("") || "<tr><td colspan='9'>Nenhuma indicação registrada.</td></tr>";
 }
-
 function renderDueDates() {
   const due = dueBusinesses(15);
   $("#due-count").textContent = due.length;
@@ -305,7 +311,7 @@ function renderDueDates() {
         <button class="btn btn-small" data-status="${item.id}" data-value="vencido" type="button">Marcar vencido</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhum vencimento nos próximos 15 dias.</p>";
+  `).join("") || "<p>Nenhum vencimento nos prÃ³ximos 15 dias.</p>";
   $("#due-list").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
   $("#due-list").querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
 }
@@ -320,7 +326,7 @@ function renderBusinesses() {
       <td>${escapeHtml(item.metodoPagamento || "-")}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
-        ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativação</button>` : ""}
+        ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativaÃ§Ã£o</button>` : ""}
         <button class="btn btn-small" data-password-reset="${item.id}">Resetar senha</button>
         <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
         <button class="btn btn-small" data-migrate-images="${item.id}">Migrar imagens</button>
@@ -358,7 +364,7 @@ function renderClients() {
   tbody.innerHTML = clients.map((client) => {
     const phone = normalizePhone(client.whatsapp || client.id);
     const location = [client.bairro, client.cidade || client.estabelecimentoCidade].filter(Boolean).join(" - ");
-    const waUrl = phone ? whatsappLink(phone, `Olá, ${client.nome || "tudo bem"}!`) : "";
+    const waUrl = phone ? whatsappLink(phone, `OlÃ¡, ${client.nome || "tudo bem"}!`) : "";
     return `
       <tr>
         <td><strong>${escapeHtml(client.nome || client.nomeCliente || "Cliente sem nome")}</strong><br><small>${escapeHtml(client.endereco || "")}</small></td>
@@ -394,7 +400,7 @@ function filteredClients() {
 
 function exportClientsCsv() {
   const rows = filteredClients();
-  const header = ["Cliente", "WhatsApp", "Estabelecimento", "Cidade", "Bairro", "Pedidos", "Total comprado", "Última compra", "Tags"];
+  const header = ["Cliente", "WhatsApp", "Estabelecimento", "Cidade", "Bairro", "Pedidos", "Total comprado", "Ãšltima compra", "Tags"];
   const lines = [
     header,
     ...rows.map((client) => [
@@ -454,7 +460,10 @@ async function approveRequest(id) {
     activationToken,
     activationTokenConfirm: "",
     dataAtivacao: null,
-    slug: businessRef.id
+    slug: businessRef.id,
+    origem: request.origem || "",
+    parceiroWhatsapp: request.parceiroWhatsapp || "",
+    indicacaoParceiroId: request.indicacaoParceiroId || ""
   });
   await updateDoc(doc(db, "solicitacoes_estabelecimentos", id), {
     status: "aprovado",
@@ -478,9 +487,17 @@ async function approveRequest(id) {
     entregaTaxaPadrao: 0,
     entregaBairrosTaxas: "",
     entregaBairrosBloqueados: "",
-    mensagem: "Bem-vindo ao nosso cardápio digital.",
+    mensagem: "Bem-vindo ao nosso cardÃ¡pio digital.",
     logoUrl: ""
   });
+  if (request.indicacaoParceiroId && request.parceiroWhatsapp) {
+    await updateDoc(doc(db, "indicacoes_parceiros", request.indicacaoParceiroId), {
+      status: "aguardando_pagamento",
+      comissaoStatus: "aguardando pagamento e ativação",
+      estabelecimentoId: businessRef.id,
+      atualizadoEm: serverTimestamp()
+    }).catch(() => {});
+  }
   await setDoc(doc(db, `estabelecimentos/${businessRef.id}/taxas`, "padrao"), {
     creditoPercentual: 4.99,
     debitoPercentual: 2.49,
@@ -504,6 +521,18 @@ async function rejectRequest(id) {
 
 async function changeStatus(id, status) {
   await updateDoc(doc(db, "estabelecimentos", id), { status });
+  const business = state.businesses.find((item) => item.id === id);
+  const referral = state.referrals.find((item) => item.estabelecimentoId === id || item.id === business?.indicacaoParceiroId);
+  if (referral) {
+    const isActive = String(status).toLowerCase() === "ativo";
+    await updateDoc(doc(db, "indicacoes_parceiros", referral.id), {
+      status: isActive ? "ativo" : status,
+      comissaoStatus: isActive ? "aguardando pagamento da comissão" : "aguardando ativação",
+      proximoVencimento: business?.proximoVencimento || null,
+      dataAtivacaoEstabelecimento: isActive ? (business?.dataAtivacao || serverTimestamp()) : (business?.dataAtivacao || null),
+      atualizadoEm: serverTimestamp()
+    }).catch(() => {});
+  }
   await loadAdminData();
 }
 
@@ -511,7 +540,7 @@ async function deleteBusiness(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business) return;
   const name = business.nomeEstabelecimento || business.responsavel || id;
-  const confirmed = confirm(`Excluir o estabelecimento "${name}" do painel administrativo?\n\nUse isso quando o usuário já foi apagado no Firebase Authentication ou quando o cadastro não deve mais aparecer no admin.`);
+  const confirmed = confirm(`Excluir o estabelecimento "${name}" do painel administrativo?\n\nUse isso quando o usuÃ¡rio jÃ¡ foi apagado no Firebase Authentication ou quando o cadastro nÃ£o deve mais aparecer no admin.`);
   if (!confirmed) return;
   await deleteDoc(doc(db, "estabelecimentos", id));
   await loadAdminData();
@@ -520,7 +549,7 @@ async function deleteBusiness(id) {
 async function migrateBusinessImages(id, button) {
   const business = state.businesses.find((item) => item.id === id);
   const name = business?.nomeEstabelecimento || business?.responsavel || id;
-  const confirmed = confirm(`Migrar imagens antigas em Base64 de "${name}" para o Firebase Storage?\n\nO sistema vai manter os mesmos campos no Firestore, trocando apenas o Base64 por um link público do Storage.`);
+  const confirmed = confirm(`Migrar imagens antigas em Base64 de "${name}" para o Firebase Storage?\n\nO sistema vai manter os mesmos campos no Firestore, trocando apenas o Base64 por um link pÃºblico do Storage.`);
   if (!confirmed) return;
   const originalText = button?.textContent || "Migrar imagens";
   if (button) {
@@ -536,11 +565,11 @@ async function migrateBusinessImages(id, button) {
     }
     await loadAdminData();
     alert(migrated
-      ? `Migração concluída. ${migrated} imagem(ns) antiga(s) foram enviadas para o Storage.`
+      ? `MigraÃ§Ã£o concluÃ­da. ${migrated} imagem(ns) antiga(s) foram enviadas para o Storage.`
       : "Nenhuma imagem antiga em Base64 foi encontrada para este estabelecimento.");
   } catch (error) {
     console.error("Erro ao migrar imagens:", error);
-    alert(`Não foi possível migrar as imagens: ${error.message}`);
+    alert(`NÃ£o foi possÃ­vel migrar as imagens: ${error.message}`);
   } finally {
     if (button) {
       button.disabled = false;
@@ -613,19 +642,19 @@ function sanitizePathPart(value) {
 function sendActivationMessage(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.activationToken) {
-    alert("Este estabelecimento ainda não tem link de ativação. Edite ou aprove novamente a solicitação.");
+    alert("Este estabelecimento ainda nÃ£o tem link de ativaÃ§Ã£o. Edite ou aprove novamente a solicitaÃ§Ã£o.");
     return;
   }
   const link = activationLink(id, business);
   const message = [
-    `Olá, ${business.responsavel || business.nomeEstabelecimento || ""}!`,
+    `OlÃ¡, ${business.responsavel || business.nomeEstabelecimento || ""}!`,
     "",
     "Sua conta no BQ Menu foi aprovada.",
     `Para ativar o painel do estabelecimento ${business.nomeEstabelecimento || ""}, acesse o link abaixo e crie sua senha:`,
     "",
     link,
     "",
-    "Você precisará digitar a senha duas vezes para confirmar."
+    "VocÃª precisarÃ¡ digitar a senha duas vezes para confirmar."
   ].join("\n");
   const phone = normalizePhone(business.whatsapp || "");
   const whatsappUrl = whatsappLink(phone, message);
@@ -635,11 +664,11 @@ function sendActivationMessage(id) {
 async function sendPasswordReset(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.email) {
-    alert("Este estabelecimento não tem e-mail cadastrado.");
+    alert("Este estabelecimento nÃ£o tem e-mail cadastrado.");
     return;
   }
   await sendPasswordResetEmail(auth, business.email);
-  alert(`E-mail de redefinição de senha enviado para ${business.email}.`);
+  alert(`E-mail de redefiniÃ§Ã£o de senha enviado para ${business.email}.`);
 }
 
 async function resetBusinessAccess(id) {
@@ -726,7 +755,7 @@ async function saveBusiness(event) {
     dataInicio: fromDateInput(data.dataInicio),
     proximoVencimento: fromDateInput(data.proximoVencimento)
   });
-  setMessage(form.querySelector(".form-message"), "Alterações salvas.");
+  setMessage(form.querySelector(".form-message"), "AlteraÃ§Ãµes salvas.");
   closeEditor();
   await loadAdminData();
 }
@@ -860,3 +889,4 @@ function setText(selector, value) {
   const element = $(selector);
   if (element) element.textContent = value;
 }
+
