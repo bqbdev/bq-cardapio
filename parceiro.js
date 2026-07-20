@@ -6,7 +6,6 @@ import {
   setDoc,
   query,
   where,
-  orderBy,
   limit,
   serverTimestamp
 } from "./firebase.js";
@@ -18,7 +17,11 @@ const partnerPanelForm = document.querySelector("#partner-panel-form");
 const partnerMessage = document.querySelector("#partner-message");
 const referralMessage = document.querySelector("#referral-message");
 const partnerPanelMessage = document.querySelector("#partner-panel-message");
+const partnerPanelSummary = document.querySelector("#partner-panel-summary");
 const partnerPanelResults = document.querySelector("#partner-panel-results");
+const partnerLinkCard = document.querySelector("#partner-link-card");
+const partnerGeneratedLink = document.querySelector("#partner-generated-link");
+const partnerCopyLink = document.querySelector("#partner-copy-link");
 const calculatorRange = document.querySelector("#partner-calculator-range");
 const calculatorCustom = document.querySelector("#partner-calculator-custom");
 const calculatorCount = document.querySelector("#partner-calculator-count");
@@ -26,12 +29,6 @@ const calculatorTotal = document.querySelector("#partner-calculator-total");
 const calculatorNote = document.querySelector("#partner-calculator-note");
 const partnerPhoneParam = new URLSearchParams(location.search).get("parceiro") || "";
 const supportPhone = "19995016307";
-
-if (partnerPhoneParam) {
-  if (referralForm?.elements.parceiroWhatsapp) referralForm.elements.parceiroWhatsapp.value = partnerPhoneParam;
-  const panelPhone = document.querySelector("#partner-panel-phone");
-  if (panelPhone) panelPhone.value = partnerPhoneParam;
-}
 
 function normalizeEmail(value = "") {
   return String(value).trim().toLowerCase();
@@ -46,11 +43,15 @@ function safeNumber(value, fallback = 1) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function formatDate(value) {
-  if (!value) return "-";
+function dateMillis(value) {
+  if (!value) return 0;
   const date = value?.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("pt-BR");
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatDate(value) {
+  const millis = dateMillis(value);
+  return millis ? new Date(millis).toLocaleDateString("pt-BR") : "-";
 }
 
 function escapeHtml(value = "") {
@@ -79,6 +80,18 @@ function referralStatusLabel(status = "") {
   return labels[String(status).toLowerCase()] || status || "Recebida";
 }
 
+function referralLinkFor(phone) {
+  const normalized = normalizePhone(phone);
+  return normalized ? `${location.origin}${location.pathname}?parceiro=${normalized}#indicar` : "";
+}
+
+function syncPartnerLink(phone) {
+  const link = referralLinkFor(phone);
+  if (!partnerLinkCard || !partnerGeneratedLink) return;
+  partnerGeneratedLink.value = link;
+  partnerLinkCard.classList.toggle("hidden", !link);
+}
+
 function updateCalculator(value) {
   const count = safeNumber(value, 1);
   if (calculatorRange) calculatorRange.value = Math.min(count, Number(calculatorRange.max || 500));
@@ -92,9 +105,75 @@ function updateCalculator(value) {
   }
 }
 
+function renderPartnerPanel(phone, referrals) {
+  const active = referrals.filter((item) => ["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase()));
+  const paid = referrals.filter((item) => String(item.comissaoStatus || "").toLowerCase().includes("pago"));
+  const pending = referrals.filter((item) => !["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase()));
+  const nextBilling = active
+    .map((item) => ({ item, millis: dateMillis(item.proximoVencimento) }))
+    .filter((entry) => entry.millis)
+    .sort((a, b) => a.millis - b.millis)[0]?.item;
+
+  syncPartnerLink(phone);
+  setMessage(partnerPanelMessage, referrals.length
+    ? `${referrals.length} indicação(ões) encontrada(s). Previsão atual: ${money(active.length * 20)}/mês.`
+    : "Nenhuma indicação encontrada para este WhatsApp.", referrals.length ? "success" : "error");
+
+  if (partnerPanelSummary) {
+    partnerPanelSummary.classList.toggle("hidden", !referrals.length);
+    partnerPanelSummary.innerHTML = referrals.length ? `
+      <article><span>Indicações</span><strong>${referrals.length}</strong></article>
+      <article><span>Ativos</span><strong>${active.length}</strong></article>
+      <article><span>Em análise</span><strong>${pending.length}</strong></article>
+      <article><span>Comissão prevista</span><strong>${money(active.length * 20)}/mês</strong></article>
+      <article><span>Comissões pagas</span><strong>${paid.length}</strong></article>
+      <article><span>Próxima cobrança</span><strong>${nextBilling ? formatDate(nextBilling.proximoVencimento) : "-"}</strong></article>
+    ` : "";
+  }
+
+  partnerPanelResults.innerHTML = referrals.map((item) => `
+    <article class="partner-panel-item">
+      <div>
+        <strong>${escapeHtml(item.nomeEstabelecimento || "Estabelecimento")}</strong>
+        <span>${escapeHtml(referralStatusLabel(item.status))}</span>
+      </div>
+      <p>${escapeHtml(item.cidade || "-")} · ${escapeHtml(item.segmento || "-")}</p>
+      <dl>
+        <div><dt>Comissão</dt><dd>${money(Number(item.comissaoMensalPrevista || 20))}/mês</dd></div>
+        <div><dt>Próxima cobrança</dt><dd>${formatDate(item.proximoVencimento)}</dd></div>
+        <div><dt>Pago em</dt><dd>${formatDate(item.dataPagamentoComissao || item.dataPagamentoConfirmado)}</dd></div>
+        <div><dt>Status do pagamento</dt><dd>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</dd></div>
+      </dl>
+    </article>
+  `).join("");
+}
+
+if (partnerPhoneParam) {
+  if (referralForm?.elements.parceiroWhatsapp) referralForm.elements.parceiroWhatsapp.value = partnerPhoneParam;
+  const panelPhone = document.querySelector("#partner-panel-phone");
+  if (panelPhone) panelPhone.value = partnerPhoneParam;
+  syncPartnerLink(partnerPhoneParam);
+}
+
 calculatorRange?.addEventListener("input", () => updateCalculator(calculatorRange.value));
 calculatorCustom?.addEventListener("input", () => updateCalculator(calculatorCustom.value));
 updateCalculator(calculatorCustom?.value || calculatorRange?.value || 25);
+
+partnerForm?.elements.whatsapp?.addEventListener("input", () => {
+  syncPartnerLink(partnerForm.elements.whatsapp.value);
+});
+
+partnerCopyLink?.addEventListener("click", async () => {
+  const link = partnerGeneratedLink?.value || "";
+  if (!link) return;
+  try {
+    await navigator.clipboard.writeText(link);
+    setMessage(partnerMessage, "Link de indicação copiado.");
+  } catch {
+    partnerGeneratedLink.select();
+    setMessage(partnerMessage, "Link selecionado. Copie usando Ctrl+C.");
+  }
+});
 
 partnerForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -115,12 +194,14 @@ partnerForm?.addEventListener("submit", async (event) => {
       atualizadoEm: serverTimestamp()
     }, { merge: true });
 
-    const referralLink = `${location.origin}${location.pathname}?parceiro=${phone}#indicar`;
-    setMessage(partnerMessage, `Cadastro salvo. Seu link de indicação: ${referralLink}`);
+    const referralLink = referralLinkFor(phone);
+    setMessage(partnerMessage, "Cadastro salvo. Seu link de indicação foi gerado abaixo.");
+    syncPartnerLink(phone);
     partnerForm.reset();
     if (referralForm?.elements.parceiroWhatsapp) referralForm.elements.parceiroWhatsapp.value = phone;
     const panelPhone = document.querySelector("#partner-panel-phone");
     if (panelPhone) panelPhone.value = phone;
+    if (partnerGeneratedLink) partnerGeneratedLink.value = referralLink;
   } catch (error) {
     setMessage(partnerMessage, `Não foi possível salvar seu cadastro: ${error.message}`, "error");
   }
@@ -178,6 +259,7 @@ referralForm?.addEventListener("submit", async (event) => {
       estabelecimentoId: "",
       dataAtivacaoEstabelecimento: null,
       dataPagamentoConfirmado: null,
+      dataPagamentoComissao: null,
       proximoVencimento: null,
       criadoEm: serverTimestamp(),
       atualizadoEm: serverTimestamp()
@@ -212,8 +294,7 @@ referralForm?.addEventListener("submit", async (event) => {
       location.href = whatsappLink(supportPhone, message);
     }, 450);
   } catch (error) {
-    const alreadyExists = String(error?.message || "").includes("permission") || String(error?.code || "").includes("permission");
-    const text = alreadyExists
+    const text = String(error?.message || "").includes("permission") || String(error?.code || "").includes("permission")
       ? "Não foi possível registrar. Confira se esse e-mail já tem uma solicitação aberta ou se as regras do Firebase foram atualizadas."
       : `Não foi possível registrar a indicação: ${error.message}`;
     setMessage(referralMessage, text, "error");
@@ -230,34 +311,21 @@ partnerPanelForm?.addEventListener("submit", async (event) => {
 
   setMessage(partnerPanelMessage, "Buscando indicações...");
   partnerPanelResults.innerHTML = "";
+  if (partnerPanelSummary) {
+    partnerPanelSummary.classList.add("hidden");
+    partnerPanelSummary.innerHTML = "";
+  }
 
   try {
     const referralSnap = await getDocs(query(
       collection(db, "indicacoes_parceiros"),
       where("parceiroWhatsapp", "==", phone),
-      orderBy("criadoEm", "desc"),
       limit(50)
     ));
-    const referrals = referralSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
-    const active = referrals.filter((item) => ["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase()));
-    setMessage(partnerPanelMessage, referrals.length
-      ? `${referrals.length} indicação(ões) encontrada(s). Previsão atual: ${money(active.length * 20)}/mês.`
-      : "Nenhuma indicação encontrada para este WhatsApp.", referrals.length ? "success" : "error");
-
-    partnerPanelResults.innerHTML = referrals.map((item) => `
-      <article class="partner-panel-item">
-        <div>
-          <strong>${escapeHtml(item.nomeEstabelecimento || "Estabelecimento")}</strong>
-          <span>${escapeHtml(referralStatusLabel(item.status))}</span>
-        </div>
-        <p>${escapeHtml(item.cidade || "-")} · ${escapeHtml(item.segmento || "-")}</p>
-        <dl>
-          <div><dt>Comissão</dt><dd>${money(Number(item.comissaoMensalPrevista || 20))}/mês</dd></div>
-          <div><dt>Próxima cobrança</dt><dd>${formatDate(item.proximoVencimento)}</dd></div>
-          <div><dt>Pagamento</dt><dd>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</dd></div>
-        </dl>
-      </article>
-    `).join("");
+    const referrals = referralSnap.docs
+      .map((item) => ({ id: item.id, ...item.data() }))
+      .sort((a, b) => dateMillis(b.criadoEm) - dateMillis(a.criadoEm));
+    renderPartnerPanel(phone, referrals);
   } catch (error) {
     setMessage(partnerPanelMessage, `Não foi possível consultar: ${error.message}`, "error");
   }

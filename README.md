@@ -1,4 +1,4 @@
-# BQ Menu / BQ Pedidos
+# bq menu / BQ Pedidos
 
 Sistema SaaS estático para cardápio digital, pedidos online, cadastro de clientes por WhatsApp, financeiro simples e administração multiestabelecimento.
 

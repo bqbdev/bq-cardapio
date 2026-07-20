@@ -280,7 +280,7 @@ function renderDashboardLogo(src = "") {
   const target = $("#dashboard-logo");
   if (!target) return;
   const logo = src || $("#settings-form")?.elements.logoUrl?.value || "";
-  target.innerHTML = logo ? `<img src="${logo}" alt="Logo do estabelecimento" decoding="async">` : "BQ";
+  target.innerHTML = logo ? `<img src="${logo}" alt="Logo do estabelecimento" decoding="async">` : "bq";
   target.classList.toggle("has-image", Boolean(logo));
 }
 
@@ -922,7 +922,7 @@ function updateOrdersNotification(newOrders = []) {
     badge.textContent = String(pending);
     badge.classList.toggle("hidden", pending <= 0);
   }
-  document.title = pending > 0 ? `(${pending}) BQ Menu` : "BQ Menu";
+  document.title = pending > 0 ? `(${pending}) bq menu` : "bq menu";
   if (newOrders.length) {
     playOrderNotification();
     showPanelNotice(`${newOrders.length} novo${newOrders.length > 1 ? "s" : ""} pedido${newOrders.length > 1 ? "s" : ""}`);

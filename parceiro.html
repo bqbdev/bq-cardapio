@@ -131,6 +131,14 @@
           <button class="btn btn-primary full" type="submit">Salvar meu cadastro de parceiro</button>
         </form>
         <p id="partner-message" class="form-message" role="status"></p>
+        <div id="partner-link-card" class="partner-link-card hidden">
+          <span>Seu link de indicação</span>
+          <div>
+            <input id="partner-generated-link" readonly>
+            <button id="partner-copy-link" class="btn btn-small" type="button">Copiar link</button>
+          </div>
+          <small>Envie esse link para quem quer indicar com seu código já preenchido.</small>
+        </div>
       </div>
 
       <div id="indicar" class="partner-form-card">
@@ -183,6 +191,7 @@
           <button class="btn btn-primary" type="submit">Consultar</button>
         </form>
         <p id="partner-panel-message" class="form-message" role="status"></p>
+        <div id="partner-panel-summary" class="partner-panel-summary hidden"></div>
         <div id="partner-panel-results" class="partner-panel-results"></div>
       </div>
     </section>
@@ -199,6 +208,6 @@
     </a>
   </footer>
 
-  <script type="module" src="parceiro.js?v=parceiro-2"></script>
+  <script type="module" src="parceiro.js?v=parceiro-3"></script>
 </body>
 </html>

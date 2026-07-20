@@ -456,7 +456,7 @@ function renderMenuHero() {
         ? `<img src="${heroImage}" alt="Foto de destaque do cardápio" loading="eager" decoding="async" fetchpriority="high">`
         : product?.fotoUrl
           ? `<img src="${product.fotoUrl}" alt="${escapeHtml(product.nome)}" loading="eager" decoding="async" fetchpriority="high">`
-          : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "BQ").slice(0, 2).toUpperCase())}</div>`}
+          : `<div class="hero-product-fallback">${escapeHtml((state.settings.nomePublico || state.business.nomeEstabelecimento || "bq").slice(0, 2).toUpperCase())}</div>`}
     </div>
   `;
 }
@@ -483,13 +483,13 @@ function renderCategories(activeId = "todos") {
 
 function categoryIcon(item) {
   const name = normalizeAreaName(item.nome || item.id || "");
-  if (item.id === "todos") return "BQ";
+  if (item.id === "todos") return "bq";
   if (name.includes("pizza")) return "PZ";
   if (name.includes("porc")) return "PR";
   if (name.includes("bebida") || name.includes("suco")) return "BD";
   if (name.includes("lanche") || name.includes("burger") || name.includes("hamb")) return "LN";
   if (name.includes("sobremesa") || name.includes("doce")) return "SB";
-  return String(item.nome || "BQ").slice(0, 2).toUpperCase();
+  return String(item.nome || "bq").slice(0, 2).toUpperCase();
 }
 
 function renderProducts(categoryId = "todos") {
@@ -498,7 +498,7 @@ function renderProducts(categoryId = "todos") {
     .sort((a, b) => moduleBuilderPriority(a, b, categoryId));
   $("#menu-products").innerHTML = products.map((item) => `
     <article class="product-card ${item.destaque ? "is-featured" : ""}">
-      ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}" loading="lazy" decoding="async">` : `<div class="product-image-fallback">BQ</div>`}
+      ${item.fotoUrl ? `<img src="${item.fotoUrl}" alt="${item.nome}" loading="lazy" decoding="async">` : `<div class="product-image-fallback">bq</div>`}
       <div class="product-body">
         ${item.destaque ? "<span class='menu-badge'>Mais pedido</span>" : ""}
         <strong>${item.nome}</strong>

@@ -143,8 +143,8 @@ async function loadAdminData() {
     updateNavigationBadges();
   } catch (error) {
     console.error("Erro ao carregar dados do admin:", error);
-    $("#requests-list").innerHTML = `<p class="form-message error">NÃ£o foi possÃ­vel carregar as solicitaÃ§Ãµes: ${escapeHtml(error.message)}</p>`;
-    $("#business-table").innerHTML = "<tr><td colspan='6'>NÃ£o foi possÃ­vel carregar os estabelecimentos.</td></tr>";
+    $("#requests-list").innerHTML = `<p class="form-message error">Não foi possível carregar as solicitações: ${escapeHtml(error.message)}</p>`;
+    $("#business-table").innerHTML = "<tr><td colspan='6'>Não foi possível carregar os estabelecimentos.</td></tr>";
   }
 }
 
@@ -160,7 +160,7 @@ async function loadAllClients(businesses) {
         ...item.data()
       }));
     } catch (error) {
-      console.warn(`NÃ£o foi possÃ­vel carregar clientes de ${business.nomeEstabelecimento || business.id}:`, error);
+      console.warn(`Não foi possível carregar clientes de ${business.nomeEstabelecimento || business.id}:`, error);
       return [];
     }
   }));
@@ -215,14 +215,14 @@ function renderAdminInsights() {
   setText("#insight-clientes-reativar", reactivationClients.length);
   setText("#insight-ticket-clientes", totalOrders ? money(totalValue / totalOrders) : money(0));
   setText("#admin-tip-1", clientsInPeriod.length
-    ? `${clientsInPeriod.length} cliente(s) compraram no perÃ­odo selecionado. Use a aba Clientes para filtrar e exportar essa base.`
-    : "Nenhum cliente com compra registrada no perÃ­odo selecionado. Vale estimular os estabelecimentos a divulgarem o cardÃ¡pio.");
+    ? `${clientsInPeriod.length} cliente(s) compraram no período selecionado. Use a aba Clientes para filtrar e exportar essa base.`
+    : "Nenhum cliente com compra registrada no período selecionado. Vale estimular os estabelecimentos a divulgarem o cardápio.");
   setText("#admin-tip-2", reactivationClients.length
-    ? `${reactivationClients.length} cliente(s) estÃ£o sem compra hÃ¡ mais de 45 dias e podem receber uma campanha de retorno.`
-    : "A base nÃ£o tem clientes claros para reativaÃ§Ã£o no momento.");
+    ? `${reactivationClients.length} cliente(s) estão sem compra há mais de 45 dias e podem receber uma campanha de retorno.`
+    : "A base não tem clientes claros para reativação no momento.");
   setText("#admin-tip-3", dueSoon.length
-    ? `${dueSoon.length} estabelecimento(s) vencem nos prÃ³ximos 15 dias. Priorize contato antes do bloqueio.`
-    : "Nenhum vencimento crÃ­tico nos prÃ³ximos 15 dias.");
+    ? `${dueSoon.length} estabelecimento(s) vencem nos próximos 15 dias. Priorize contato antes do bloqueio.`
+    : "Nenhum vencimento crítico nos próximos 15 dias.");
 }
 
 function renderRequests() {
@@ -237,7 +237,7 @@ function renderRequests() {
         <button class="btn btn-small" data-reject="${item.id}">Recusar</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhuma solicitaÃ§Ã£o pendente.</p>";
+  `).join("") || "<p>Nenhuma solicitação pendente.</p>";
   document.querySelectorAll("[data-approve]").forEach((button) => button.addEventListener("click", () => approveRequest(button.dataset.approve)));
   document.querySelectorAll("[data-reject]").forEach((button) => button.addEventListener("click", () => rejectRequest(button.dataset.reject)));
 }
@@ -294,9 +294,13 @@ function renderPartners() {
         <td>${escapeHtml(item.cidade || "-")}</td>
         <td><span class="pill">${escapeHtml(item.status || "novo")}</span></td>
         <td>${toBrazilDate(item.criadoEm) || "-"}</td>
+        <td><button class="btn btn-small" type="button" data-referral-paid="${item.id}">Marcar pago</button></td>
       </tr>
     `;
-  }).join("") || "<tr><td colspan='9'>Nenhuma indicação registrada.</td></tr>";
+  }).join("") || "<tr><td colspan='10'>Nenhuma indicação registrada.</td></tr>";
+  document.querySelectorAll("[data-referral-paid]").forEach((button) => {
+    button.addEventListener("click", () => markReferralCommissionPaid(button.dataset.referralPaid));
+  });
 }
 function renderDueDates() {
   const due = dueBusinesses(15);
@@ -311,7 +315,7 @@ function renderDueDates() {
         <button class="btn btn-small" data-status="${item.id}" data-value="vencido" type="button">Marcar vencido</button>
       </div>
     </article>
-  `).join("") || "<p>Nenhum vencimento nos prÃ³ximos 15 dias.</p>";
+  `).join("") || "<p>Nenhum vencimento nos próximos 15 dias.</p>";
   $("#due-list").querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
   $("#due-list").querySelectorAll("[data-status]").forEach((button) => button.addEventListener("click", () => changeStatus(button.dataset.status, button.dataset.value)));
 }
@@ -326,7 +330,7 @@ function renderBusinesses() {
       <td>${escapeHtml(item.metodoPagamento || "-")}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
-        ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativaÃ§Ã£o</button>` : ""}
+        ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativação</button>` : ""}
         <button class="btn btn-small" data-password-reset="${item.id}">Resetar senha</button>
         <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
         <button class="btn btn-small" data-migrate-images="${item.id}">Migrar imagens</button>
@@ -364,7 +368,7 @@ function renderClients() {
   tbody.innerHTML = clients.map((client) => {
     const phone = normalizePhone(client.whatsapp || client.id);
     const location = [client.bairro, client.cidade || client.estabelecimentoCidade].filter(Boolean).join(" - ");
-    const waUrl = phone ? whatsappLink(phone, `OlÃ¡, ${client.nome || "tudo bem"}!`) : "";
+    const waUrl = phone ? whatsappLink(phone, `Olá, ${client.nome || "tudo bem"}!`) : "";
     return `
       <tr>
         <td><strong>${escapeHtml(client.nome || client.nomeCliente || "Cliente sem nome")}</strong><br><small>${escapeHtml(client.endereco || "")}</small></td>
@@ -400,7 +404,7 @@ function filteredClients() {
 
 function exportClientsCsv() {
   const rows = filteredClients();
-  const header = ["Cliente", "WhatsApp", "Estabelecimento", "Cidade", "Bairro", "Pedidos", "Total comprado", "Ãšltima compra", "Tags"];
+  const header = ["Cliente", "WhatsApp", "Estabelecimento", "Cidade", "Bairro", "Pedidos", "Total comprado", "Última compra", "Tags"];
   const lines = [
     header,
     ...rows.map((client) => [
@@ -487,7 +491,7 @@ async function approveRequest(id) {
     entregaTaxaPadrao: 0,
     entregaBairrosTaxas: "",
     entregaBairrosBloqueados: "",
-    mensagem: "Bem-vindo ao nosso cardÃ¡pio digital.",
+    mensagem: "Bem-vindo ao nosso cardápio digital.",
     logoUrl: ""
   });
   if (request.indicacaoParceiroId && request.parceiroWhatsapp) {
@@ -536,11 +540,24 @@ async function changeStatus(id, status) {
   await loadAdminData();
 }
 
+async function markReferralCommissionPaid(id) {
+  const referral = state.referrals.find((item) => item.id === id);
+  if (!referral) return;
+  const confirmed = confirm(`Marcar comissão como paga para "${referral.nomeEstabelecimento || "indicação"}"?`);
+  if (!confirmed) return;
+  await updateDoc(doc(db, "indicacoes_parceiros", id), {
+    comissaoStatus: "pago",
+    dataPagamentoComissao: serverTimestamp(),
+    atualizadoEm: serverTimestamp()
+  });
+  await loadAdminData();
+}
+
 async function deleteBusiness(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business) return;
   const name = business.nomeEstabelecimento || business.responsavel || id;
-  const confirmed = confirm(`Excluir o estabelecimento "${name}" do painel administrativo?\n\nUse isso quando o usuÃ¡rio jÃ¡ foi apagado no Firebase Authentication ou quando o cadastro nÃ£o deve mais aparecer no admin.`);
+  const confirmed = confirm(`Excluir o estabelecimento "${name}" do painel administrativo?\n\nUse isso quando o usuário já foi apagado no Firebase Authentication ou quando o cadastro não deve mais aparecer no admin.`);
   if (!confirmed) return;
   await deleteDoc(doc(db, "estabelecimentos", id));
   await loadAdminData();
@@ -549,7 +566,7 @@ async function deleteBusiness(id) {
 async function migrateBusinessImages(id, button) {
   const business = state.businesses.find((item) => item.id === id);
   const name = business?.nomeEstabelecimento || business?.responsavel || id;
-  const confirmed = confirm(`Migrar imagens antigas em Base64 de "${name}" para o Firebase Storage?\n\nO sistema vai manter os mesmos campos no Firestore, trocando apenas o Base64 por um link pÃºblico do Storage.`);
+  const confirmed = confirm(`Migrar imagens antigas em Base64 de "${name}" para o Firebase Storage?\n\nO sistema vai manter os mesmos campos no Firestore, trocando apenas o Base64 por um link público do Storage.`);
   if (!confirmed) return;
   const originalText = button?.textContent || "Migrar imagens";
   if (button) {
@@ -565,11 +582,11 @@ async function migrateBusinessImages(id, button) {
     }
     await loadAdminData();
     alert(migrated
-      ? `MigraÃ§Ã£o concluÃ­da. ${migrated} imagem(ns) antiga(s) foram enviadas para o Storage.`
+      ? `Migração concluída. ${migrated} imagem(ns) antiga(s) foram enviadas para o Storage.`
       : "Nenhuma imagem antiga em Base64 foi encontrada para este estabelecimento.");
   } catch (error) {
     console.error("Erro ao migrar imagens:", error);
-    alert(`NÃ£o foi possÃ­vel migrar as imagens: ${error.message}`);
+    alert(`Não foi possível migrar as imagens: ${error.message}`);
   } finally {
     if (button) {
       button.disabled = false;
@@ -642,19 +659,19 @@ function sanitizePathPart(value) {
 function sendActivationMessage(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.activationToken) {
-    alert("Este estabelecimento ainda nÃ£o tem link de ativaÃ§Ã£o. Edite ou aprove novamente a solicitaÃ§Ã£o.");
+    alert("Este estabelecimento ainda não tem link de ativação. Edite ou aprove novamente a solicitação.");
     return;
   }
   const link = activationLink(id, business);
   const message = [
-    `OlÃ¡, ${business.responsavel || business.nomeEstabelecimento || ""}!`,
+    `Olá, ${business.responsavel || business.nomeEstabelecimento || ""}!`,
     "",
-    "Sua conta no BQ Menu foi aprovada.",
+    "Sua conta no bq menu foi aprovada.",
     `Para ativar o painel do estabelecimento ${business.nomeEstabelecimento || ""}, acesse o link abaixo e crie sua senha:`,
     "",
     link,
     "",
-    "VocÃª precisarÃ¡ digitar a senha duas vezes para confirmar."
+    "Você precisará digitar a senha duas vezes para confirmar."
   ].join("\n");
   const phone = normalizePhone(business.whatsapp || "");
   const whatsappUrl = whatsappLink(phone, message);
@@ -664,11 +681,11 @@ function sendActivationMessage(id) {
 async function sendPasswordReset(id) {
   const business = state.businesses.find((item) => item.id === id);
   if (!business?.email) {
-    alert("Este estabelecimento nÃ£o tem e-mail cadastrado.");
+    alert("Este estabelecimento não tem e-mail cadastrado.");
     return;
   }
   await sendPasswordResetEmail(auth, business.email);
-  alert(`E-mail de redefiniÃ§Ã£o de senha enviado para ${business.email}.`);
+  alert(`E-mail de redefinição de senha enviado para ${business.email}.`);
 }
 
 async function resetBusinessAccess(id) {
@@ -755,7 +772,7 @@ async function saveBusiness(event) {
     dataInicio: fromDateInput(data.dataInicio),
     proximoVencimento: fromDateInput(data.proximoVencimento)
   });
-  setMessage(form.querySelector(".form-message"), "AlteraÃ§Ãµes salvas.");
+  setMessage(form.querySelector(".form-message"), "Alterações salvas.");
   closeEditor();
   await loadAdminData();
 }
