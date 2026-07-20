@@ -36,6 +36,8 @@ const state = {
   businesses: [],
   requests: [],
   clients: [],
+  partners: [],
+  referrals: [],
   adminPeriod: "30",
   adminStartDate: "",
   adminEndDate: "",
@@ -44,7 +46,7 @@ const state = {
 };
 
 const $ = (selector) => document.querySelector(selector);
-const adminViews = ["dashboard", "solicitacoes", "estabelecimentos", "clientes", "vencimentos"];
+const adminViews = ["dashboard", "solicitacoes", "estabelecimentos", "clientes", "parceiros", "vencimentos"];
 
 onAuthStateChanged(auth, async (user) => {
   try {
@@ -116,11 +118,15 @@ function bindAdminControls() {
 
 async function loadAdminData() {
   try {
-    const [businessSnap, requestSnap] = await Promise.all([
+    const [businessSnap, requestSnap, partnerSnap, referralSnap] = await Promise.all([
       getDocs(query(collection(db, "estabelecimentos"), orderBy("dataCriacao", "desc"))),
-      getDocs(collection(db, "solicitacoes_estabelecimentos"))
+      getDocs(collection(db, "solicitacoes_estabelecimentos")),
+      getDocs(collection(db, "parceiros")),
+      getDocs(query(collection(db, "indicacoes_parceiros"), orderBy("criadoEm", "desc")))
     ]);
     state.businesses = businessSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    state.partners = partnerSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
+    state.referrals = referralSnap.docs.map((item) => ({ id: item.id, ...item.data() }));
     state.requests = requestSnap.docs
       .map((item) => ({ id: item.id, ...item.data() }))
       .filter((item) => String(item.status || "").toLowerCase() === "pendente")
@@ -132,6 +138,7 @@ async function loadAdminData() {
     renderBusinesses();
     renderClientBusinessFilter();
     renderClients();
+    renderPartners();
     renderDueDates();
     updateNavigationBadges();
   } catch (error) {
@@ -237,9 +244,52 @@ function renderRequests() {
 
 function updateNavigationBadges() {
   const badge = $("#requests-nav-badge");
-  if (!badge) return;
-  badge.textContent = state.requests.length;
-  badge.classList.toggle("hidden", state.requests.length === 0);
+  if (badge) {
+    badge.textContent = state.requests.length;
+    badge.classList.toggle("hidden", state.requests.length === 0);
+  }
+  const partnerBadge = $("#partners-nav-badge");
+  if (partnerBadge) {
+    const pending = state.referrals.filter((item) => String(item.status || "").toLowerCase() === "novo").length;
+    partnerBadge.textContent = pending;
+    partnerBadge.classList.toggle("hidden", pending === 0);
+  }
+}
+
+function renderPartners() {
+  const activeReferrals = state.referrals.filter((item) => ["ativo", "convertido", "pagando"].includes(String(item.status || "").toLowerCase()));
+  const monthlyCommission = activeReferrals.length * 20;
+  setText("#metric-partners", state.partners.length);
+  setText("#metric-referrals", state.referrals.length);
+  setText("#metric-referral-active", activeReferrals.length);
+  setText("#metric-referral-commission", money(monthlyCommission));
+
+  const partnerRows = state.partners.map((partner) => {
+    const referrals = state.referrals.filter((item) => normalizePhone(item.parceiroWhatsapp || item.parceiroId) === normalizePhone(partner.whatsapp || partner.id));
+    const active = referrals.filter((item) => ["ativo", "convertido", "pagando"].includes(String(item.status || "").toLowerCase()));
+    return `
+      <tr>
+        <td><strong>${escapeHtml(partner.nome || "Parceiro sem nome")}</strong><br><small>${escapeHtml(partner.email || "")}</small></td>
+        <td>${escapeHtml(normalizePhone(partner.whatsapp || partner.id) || "-")}</td>
+        <td>${referrals.length}</td>
+        <td>${active.length}</td>
+        <td>${money(active.length * 20)}</td>
+      </tr>
+    `;
+  }).join("");
+  $("#partners-table").innerHTML = partnerRows || "<tr><td colspan='5'>Nenhum parceiro cadastrado.</td></tr>";
+
+  $("#referrals-table").innerHTML = state.referrals.map((item) => `
+    <tr>
+      <td><strong>${escapeHtml(item.nomeEstabelecimento || "-")}</strong><br><small>${escapeHtml(item.responsavel || "")}</small></td>
+      <td>${escapeHtml(normalizePhone(item.whatsappEstabelecimento) || "-")}</td>
+      <td>${escapeHtml(normalizePhone(item.parceiroWhatsapp || item.parceiroId) || "-")}</td>
+      <td>${escapeHtml(item.segmento || "-")}</td>
+      <td>${escapeHtml(item.cidade || "-")}</td>
+      <td><span class="pill">${escapeHtml(item.status || "novo")}</span></td>
+      <td>${toBrazilDate(item.criadoEm) || "-"}</td>
+    </tr>
+  `).join("") || "<tr><td colspan='7'>Nenhuma indicação registrada.</td></tr>";
 }
 
 function renderDueDates() {

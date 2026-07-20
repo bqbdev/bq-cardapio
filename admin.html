@@ -27,6 +27,7 @@
       <a class="admin-nav-link" href="#solicitacoes" data-admin-view="solicitacoes">Solicitações <span id="requests-nav-badge" class="nav-badge hidden">0</span></a>
       <a class="admin-nav-link" href="#estabelecimentos" data-admin-view="estabelecimentos">Estabelecimentos</a>
       <a class="admin-nav-link" href="#clientes" data-admin-view="clientes">Clientes</a>
+      <a class="admin-nav-link" href="#parceiros" data-admin-view="parceiros">Parceiros <span id="partners-nav-badge" class="nav-badge hidden">0</span></a>
       <a class="admin-nav-link" href="#vencimentos" data-admin-view="vencimentos">Vencimentos</a>
     </nav>
     <button id="logout-btn" class="btn btn-ghost">Sair</button>
@@ -157,11 +158,40 @@
       </div>
     </section>
 
+    <section id="parceiros" class="panel admin-view" data-view="parceiros">
+      <div class="panel-heading">
+        <div>
+          <h2>bq parceiro</h2>
+          <p>Controle parceiros, indicações recebidas e comissão prevista por restaurantes ativos.</p>
+        </div>
+        <a class="btn btn-small btn-primary" href="parceiro.html" target="_blank" rel="noopener">Abrir página pública</a>
+      </div>
+      <div class="metric-grid compact-metrics">
+        <article class="metric-card"><span>Parceiros</span><strong id="metric-partners">0</strong></article>
+        <article class="metric-card"><span>Indicações</span><strong id="metric-referrals">0</strong></article>
+        <article class="metric-card"><span>Ativos indicados</span><strong id="metric-referral-active">0</strong></article>
+        <article class="metric-card"><span>Comissão mensal prevista</span><strong id="metric-referral-commission">R$ 0,00</strong></article>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Parceiro</th><th>WhatsApp</th><th>Indicações</th><th>Ativos</th><th>Previsão mensal</th></tr></thead>
+          <tbody id="partners-table"></tbody>
+        </table>
+      </div>
+      <h3>Indicações recebidas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Estabelecimento</th><th>WhatsApp</th><th>Parceiro</th><th>Segmento</th><th>Cidade</th><th>Status</th><th>Data</th></tr></thead>
+          <tbody id="referrals-table"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section id="vencimentos" class="panel admin-view" data-view="vencimentos">
       <div class="panel-heading"><h2>Próximos vencimentos</h2><span id="due-count" class="pill">0</span></div>
       <div id="due-list" class="stack-list"></div>
     </section>
   </main>
-  <script type="module" src="admin.js?v=migrar-imagens-storage-1"></script>
+  <script type="module" src="admin.js?v=parceiros-1"></script>
 </body>
 </html>
