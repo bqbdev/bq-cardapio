@@ -19,6 +19,10 @@ const referralMessage = document.querySelector("#referral-message");
 const partnerPanelMessage = document.querySelector("#partner-panel-message");
 const partnerPanelSummary = document.querySelector("#partner-panel-summary");
 const partnerPanelResults = document.querySelector("#partner-panel-results");
+const partnerPanelMonth = document.querySelector("#partner-panel-month");
+const partnerPanelLinkCard = document.querySelector("#partner-panel-link-card");
+const partnerPanelLink = document.querySelector("#partner-panel-link");
+const partnerPanelCopyLink = document.querySelector("#partner-panel-copy-link");
 const partnerLinkCard = document.querySelector("#partner-link-card");
 const partnerGeneratedLink = document.querySelector("#partner-generated-link");
 const partnerCopyLink = document.querySelector("#partner-copy-link");
@@ -29,6 +33,8 @@ const calculatorTotal = document.querySelector("#partner-calculator-total");
 const calculatorNote = document.querySelector("#partner-calculator-note");
 const partnerPhoneParam = new URLSearchParams(location.search).get("parceiro") || "";
 const supportPhone = "19995016307";
+let lastPanelPhone = "";
+let lastPanelReferrals = [];
 
 function normalizeEmail(value = "") {
   return String(value).trim().toLowerCase();
@@ -52,6 +58,78 @@ function dateMillis(value) {
 function formatDate(value) {
   const millis = dateMillis(value);
   return millis ? new Date(millis).toLocaleDateString("pt-BR") : "-";
+}
+
+function monthKeyFromMillis(millis) {
+  if (!millis) return "";
+  const date = new Date(millis);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(key) {
+  if (key === "all") return "Todos os meses";
+  if (key === "next") return "Próximos meses";
+  const [year, month] = String(key).split("-").map(Number);
+  if (!year || !month) return key || "-";
+  return new Date(year, month - 1, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric"
+  });
+}
+
+function currentMonthKey() {
+  return monthKeyFromMillis(Date.now());
+}
+
+function commissionPaidMillis(item) {
+  return dateMillis(item.dataPagamentoComissao || item.dataPagamentoConfirmado);
+}
+
+function isActiveReferral(item) {
+  return ["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase());
+}
+
+function selectedMonthValue() {
+  return partnerPanelMonth?.value || "all";
+}
+
+function populateMonthFilter(referrals) {
+  if (!partnerPanelMonth) return;
+  const selected = partnerPanelMonth.value || "all";
+  const months = new Set();
+  referrals.forEach((item) => {
+    const paidKey = monthKeyFromMillis(commissionPaidMillis(item));
+    const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
+    if (paidKey) months.add(paidKey);
+    if (nextKey) months.add(nextKey);
+  });
+  const options = [
+    ["all", "Todos os meses"],
+    [currentMonthKey(), "Mês atual"],
+    ["next", "Próximos meses"],
+    ...Array.from(months).sort().reverse().map((key) => [key, monthLabel(key)])
+  ];
+  const uniqueOptions = Array.from(new Map(options).entries());
+  partnerPanelMonth.innerHTML = uniqueOptions
+    .map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`)
+    .join("");
+  partnerPanelMonth.value = uniqueOptions.some(([value]) => value === selected) ? selected : "all";
+}
+
+function filterReferralsByMonth(referrals, monthValue) {
+  if (!monthValue || monthValue === "all") return referrals;
+  const current = currentMonthKey();
+  if (monthValue === "next") {
+    return referrals.filter((item) => {
+      const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
+      return isActiveReferral(item) && nextKey && nextKey >= current;
+    });
+  }
+  return referrals.filter((item) => {
+    const paidKey = monthKeyFromMillis(commissionPaidMillis(item));
+    const nextKey = monthKeyFromMillis(dateMillis(item.proximoVencimento));
+    return paidKey === monthValue || (isActiveReferral(item) && nextKey === monthValue);
+  });
 }
 
 function escapeHtml(value = "") {
@@ -90,6 +168,10 @@ function syncPartnerLink(phone) {
   if (!partnerLinkCard || !partnerGeneratedLink) return;
   partnerGeneratedLink.value = link;
   partnerLinkCard.classList.toggle("hidden", !link);
+  if (partnerPanelLinkCard && partnerPanelLink) {
+    partnerPanelLink.value = link;
+    partnerPanelLinkCard.classList.toggle("hidden", !link);
+  }
 }
 
 function updateCalculator(value) {
@@ -106,9 +188,14 @@ function updateCalculator(value) {
 }
 
 function renderPartnerPanel(phone, referrals) {
-  const active = referrals.filter((item) => ["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase()));
-  const paid = referrals.filter((item) => String(item.comissaoStatus || "").toLowerCase().includes("pago"));
-  const pending = referrals.filter((item) => !["ativo", "pagando", "convertido"].includes(String(item.status || "").toLowerCase()));
+  const monthValue = selectedMonthValue();
+  const filteredReferrals = filterReferralsByMonth(referrals, monthValue);
+  const active = referrals.filter(isActiveReferral);
+  const filteredActive = filteredReferrals.filter(isActiveReferral);
+  const paid = filteredReferrals.filter((item) => String(item.comissaoStatus || "").toLowerCase().includes("pago"));
+  const pending = filteredReferrals.filter((item) => !isActiveReferral(item));
+  const paidValue = paid.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
+  const projectedValue = filteredActive.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
   const nextBilling = active
     .map((item) => ({ item, millis: dateMillis(item.proximoVencimento) }))
     .filter((entry) => entry.millis)
@@ -116,7 +203,7 @@ function renderPartnerPanel(phone, referrals) {
 
   syncPartnerLink(phone);
   setMessage(partnerPanelMessage, referrals.length
-    ? `${referrals.length} indicação(ões) encontrada(s). Previsão atual: ${money(active.length * 20)}/mês.`
+    ? `${referrals.length} indicação(ões) encontrada(s). Exibindo ${filteredReferrals.length} em ${monthLabel(monthValue)}. Previsão recorrente atual: ${money(active.length * 20)}/mês.`
     : "Nenhuma indicação encontrada para este WhatsApp.", referrals.length ? "success" : "error");
 
   if (partnerPanelSummary) {
@@ -125,13 +212,13 @@ function renderPartnerPanel(phone, referrals) {
       <article><span>Indicações</span><strong>${referrals.length}</strong></article>
       <article><span>Ativos</span><strong>${active.length}</strong></article>
       <article><span>Em análise</span><strong>${pending.length}</strong></article>
-      <article><span>Comissão prevista</span><strong>${money(active.length * 20)}/mês</strong></article>
-      <article><span>Comissões pagas</span><strong>${paid.length}</strong></article>
+      <article><span>Pago no período</span><strong>${money(paidValue)}</strong></article>
+      <article><span>Previsão do período</span><strong>${money(projectedValue)}</strong></article>
       <article><span>Próxima cobrança</span><strong>${nextBilling ? formatDate(nextBilling.proximoVencimento) : "-"}</strong></article>
     ` : "";
   }
 
-  partnerPanelResults.innerHTML = referrals.map((item) => `
+  partnerPanelResults.innerHTML = filteredReferrals.length ? filteredReferrals.map((item) => `
     <article class="partner-panel-item">
       <div>
         <strong>${escapeHtml(item.nomeEstabelecimento || "Estabelecimento")}</strong>
@@ -145,11 +232,16 @@ function renderPartnerPanel(phone, referrals) {
         <div><dt>Status do pagamento</dt><dd>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</dd></div>
       </dl>
     </article>
-  `).join("");
+  `).join("") : "<p class=\"partner-empty-state\">Nenhuma indicação encontrada para o mês selecionado.</p>";
 }
 
 if (partnerPhoneParam) {
-  if (referralForm?.elements.parceiroWhatsapp) referralForm.elements.parceiroWhatsapp.value = partnerPhoneParam;
+  if (referralForm?.elements.parceiroWhatsapp) {
+    referralForm.elements.parceiroWhatsapp.value = partnerPhoneParam;
+    referralForm.elements.parceiroWhatsapp.readOnly = true;
+    referralForm.elements.parceiroWhatsapp.classList.add("is-locked");
+    referralForm.elements.parceiroWhatsapp.title = "WhatsApp do parceiro que gerou este link";
+  }
   const panelPhone = document.querySelector("#partner-panel-phone");
   if (panelPhone) panelPhone.value = partnerPhoneParam;
   syncPartnerLink(partnerPhoneParam);
@@ -173,6 +265,22 @@ partnerCopyLink?.addEventListener("click", async () => {
     partnerGeneratedLink.select();
     setMessage(partnerMessage, "Link selecionado. Copie usando Ctrl+C.");
   }
+});
+
+partnerPanelCopyLink?.addEventListener("click", async () => {
+  const link = partnerPanelLink?.value || "";
+  if (!link) return;
+  try {
+    await navigator.clipboard.writeText(link);
+    setMessage(partnerPanelMessage, "Link de indicação copiado.");
+  } catch {
+    partnerPanelLink.select();
+    setMessage(partnerPanelMessage, "Link selecionado. Copie usando Ctrl+C.");
+  }
+});
+
+partnerPanelMonth?.addEventListener("change", () => {
+  if (lastPanelPhone) renderPartnerPanel(lastPanelPhone, lastPanelReferrals);
 });
 
 partnerForm?.addEventListener("submit", async (event) => {
@@ -325,6 +433,9 @@ partnerPanelForm?.addEventListener("submit", async (event) => {
     const referrals = referralSnap.docs
       .map((item) => ({ id: item.id, ...item.data() }))
       .sort((a, b) => dateMillis(b.criadoEm) - dateMillis(a.criadoEm));
+    lastPanelPhone = phone;
+    lastPanelReferrals = referrals;
+    populateMonthFilter(referrals);
     renderPartnerPanel(phone, referrals);
   } catch (error) {
     setMessage(partnerPanelMessage, `Não foi possível consultar: ${error.message}`, "error");

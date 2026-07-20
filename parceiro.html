@@ -148,7 +148,7 @@
           <p>Preencha como uma solicitação normal. A ativação e o pagamento ficam com a equipe bq menu.</p>
         </div>
         <form id="referral-form" class="form-grid">
-          <label>Seu WhatsApp de parceiro<input name="parceiroWhatsapp" required inputmode="tel" placeholder="Mesmo WhatsApp do cadastro"></label>
+          <label>WhatsApp do parceiro que indicou<input name="parceiroWhatsapp" required inputmode="tel" placeholder="Mesmo WhatsApp do cadastro"></label>
           <label>Nome do estabelecimento<input name="nomeEstabelecimento" required></label>
           <label>Nome do responsável<input name="responsavel" required></label>
           <label>WhatsApp do estabelecimento<input name="whatsapp" required inputmode="tel" placeholder="19999999999"></label>
@@ -184,13 +184,24 @@
         <div>
           <p class="eyebrow">Painel do parceiro</p>
           <h2>Acompanhe suas indicações</h2>
-          <p>Digite seu WhatsApp para ver estabelecimentos indicados, status, próxima cobrança e comissão prevista.</p>
+          <p>Digite seu WhatsApp para ver seu link de indicação, estabelecimentos indicados, status, ganhos já pagos e previsão dos próximos meses.</p>
         </div>
         <form id="partner-panel-form" class="partner-panel-form">
           <input id="partner-panel-phone" name="whatsapp" inputmode="tel" placeholder="Seu WhatsApp de parceiro" required>
+          <select id="partner-panel-month" name="month" aria-label="Mês de análise">
+            <option value="all">Todos os meses</option>
+          </select>
           <button class="btn btn-primary" type="submit">Consultar</button>
         </form>
         <p id="partner-panel-message" class="form-message" role="status"></p>
+        <div id="partner-panel-link-card" class="partner-link-card hidden">
+          <span>Seu link para indicar estabelecimentos</span>
+          <div>
+            <input id="partner-panel-link" readonly>
+            <button id="partner-panel-copy-link" class="btn btn-small" type="button">Copiar link</button>
+          </div>
+          <small>Envie este link. O campo do WhatsApp do parceiro ficará preenchido e bloqueado para manter sua indicação correta.</small>
+        </div>
         <div id="partner-panel-summary" class="partner-panel-summary hidden"></div>
         <div id="partner-panel-results" class="partner-panel-results"></div>
       </div>
@@ -208,6 +219,6 @@
     </a>
   </footer>
 
-  <script type="module" src="parceiro.js?v=parceiro-3"></script>
+  <script type="module" src="parceiro.js?v=parceiro-4"></script>
 </body>
 </html>
