@@ -20,7 +20,7 @@ import {
   uploadString,
   getDownloadURL
 } from "./firebase.js";
-import { addMonths, formToObject, money, numberValue, planMonths, printOrder, setMessage, toBrazilDate } from "./utils.js";
+import { addMonths, formToObject, money, numberValue, planMonths, printOrder, publicMenuLink, setMessage, toBrazilDate } from "./utils.js";
 import { renderFinanceSummary } from "./financeiro.js";
 
 const state = { businessId: "", business: null, settings: {}, categories: [], products: [], flavors: [], addons: [], orders: [], clients: [], orderSearch: "", productSearch: "", dashboardPeriod: "today", financePeriod: "today", dashboardStartDate: "", dashboardEndDate: "", financeStartDate: "", financeEndDate: "", knownOrderIds: new Set(), ordersLoadedOnce: false };
@@ -271,7 +271,7 @@ function renderBusinessHeader() {
   const name = state.business.nomeEstabelecimento || "Meu estabelecimento";
   $("#business-title").textContent = name;
   $("#business-name-short").textContent = name.split(" ")[0] || "Menu";
-  $("#public-menu-link").href = `cardapio.html?estabelecimento=${state.businessId}`;
+  $("#public-menu-link").href = publicMenuLink(state.businessId, state.settings.nomePublico || name);
   renderDashboardLogo();
   renderRenewalInfo();
 }

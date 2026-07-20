@@ -13,7 +13,7 @@
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
 import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-lookup-3";
-import { formToObject, money, normalizePhone, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js";
+import { formToObject, money, normalizePhone, publicMenuLink, requireParam, setMessage, slugify, whatsappAppLink, whatsappLink } from "./utils.js";
 
 const state = {
   estabelecimentoId: requireParam("estabelecimento"),
@@ -60,6 +60,8 @@ async function init() {
     return;
   }
   await Promise.all([loadBusiness(), loadSettings(), loadCategories(), loadProducts()]);
+  syncPublicMenuUrl();
+  syncSharePreviewMeta();
   renderHeader();
   renderMenuHero();
   renderCategories();
@@ -69,6 +71,52 @@ async function init() {
   renderNeighborhoodOptions();
   scheduleCatalogDetailsLoad();
   setTimeout(restoreClientSession, 800);
+}
+
+function businessDisplayName() {
+  return state.settings.nomePublico || state.business.nomeEstabelecimento || "bq menu";
+}
+
+function businessLogoUrl() {
+  return state.settings.logoUrl || state.business.logoUrl || state.business.fotoUrl || absoluteAssetUrl("logo.png");
+}
+
+function syncPublicMenuUrl() {
+  const name = businessDisplayName();
+  const currentSlug = requireParam("loja");
+  const expectedSlug = slugify(name) || "cardapio";
+  if (currentSlug === expectedSlug) return;
+  history.replaceState(null, "", publicMenuLink(state.estabelecimentoId, name));
+}
+
+function syncSharePreviewMeta() {
+  const name = businessDisplayName();
+  const title = `Cardápio digital - ${name}`;
+  const description = `Escolha seus itens no cardápio de ${name} e finalize o pedido pelo WhatsApp.`;
+  const imageUrl = businessLogoUrl();
+  document.title = title;
+  setMeta("description", description);
+  setMeta("og:title", title, "property");
+  setMeta("og:description", description, "property");
+  setMeta("og:image", imageUrl, "property");
+  setMeta("og:image:secure_url", imageUrl, "property");
+  setMeta("twitter:title", title);
+  setMeta("twitter:description", description);
+  setMeta("twitter:image", imageUrl);
+}
+
+function setMeta(name, content, attribute = "name") {
+  let meta = document.head.querySelector(`meta[${attribute}="${name}"]`);
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.setAttribute(attribute, name);
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute("content", content);
+}
+
+function absoluteAssetUrl(path) {
+  return new URL(path, location.href).toString();
 }
 
 async function loadBusiness() {
@@ -161,7 +209,7 @@ function currentCategoryId() {
 
 function renderHeader() {
   ensureMenuActions();
-  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "Cardápio";
+  const name = businessDisplayName();
   $("#menu-business-name").textContent = name;
   $("#menu-message").textContent = state.settings.mensagem || "Escolha seus itens e finalize pelo WhatsApp.";
   if (state.settings.logoUrl) {

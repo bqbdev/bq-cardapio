@@ -16,6 +16,15 @@ export const slugify = (text = "") => String(text)
   .replace(/[^a-z0-9]+/g, "-")
   .replace(/(^-|-$)/g, "");
 
+export const publicMenuLink = (businessId, businessName = "", basePath = location.pathname) => {
+  const directory = basePath.replace(/[^/]*$/, "");
+  const url = new URL(`${directory}cardapio.html`, location.origin);
+  const slug = slugify(businessName) || "cardapio";
+  url.searchParams.set("loja", slug);
+  url.searchParams.set("estabelecimento", businessId);
+  return url.toString();
+};
+
 export const todayStart = () => {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
