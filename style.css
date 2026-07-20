@@ -2512,7 +2512,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .menu-add-button.is-disabled,
 .btn.is-disabled,
-.store-closed .menu-add-button {
+.store-closed:not(.store-schedule-enabled) .menu-add-button {
   opacity: .45;
   cursor: not-allowed;
   box-shadow: none;
@@ -2625,6 +2625,31 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .checkout-dialog { border: 0; border-radius: 18px; padding: 20px; width: min(760px, calc(100% - 24px)); box-shadow: var(--shadow); }
 .checkout-dialog::backdrop { background: rgba(0,0,0,.42); }
+.schedule-panel {
+  border: 1px solid rgba(21, 122, 74, .18);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(21, 122, 74, .08), rgba(255, 255, 255, .94));
+  padding: 16px;
+}
+.schedule-panel strong {
+  display: block;
+  color: var(--green);
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+.schedule-panel p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+.schedule-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.schedule-order-note {
+  color: var(--green);
+  font-weight: 900;
+}
 .product-dialog {
   width: min(520px, calc(100% - 18px));
   padding: 0;
@@ -2868,7 +2893,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
     padding: 10px 12px;
     border-radius: 14px;
   }
-  .store-closed .cart-panel { display: none; }
+  .store-closed:not(.store-schedule-enabled) .cart-panel { display: none; }
+  .schedule-fields { grid-template-columns: 1fr; }
   .segmented-options { grid-template-columns: 1fr 1fr; }
   .product-list-item { grid-template-columns: 62px minmax(0, 1fr); }
   .product-list-item .item-actions { grid-column: 1 / -1; }

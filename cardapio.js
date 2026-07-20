@@ -246,10 +246,11 @@ function renderOpeningHours() {
   const openNow = hasTodayHours && isOpenNow(todayOpen, todayClose);
   state.isOpenNow = openNow;
   const todayLabel = hasTodayHours ? `${todayOpen} &agrave;s ${todayClose}` : "Fechado";
+  const scheduleEnabled = !openNow && Boolean(state.settings.permiteAgendamentoFechado);
   target.innerHTML = `
     <strong class="${openNow ? "status-open" : "status-closed"}"><span></span>${openNow ? "Aberto agora" : "Fechado agora"}</strong>
     <div class="hours-list"><span>${todayLabel}</span></div>
-    ${openNow ? "" : "<em>Pedidos indisponíveis no momento</em>"}
+    ${openNow ? "" : scheduleEnabled ? "<em>Aceitando encomendas agendadas</em>" : "<em>Pedidos indisponíveis no momento</em>"}
   `;
   updateOrderingAvailability();
   return;
@@ -281,12 +282,164 @@ function timeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
+function shouldScheduleOrder() {
+  return !state.isOpenNow && Boolean(state.settings.permiteAgendamentoFechado);
+}
+
+function renderSchedulePanel() {
+  const panel = $("#schedule-panel");
+  const form = $("#checkout-form");
+  if (!panel || !form) return;
+  const scheduled = shouldScheduleOrder();
+  const submitButton = form.querySelector("button[type='submit']");
+  panel.classList.toggle("hidden", !scheduled);
+  if (submitButton) {
+    submitButton.textContent = scheduled ? "Salvar encomenda e enviar pelo WhatsApp" : "Salvar e enviar pelo WhatsApp";
+  }
+  ["agendamentoData", "agendamentoHora"].forEach((name) => {
+    if (!form.elements[name]) return;
+    form.elements[name].required = scheduled;
+    form.elements[name].disabled = !scheduled;
+  });
+  if (scheduled && form.elements.agendamentoData) {
+    form.elements.agendamentoData.min = dateInputValue(new Date());
+    if (!form.elements.agendamentoData.value) {
+      form.elements.agendamentoData.value = nextOpenDateInput();
+    }
+  }
+  if (scheduled && form.elements.agendamentoHora && !form.elements.agendamentoHora.value) {
+    form.elements.agendamentoHora.value = defaultScheduleTime(form.elements.agendamentoData?.value);
+  }
+  updateScheduleMessage();
+}
+
+function validateSchedule(data) {
+  const message = $("#schedule-message");
+  if (!data.agendamentoData || !data.agendamentoHora) {
+    setMessage(message, "Escolha a data e o horário da encomenda.", "error");
+    return false;
+  }
+  const selectedDate = dateFromInput(data.agendamentoData);
+  if (!selectedDate) {
+    setMessage(message, "Escolha uma data válida para a encomenda.", "error");
+    return false;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (selectedDate < today) {
+    setMessage(message, "A data da encomenda não pode ser anterior a hoje.", "error");
+    return false;
+  }
+  const selectedMinutes = timeToMinutes(data.agendamentoHora);
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  if (data.agendamentoData === dateInputValue(now) && selectedMinutes !== null && selectedMinutes <= currentMinutes) {
+    setMessage(message, "Escolha um horário futuro para a encomenda.", "error");
+    return false;
+  }
+  const hours = businessHoursForDate(data.agendamentoData);
+  if (!hours.open || !hours.close) {
+    setMessage(message, "A loja não abre neste dia. Escolha outro dia.", "error");
+    return false;
+  }
+  if (!isTimeInsideBusinessHours(data.agendamentoHora, hours.open, hours.close)) {
+    setMessage(message, `Escolha um horário entre ${hours.open} e ${hours.close}.`, "error");
+    return false;
+  }
+  setMessage(message, `Encomenda para ${scheduleLabel(data.agendamentoData, data.agendamentoHora)}.`, "success");
+  return true;
+}
+
+function updateScheduleMessage() {
+  if (!shouldScheduleOrder()) return;
+  const form = $("#checkout-form");
+  if (!form) return;
+  const data = {
+    agendamentoData: form.elements.agendamentoData?.value || "",
+    agendamentoHora: form.elements.agendamentoHora?.value || ""
+  };
+  if (!data.agendamentoData && !data.agendamentoHora) {
+    setMessage($("#schedule-message"), "A loja está fechada agora, mas você pode deixar a encomenda agendada.", "success");
+    return;
+  }
+  validateSchedule(data);
+}
+
+function businessHoursForDate(dateValue) {
+  const date = dateFromInput(dateValue);
+  if (!date) return { open: "", close: "" };
+  const key = businessDays[date.getDay()][0];
+  return {
+    open: state.settings[`horario_${key}_abre`] || "",
+    close: state.settings[`horario_${key}_fecha`] || ""
+  };
+}
+
+function isTimeInsideBusinessHours(time, open, close) {
+  const selected = timeToMinutes(time);
+  const start = timeToMinutes(open);
+  const end = timeToMinutes(close);
+  if (selected === null || start === null || end === null) return false;
+  if (start <= end) return selected >= start && selected <= end;
+  return selected >= start || selected <= end;
+}
+
+function nextOpenDateInput() {
+  const date = new Date();
+  for (let index = 0; index < 14; index += 1) {
+    const key = businessDays[date.getDay()][0];
+    const open = state.settings[`horario_${key}_abre`];
+    const close = state.settings[`horario_${key}_fecha`];
+    if (open && close && !isPastClosingTimeForDate(date, open, close)) {
+      return dateInputValue(date);
+    }
+    date.setDate(date.getDate() + 1);
+  }
+  return dateInputValue(new Date());
+}
+
+function isPastClosingTimeForDate(date, open, close) {
+  const today = new Date();
+  if (dateInputValue(date) !== dateInputValue(today)) return false;
+  const openMinutes = timeToMinutes(open);
+  const closeMinutes = timeToMinutes(close);
+  if (openMinutes === null || closeMinutes === null) return false;
+  if (openMinutes > closeMinutes) return false;
+  const currentMinutes = today.getHours() * 60 + today.getMinutes();
+  return currentMinutes >= closeMinutes;
+}
+
+function defaultScheduleTime(dateValue) {
+  const hours = businessHoursForDate(dateValue || nextOpenDateInput());
+  return hours.open || "";
+}
+
+function dateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function dateFromInput(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function scheduleLabel(dateValue, timeValue) {
+  const date = dateFromInput(dateValue);
+  if (!date) return "";
+  return `${date.toLocaleDateString("pt-BR")} às ${timeValue}`;
+}
+
 function renderMenuHero() {
   const target = $("#menu-hero");
   if (!target) return;
   const phone = state.settings.whatsappPedidos || state.business.whatsapp || "";
-  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "cardapio";
-  const heroWhatsappHref = phone ? whatsappLink(phone, `Ola, vim pelo cardapio digital de ${name}.`) : "#";
+  const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "cardápio";
+  const heroWhatsappHref = phone ? whatsappLink(phone, `Olá, vim pelo cardápio digital de ${name}.`) : "#";
   const heroImage = state.settings.heroImageUrl || "";
   const product = bestHeroProduct();
   const title = state.settings.chamadaCardapio || "Peça seus favoritos em poucos cliques.";
@@ -480,25 +633,28 @@ async function addToCart(productId) {
 }
 
 function canOrderNow() {
-  if (state.isOpenNow) return true;
+  if (state.isOpenNow || state.settings.permiteAgendamentoFechado) return true;
   alert("A loja está fechada agora. Não é possível fazer pedidos no momento.");
   return false;
 }
 
 function updateOrderingAvailability() {
   const closed = !state.isOpenNow;
+  const canSchedule = closed && Boolean(state.settings.permiteAgendamentoFechado);
+  const blocked = closed && !canSchedule;
   document.querySelectorAll("[data-add]").forEach((button) => {
-    button.disabled = closed;
-    button.classList.toggle("is-disabled", closed);
-    button.setAttribute("aria-disabled", closed ? "true" : "false");
+    button.disabled = blocked;
+    button.classList.toggle("is-disabled", blocked);
+    button.setAttribute("aria-disabled", blocked ? "true" : "false");
   });
   const checkout = $("#checkout-open");
   if (checkout) {
-    checkout.disabled = closed;
-    checkout.classList.toggle("is-disabled", closed);
-    checkout.textContent = closed ? "Loja fechada" : "Finalizar pedido";
+    checkout.disabled = blocked;
+    checkout.classList.toggle("is-disabled", blocked);
+    checkout.textContent = blocked ? "Loja fechada" : canSchedule ? "Agendar encomenda" : "Finalizar pedido";
   }
   document.body.classList.toggle("store-closed", closed);
+  document.body.classList.toggle("store-schedule-enabled", canSchedule);
 }
 
 function renderCart() {
@@ -1069,6 +1225,7 @@ $("#checkout-open")?.addEventListener("click", () => {
     return;
   }
   renderDeliveryOptions();
+  renderSchedulePanel();
   const form = $("#checkout-form");
   const savedPhone = localStorage.getItem(clientSessionKey());
   if (savedPhone && form?.elements.whatsapp && !form.elements.whatsapp.value) {
@@ -1085,6 +1242,8 @@ $("#payment-method")?.addEventListener("change", (event) => {
 });
 
 $("#delivery-type")?.addEventListener("change", updateDeliveryPanel);
+$("#checkout-form")?.elements.agendamentoData?.addEventListener("change", updateScheduleMessage);
+$("#checkout-form")?.elements.agendamentoHora?.addEventListener("change", updateScheduleMessage);
 $("#checkout-form")?.elements.bairro?.addEventListener("input", updateDeliveryFee);
 $("#checkout-form")?.elements.whatsapp?.addEventListener("input", (event) => {
   clearTimeout(checkoutLookupTimer);
@@ -1150,6 +1309,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   const submitButton = form.querySelector("button[type='submit']");
   const data = formToObject(form);
   const subtotal = cartSubtotal();
+  if (shouldScheduleOrder() && !validateSchedule(data)) return;
   if (data.tipoEntrega === "Entrega" && !updateDeliveryFee()) {
     setMessage($("#checkout-message"), "Confira o bairro para calcular a entrega antes de finalizar.", "error");
     return;
@@ -1183,6 +1343,12 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
       formaPagamento: data.formaPagamento,
       trocoPara: data.formaPagamento === "Dinheiro" ? data.trocoPara || "" : "",
       tipoEntrega: data.tipoEntrega,
+      tipoPedido: shouldScheduleOrder() ? "agendado" : "imediato",
+      agendamento: shouldScheduleOrder() ? {
+        data: data.agendamentoData,
+        hora: data.agendamentoHora,
+        label: scheduleLabel(data.agendamentoData, data.agendamentoHora)
+      } : null,
       endereco: {
         endereco: data.endereco || "",
         numero: data.numero || "",
@@ -1237,7 +1403,7 @@ $("#checkout-form")?.addEventListener("submit", async (event) => {
   } finally {
     if (submitButton) {
       submitButton.disabled = false;
-      submitButton.textContent = "Salvar e enviar pelo WhatsApp";
+      submitButton.textContent = shouldScheduleOrder() ? "Salvar encomenda e enviar pelo WhatsApp" : "Salvar e enviar pelo WhatsApp";
     }
   }
 });
@@ -1353,6 +1519,7 @@ function buildWhatsAppMessage(order) {
     separator,
     "ENTREGA / RETIRADA",
     `${address}`,
+    order.tipoPedido === "agendado" && order.agendamento?.label ? `Encomenda agendada: ${order.agendamento.label}` : "",
     separator,
     "ITENS DO PEDIDO",
     items,

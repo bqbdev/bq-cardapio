@@ -999,8 +999,9 @@ function renderOrders() {
     <article class="list-item">
       <strong>Pedido ${order.numeroPedido || order.codigo || order.id} - ${order.clienteNome || ""}</strong>
       <span>${order.status || "Novo"} - ${order.tipoEntrega || ""} - ${money(order.totalFinal)}</span>
+      ${order.tipoPedido === "agendado" && order.agendamento?.label ? `<small class="schedule-order-note">Encomenda agendada: ${order.agendamento.label}</small>` : ""}
       ${order.taxaEntrega ? `<small>Entrega: ${money(order.taxaEntrega)}${order.regraTaxaEntrega ? ` - ${order.regraTaxaEntrega}` : ""}</small>` : ""}
-      <small>Codigo: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
+      <small>Código: ${order.codigo || order.id} - WhatsApp: ${order.whatsapp || ""}</small>
       <small>${(order.itens || []).map(orderItemSummary).join(", ")}</small>
       ${renderOrderStatusSteps(order.status)}
       <div class="item-actions">
@@ -1080,21 +1081,21 @@ function renderDashboard() {
   setText("#cancellation-rate", `${cancellationRate}%`);
   setText("#new-clients", newClientsInPeriod(periodOrders));
   setText("#top-product", topProduct?.name || "--");
-  setText("#top-product-detail", topProduct ? `${topProduct.count} item(ns) vendidos - ${money(topProduct.total)}` : "Sem pedidos no periodo.");
+  setText("#top-product-detail", topProduct ? `${topProduct.count} item(ns) vendidos - ${money(topProduct.total)}` : "Sem pedidos no período.");
   setText("#top-client", topClient?.name || "--");
-  setText("#top-client-detail", topClient ? `${topClient.count} pedido(s) - ${money(topClient.total)}` : "Sem pedidos no periodo.");
+  setText("#top-client-detail", topClient ? `${topClient.count} pedido(s) - ${money(topClient.total)}` : "Sem pedidos no período.");
   setText("#top-delivery-type", topDelivery?.name || "--");
-  setText("#top-delivery-detail", topDelivery ? `${topDelivery.count} pedido(s) no periodo.` : "Retirada, entrega ou consumo no local.");
+  setText("#top-delivery-detail", topDelivery ? `${topDelivery.count} pedido(s) no período.` : "Retirada, entrega ou consumo no local.");
   renderDashboardTips({ periodOrders, validOrders, topProduct, topClient, cancellationRate });
 }
 
 function enhanceDashboardHelp() {
   const helps = {
-    "orders-today": "Quantidade de pedidos no periodo selecionado.",
-    "sales-today": "Soma dos pedidos nao cancelados no periodo.",
-    "orders-open": "Pedidos que ainda precisam de acao: aceitar, preparar ou entregar.",
-    "average-ticket": "Valor medio de cada pedido vendido.",
-    "next-renewal": "Data estimada da proxima renovacao do plano."
+    "orders-today": "Quantidade de pedidos no período selecionado.",
+    "sales-today": "Soma dos pedidos não cancelados no período.",
+    "orders-open": "Pedidos que ainda precisam de ação: aceitar, preparar ou entregar.",
+    "average-ticket": "Valor médio de cada pedido vendido.",
+    "next-renewal": "Data estimada da próxima renovação do plano."
   };
   Object.entries(helps).forEach(([id, title]) => {
     const card = document.getElementById(id)?.closest(".metric-card");
@@ -1190,7 +1191,7 @@ function topOrderClient(orders) {
 function topOrderField(orders, field) {
   const map = new Map();
   orders.forEach((order) => {
-    const name = order[field] || "Nao informado";
+    const name = order[field] || "Não informado";
     const current = map.get(name) || { name, count: 0 };
     current.count += 1;
     map.set(name, current);
@@ -1214,12 +1215,12 @@ function renderDashboardTips({ periodOrders, validOrders, topProduct, topClient,
   const target = $("#dashboard-tips");
   if (!target) return;
   const tips = [];
-  if (topProduct) tips.push(`Destaque "${topProduct.name}" no cardapio e use uma foto boa: ele ja provou que vende.`);
+  if (topProduct) tips.push(`Destaque "${topProduct.name}" no cardápio e use uma foto boa: ele já provou que vende.`);
   if (topClient && topClient.count > 1) tips.push(`Chame ${topClient.name} no WhatsApp com uma oferta de recompra ou cupom simples.`);
-  if (cancellationRate >= 20) tips.push("A taxa de cancelamento esta alta. Confira tempo de preparo, estoque e clareza dos itens.");
-  if (!validOrders.length) tips.push("Ainda nao ha vendas no periodo. Publique produtos com foto e envie o link do cardapio para clientes antigos.");
-  if (periodOrders.length && !tips.length) tips.push("O periodo esta saudavel. Acompanhe os mais vendidos para montar combos e promocoes.");
-  target.innerHTML = `<div class="dashboard-tips-head"><strong>O que fazer agora</strong><span>${periodOrders.length} pedido(s) no periodo</span></div>${tips.map((tip) => `<p>${tip}</p>`).join("")}`;
+  if (cancellationRate >= 20) tips.push("A taxa de cancelamento está alta. Confira tempo de preparo, estoque e clareza dos itens.");
+  if (!validOrders.length) tips.push("Ainda não há vendas no período. Publique produtos com foto e envie o link do cardápio para clientes antigos.");
+  if (periodOrders.length && !tips.length) tips.push("O período está saudável. Acompanhe os mais vendidos para montar combos e promoções.");
+  target.innerHTML = `<div class="dashboard-tips-head"><strong>O que fazer agora</strong><span>${periodOrders.length} pedido(s) no período</span></div>${tips.map((tip) => `<p>${tip}</p>`).join("")}`;
 }
 
 async function updateOrderStatus(id, status) {

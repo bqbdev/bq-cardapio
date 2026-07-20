@@ -75,6 +75,15 @@
       <label>Tipo
         <select name="tipoEntrega" id="delivery-type" required></select>
       </label>
+      <div id="schedule-panel" class="schedule-panel full hidden">
+        <strong>Encomenda agendada</strong>
+        <p>Escolha uma data e um horário dentro do funcionamento da loja.</p>
+        <div class="schedule-fields">
+          <label>Data da encomenda<input name="agendamentoData" type="date"></label>
+          <label>Horário da encomenda<input name="agendamentoHora" type="time"></label>
+        </div>
+        <p id="schedule-message" class="form-message"></p>
+      </div>
       <div id="delivery-location-panel" class="delivery-location-panel full hidden">
         <p id="delivery-fee-message" class="form-message"></p>
       </div>
@@ -104,6 +113,6 @@
       <p id="builder-message" class="form-message full"></p>
     </form>
   </dialog>
-  <script type="module" src="cardapio.js?v=cardapio-inicial-leve-1"></script>
+  <script type="module" src="cardapio.js?v=agendamento-fechado-1"></script>
 </body>
 </html>
