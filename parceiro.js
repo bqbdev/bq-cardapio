@@ -206,7 +206,9 @@ function renderPartnerPanel(phone, referrals) {
   const filteredReferrals = filterReferralsByMonth(referrals, monthValue);
   const active = referrals.filter(isActiveReferral);
   const filteredActive = filteredReferrals.filter(isActiveReferral);
-  const paid = filteredReferrals.filter((item) => String(item.comissaoStatus || "").toLowerCase().includes("pago"));
+  const paid = monthValue === "next"
+    ? []
+    : filteredReferrals.filter((item) => String(item.comissaoStatus || "").toLowerCase().includes("pago"));
   const pending = filteredReferrals.filter((item) => !isActiveReferral(item));
   const paidValue = paid.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
   const projectedValue = filteredActive.reduce((sum, item) => sum + Number(item.comissaoMensalPrevista || 20), 0);
@@ -235,22 +237,32 @@ function renderPartnerPanel(phone, referrals) {
     ` : "";
   }
 
-  partnerPanelResults.innerHTML = filteredReferrals.length ? filteredReferrals.map((item) => `
-    <article class="partner-panel-item">
-      <div>
-        <strong>${escapeHtml(item.nomeEstabelecimento || "Estabelecimento")}</strong>
-        <span>${escapeHtml(referralStatusLabel(item.status))}</span>
-      </div>
-      <p>${escapeHtml(item.cidade || "-")} · ${escapeHtml(item.segmento || "-")}</p>
-      <dl>
-        <div><dt>Comissão</dt><dd>${money(Number(item.comissaoMensalPrevista || 20))}/mês</dd></div>
-        <div><dt>Próxima comissão prevista</dt><dd>${isActiveReferral(item) ? formatDate(nextCommissionMillis(item)) : "-"}</dd></div>
-        <div><dt>Pago em</dt><dd>${formatDate(item.dataPagamentoComissao || item.dataPagamentoConfirmado)}</dd></div>
-        <div><dt>Status do pagamento</dt><dd>${escapeHtml(item.comissaoStatus || "aguardando ativação")}</dd></div>
-      </dl>
-      ${isActiveReferral(item) ? `<small class="partner-recurring-note">Enquanto este estabelecimento continuar ativo e em conformidade com os pagamentos, você segue recebendo ${money(Number(item.comissaoMensalPrevista || 20))}/mês.</small>` : ""}
-    </article>
-  `).join("") : "<p class=\"partner-empty-state\">Nenhuma indicação encontrada para o mês selecionado.</p>";
+  partnerPanelResults.innerHTML = filteredReferrals.length ? filteredReferrals.map((item) => {
+    const paidKey = monthKeyFromMillis(commissionPaidMillis(item));
+    const nextKey = monthKeyFromMillis(nextCommissionMillis(item));
+    const isProjected = isActiveReferral(item)
+      && (monthValue === "next" || (monthValue !== "all" && nextKey === monthValue && paidKey !== monthValue));
+    const commissionStatus = isProjected
+      ? "prevista se continuar ativo e em dia"
+      : (item.comissaoStatus || "aguardando ativação");
+
+    return `
+      <article class="partner-panel-item">
+        <div>
+          <strong>${escapeHtml(item.nomeEstabelecimento || "Estabelecimento")}</strong>
+          <span>${escapeHtml(referralStatusLabel(item.status))}</span>
+        </div>
+        <p>${escapeHtml(item.cidade || "-")} · ${escapeHtml(item.segmento || "-")}</p>
+        <dl>
+          <div><dt>Comissão</dt><dd>${money(Number(item.comissaoMensalPrevista || 20))}/mês</dd></div>
+          <div><dt>Próxima comissão prevista</dt><dd>${isActiveReferral(item) ? formatDate(nextCommissionMillis(item)) : "-"}</dd></div>
+          <div><dt>Última comissão paga</dt><dd>${formatDate(item.dataPagamentoComissao || item.dataPagamentoConfirmado)}</dd></div>
+          <div><dt>Status da comissão</dt><dd>${escapeHtml(commissionStatus)}</dd></div>
+        </dl>
+        ${isActiveReferral(item) ? `<small class="partner-recurring-note">Enquanto este estabelecimento continuar ativo e em conformidade com os pagamentos, você segue recebendo ${money(Number(item.comissaoMensalPrevista || 20))}/mês.</small>` : ""}
+      </article>
+    `;
+  }).join("") : "<p class=\"partner-empty-state\">Nenhuma indicação encontrada para o mês selecionado.</p>";
 }
 
 if (partnerPhoneParam) {
