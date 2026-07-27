@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f7f8fa;
   --surface: #ffffff;
   --surface-soft: #eef5f2;
@@ -2440,6 +2440,18 @@ input, select, textarea {
   border-radius: var(--radius);
   object-fit: contain;
 }
+#business-logo-preview {
+  min-height: 190px;
+}
+#business-logo-preview img {
+  width: min(220px, 72vw);
+  height: min(220px, 72vw);
+  max-width: none;
+  max-height: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+}
 .hero-settings-card {
   display: grid;
   gap: 12px;
@@ -2806,7 +2818,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .menu-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: transparent;
   display: block;
   border-radius: 50%;
@@ -3520,3 +3532,4 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   }
   .footer { align-items: flex-start; flex-direction: column; }
 }
+

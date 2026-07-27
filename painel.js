@@ -1,4 +1,4 @@
-import {
+﻿import {
   auth,
   db,
   onAuthStateChanged,
@@ -28,9 +28,9 @@ const $ = (selector) => document.querySelector(selector);
 let unsubscribeOrders = null;
 let notificationAudioCtx = null;
 const IMAGE_PRESETS = {
-  product: { maxDimension: 560, quality: 0.76, maxBytes: 180 * 1024 },
-  hero: { maxDimension: 720, quality: 0.78, maxBytes: 220 * 1024 },
-  logo: { maxDimension: 260, quality: 0.82, maxBytes: 80 * 1024 }
+  product: { maxDimension: 900, quality: 0.78, maxBytes: 650 * 1024 },
+  hero: { maxDimension: 1100, quality: 0.8, maxBytes: 900 * 1024 },
+  logo: { maxDimension: 640, quality: 0.86, maxBytes: 420 * 1024, trim: true, square: true }
 };
 const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
@@ -1858,15 +1858,18 @@ async function imageFileToBase64(file, input, options = {}) {
     const base64 = await compressImageFile(file, options);
     const maxBytes = options.maxBytes || 220 * 1024;
     if (base64.length > maxBytes) {
-      alert("A imagem foi comprimida, mas ainda ficou pesada. Escolha uma imagem menor.");
-      if (input) input.value = "";
-      return "";
+      console.warn("Imagem compactada acima do alvo, mas será enviada ao Storage:", {
+        arquivo: file.name,
+        tamanhoOriginal: file.size,
+        tamanhoCompactado: base64.length,
+        alvo: maxBytes
+      });
     }
     return base64;
   } catch (error) {
     console.warn("Não foi possível compactar a imagem:", error);
     const base64 = await fileToBase64(file);
-    if (base64.length > (options.maxBytes || 220 * 1024)) {
+    if (base64.length > 2.5 * 1024 * 1024) {
       alert("Não foi possível compactar esta imagem. Escolha uma imagem menor para salvar.");
       if (input) input.value = "";
       return "";
@@ -1973,12 +1976,13 @@ function compressImageFile(file, options = {}) {
       const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const canvas = document.createElement("canvas");
+      let canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
-      const context = canvas.getContext("2d");
+      let context = canvas.getContext("2d", { willReadFrequently: Boolean(options.trim) });
       context.clearRect(0, 0, width, height);
       context.drawImage(image, 0, 0, width, height);
+      if (options.trim) canvas = trimLogoCanvas(canvas, Boolean(options.square));
       URL.revokeObjectURL(objectUrl);
       resolve(canvasToCompactDataUrl(canvas, quality, maxBytes));
     };
@@ -1990,6 +1994,59 @@ function compressImageFile(file, options = {}) {
   });
 }
 
+function trimLogoCanvas(canvas, forceSquare = true) {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const { width, height } = canvas;
+  const imageData = context.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const sample = (x, y) => {
+    const index = ((y * width) + x) * 4;
+    return [data[index], data[index + 1], data[index + 2], data[index + 3]];
+  };
+  const corners = [sample(0, 0), sample(width - 1, 0), sample(0, height - 1), sample(width - 1, height - 1)];
+  const bg = corners.reduce((acc, color) => acc.map((value, index) => value + color[index]), [0, 0, 0, 0]).map((value) => value / corners.length);
+  const threshold = 26;
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = ((y * width) + x) * 4;
+      const diff = Math.abs(data[index] - bg[0]) + Math.abs(data[index + 1] - bg[1]) + Math.abs(data[index + 2] - bg[2]);
+      const alpha = data[index + 3];
+      if (alpha > 20 && diff > threshold) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+  if (minX >= maxX || minY >= maxY) return canvas;
+  const contentW = maxX - minX + 1;
+  const contentH = maxY - minY + 1;
+  const padding = Math.round(Math.max(contentW, contentH) * 0.12);
+  let cropX = Math.max(0, minX - padding);
+  let cropY = Math.max(0, minY - padding);
+  let cropW = Math.min(width - cropX, contentW + padding * 2);
+  let cropH = Math.min(height - cropY, contentH + padding * 2);
+  if (forceSquare) {
+    const side = Math.min(Math.max(cropW, cropH), Math.max(width, height));
+    cropX = Math.max(0, Math.round(cropX - (side - cropW) / 2));
+    cropY = Math.max(0, Math.round(cropY - (side - cropH) / 2));
+    cropW = Math.min(side, width - cropX);
+    cropH = Math.min(side, height - cropY);
+    const finalSide = Math.min(cropW, cropH);
+    cropW = finalSide;
+    cropH = finalSide;
+  }
+  const trimmed = document.createElement("canvas");
+  trimmed.width = cropW;
+  trimmed.height = cropH;
+  trimmed.getContext("2d").drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  return trimmed;
+}
 function canvasToCompactDataUrl(canvas, initialQuality, maxBytes) {
   const qualities = [initialQuality, 0.72, 0.66, 0.58, 0.5, 0.42];
   let best = "";
@@ -2192,3 +2249,4 @@ $("#fees-form")?.addEventListener("submit", async (event) => {
     }, { merge: true });
   });
 });
+
