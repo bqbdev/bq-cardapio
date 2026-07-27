@@ -69,7 +69,10 @@ button, input, select, textarea { font: inherit; }
 .brand-mark img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.28);
+  transform-origin: center;
   background: transparent;
 }
 .nav-links { display: flex; align-items: center; gap: 18px; color: var(--muted); font-weight: 650; }
@@ -2136,7 +2139,7 @@ input, select, textarea {
   height: 100vh;
 }
 .sidebar .brand-mark { background: var(--accent); color: #17201b; }
-.sidebar .brand-mark.has-image { background: #fff; padding: 3px; }
+.sidebar .brand-mark.has-image { background: #fff; padding: 0; border-radius: 50%; }
 .sidebar nav { display: grid; gap: 6px; }
 .sidebar nav a { color: rgba(255,255,255,.78); padding: 10px 12px; border-radius: var(--radius); font-weight: 750; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sidebar nav a:hover, .sidebar nav a.active { background: rgba(255,255,255,.08); color: #fff; }
@@ -2784,10 +2787,10 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 }
 .menu-header {
   display: grid;
-  grid-template-columns: 54px minmax(170px, 260px) auto;
+  grid-template-columns: 74px minmax(170px, 280px) auto;
   align-items: center;
   justify-content: start;
-  gap: 10px;
+  gap: 12px;
   padding: 9px clamp(14px, 4vw, 42px);
   background: rgba(255, 255, 255, .92);
   border-bottom: 1px solid rgba(214, 224, 218, .72);
@@ -2798,8 +2801,8 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   z-index: 5;
 }
 .menu-logo {
-  width: 58px;
-  height: 58px;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
   background: #fff;
   color: #fff;
@@ -2807,9 +2810,9 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   place-items: center;
   font-weight: 900;
   overflow: hidden;
-  padding: 3px;
-  border: 1px solid rgba(214, 224, 218, .9);
-  box-shadow: 0 12px 28px rgba(23, 32, 27, .08);
+  padding: 0;
+  border: 0;
+  box-shadow: 0 14px 30px rgba(23, 32, 27, .10);
 }
 .menu-logo.has-image {
   background: #fff;
@@ -2819,6 +2822,9 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  transform: scale(1.42);
+  transform-origin: center;
   background: transparent;
   display: block;
   border-radius: 50%;
@@ -3405,12 +3411,12 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .preview-dashboard-head, .preview-order { align-items: flex-start; flex-direction: column; }
   .preview-floating-card { position: static; width: 100%; margin-top: 12px; }
   .menu-header {
-    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
     align-items: center;
     padding: 9px 12px;
     gap: 10px;
   }
-  .menu-logo { width: 56px; height: 56px; border-radius: 50%; padding: 3px; }
+  .menu-logo { width: 72px; height: 72px; border-radius: 50%; padding: 0; }
   .menu-logo.has-image { border-radius: 50%; }
   .menu-header h1 { font-size: 1rem; }
   .menu-header .eyebrow { font-size: .58rem; }
