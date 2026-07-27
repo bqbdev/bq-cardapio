@@ -2821,9 +2821,9 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .menu-logo img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  transform: scale(1.42);
+  transform: none;
   transform-origin: center;
   background: transparent;
   display: block;
