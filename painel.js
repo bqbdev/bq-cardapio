@@ -2027,20 +2027,27 @@ function trimLogoCanvas(canvas, forceSquare = true) {
   const contentW = maxX - minX + 1;
   const contentH = maxY - minY + 1;
   const padding = Math.round(Math.max(contentW, contentH) * 0.12);
+  if (forceSquare) {
+    const side = Math.max(contentW, contentH) + padding * 2;
+    const framed = document.createElement("canvas");
+    framed.width = side;
+    framed.height = side;
+    const framedContext = framed.getContext("2d");
+    if (bg[3] > 240) {
+      framedContext.fillStyle = `rgb(${Math.round(bg[0])}, ${Math.round(bg[1])}, ${Math.round(bg[2])})`;
+      framedContext.fillRect(0, 0, side, side);
+    } else {
+      framedContext.clearRect(0, 0, side, side);
+    }
+    const drawX = Math.round((side - contentW) / 2);
+    const drawY = Math.round((side - contentH) / 2);
+    framedContext.drawImage(canvas, minX, minY, contentW, contentH, drawX, drawY, contentW, contentH);
+    return framed;
+  }
   let cropX = Math.max(0, minX - padding);
   let cropY = Math.max(0, minY - padding);
   let cropW = Math.min(width - cropX, contentW + padding * 2);
   let cropH = Math.min(height - cropY, contentH + padding * 2);
-  if (forceSquare) {
-    const side = Math.min(Math.max(cropW, cropH), Math.max(width, height));
-    cropX = Math.max(0, Math.round(cropX - (side - cropW) / 2));
-    cropY = Math.max(0, Math.round(cropY - (side - cropH) / 2));
-    cropW = Math.min(side, width - cropX);
-    cropH = Math.min(side, height - cropY);
-    const finalSide = Math.min(cropW, cropH);
-    cropW = finalSide;
-    cropH = finalSide;
-  }
   const trimmed = document.createElement("canvas");
   trimmed.width = cropW;
   trimmed.height = cropH;

@@ -2447,13 +2447,15 @@ input, select, textarea {
   min-height: 190px;
 }
 #business-logo-preview img {
-  width: min(220px, 72vw);
-  height: min(220px, 72vw);
+  width: min(230px, 72vw);
+  height: min(230px, 72vw);
   max-width: none;
   max-height: none;
-  border-radius: 50%;
-  object-fit: cover;
+  padding: 12px;
+  border-radius: 32px;
+  object-fit: contain;
   background: #fff;
+  box-shadow: 0 16px 34px rgba(23, 32, 27, .10);
 }
 .hero-settings-card {
   display: grid;
