@@ -2801,22 +2801,22 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   z-index: 5;
 }
 .menu-logo {
-  width: 74px;
-  height: 74px;
-  border-radius: 50%;
+  width: 78px;
+  height: 78px;
+  border-radius: 22px;
   background: #fff;
-  color: #fff;
+  color: var(--primary);
   display: grid;
   place-items: center;
   font-weight: 900;
   overflow: hidden;
   padding: 8px;
   border: 0;
-  box-shadow: 0 14px 30px rgba(23, 32, 27, .10);
+  box-shadow: 0 16px 34px rgba(23, 32, 27, .10);
 }
 .menu-logo.has-image {
   background: #fff;
-  border-radius: 50%;
+  border-radius: 22px;
 }
 .menu-logo img {
   width: 100%;
@@ -2827,7 +2827,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   transform-origin: center;
   background: transparent;
   display: block;
-  border-radius: 0;
+  border-radius: 16px;
 }
 .menu-info {
   min-width: 0;
@@ -3411,13 +3411,13 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   .preview-dashboard-head, .preview-order { align-items: flex-start; flex-direction: column; }
   .preview-floating-card { position: static; width: 100%; margin-top: 12px; }
   .menu-header {
-    grid-template-columns: 72px minmax(0, 1fr) auto;
+    grid-template-columns: 78px minmax(0, 1fr) auto;
     align-items: center;
     padding: 9px 12px;
     gap: 10px;
   }
-  .menu-logo { width: 72px; height: 72px; border-radius: 50%; padding: 8px; }
-  .menu-logo.has-image { border-radius: 50%; }
+  .menu-logo { width: 78px; height: 78px; border-radius: 22px; padding: 8px; }
+  .menu-logo.has-image { border-radius: 22px; }
   .menu-header h1 { font-size: 1rem; }
   .menu-header .eyebrow { font-size: .58rem; }
   .menu-header p { font-size: .68rem; }
