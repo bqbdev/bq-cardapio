@@ -2810,7 +2810,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   place-items: center;
   font-weight: 900;
   overflow: hidden;
-  padding: 0;
+  padding: 8px;
   border: 0;
   box-shadow: 0 14px 30px rgba(23, 32, 27, .10);
 }
@@ -2827,7 +2827,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
   transform-origin: center;
   background: transparent;
   display: block;
-  border-radius: 50%;
+  border-radius: 0;
 }
 .menu-info {
   min-width: 0;
@@ -3416,7 +3416,7 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
     padding: 9px 12px;
     gap: 10px;
   }
-  .menu-logo { width: 72px; height: 72px; border-radius: 50%; padding: 0; }
+  .menu-logo { width: 72px; height: 72px; border-radius: 50%; padding: 8px; }
   .menu-logo.has-image { border-radius: 50%; }
   .menu-header h1 { font-size: 1rem; }
   .menu-header .eyebrow { font-size: .58rem; }
