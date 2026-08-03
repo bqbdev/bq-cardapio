@@ -84,7 +84,7 @@ function businessLogoUrl() {
 
 function enabledModules() {
   const modules = state.business?.modulos || {};
-  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+  return { produtosSimples: true, acaiteria: modules.acaiteria === true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
 }
 
 function syncPublicMenuUrl() {
@@ -156,6 +156,7 @@ async function loadProducts() {
     .filter((item) => item.disponivel !== false)
     .filter((item) => {
       const modules = enabledModules();
+      if (item.moduleType === "acaiteria") return modules.acaiteria;
       if (item.moduleType === "pizza" || item.pizzaMode) return modules.pizzas;
       if (item.moduleType === "porcao") return modules.porcoes;
       return true;

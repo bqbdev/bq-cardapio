@@ -50,7 +50,7 @@ const adminViews = ["dashboard", "solicitacoes", "estabelecimentos", "clientes",
 
 function moduleFlags(business = {}) {
   const modules = business.modulos || {};
-  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+  return { produtosSimples: true, acaiteria: modules.acaiteria === true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
 }
 
 function panelLink(id) {
@@ -481,7 +481,7 @@ async function approveRequest(id) {
     activationTokenConfirm: "",
     dataAtivacao: null,
     slug: businessRef.id,
-    modulos: { produtosSimples: true, acaiteria: true, pizzas: false, porcoes: false },
+    modulos: { produtosSimples: true, acaiteria: false, pizzas: false, porcoes: false },
     origem: request.origem || "",
     parceiroWhatsapp: request.parceiroWhatsapp || "",
     indicacaoParceiroId: request.indicacaoParceiroId || ""
@@ -766,6 +766,7 @@ function openEditor(id) {
     if (form.elements[key]) form.elements[key].value = value || "";
   });
   const modules = moduleFlags(business);
+  form.elements.moduloAcaiteria.checked = modules.acaiteria;
   form.elements.moduloPizzas.checked = modules.pizzas;
   form.elements.moduloPorcoes.checked = modules.porcoes;
   setMessage(form.querySelector(".form-message"), "");
@@ -787,7 +788,7 @@ async function saveBusiness(event) {
   delete data.id;
   const modulos = {
     produtosSimples: true,
-    acaiteria: true,
+    acaiteria: Boolean(data.moduloAcaiteria),
     pizzas: Boolean(data.moduloPizzas),
     porcoes: Boolean(data.moduloPorcoes)
   };

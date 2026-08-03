@@ -280,17 +280,17 @@ async function getBusinessById(id) {
 
 function enabledModules() {
   const modules = state.business?.modulos || {};
-  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+  return { produtosSimples: true, acaiteria: modules.acaiteria === true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
 }
 
 function applyModulePermissions() {
   const modules = enabledModules();
-  const availability = { pizzas: modules.pizzas, porcoes: modules.porcoes };
+  const availability = { acaiteria: modules.acaiteria, pizzas: modules.pizzas, porcoes: modules.porcoes };
   Object.entries(availability).forEach(([page, enabled]) => {
     document.querySelector(`.sidebar a[href="#${page}"]`)?.classList.toggle("hidden", !enabled);
     document.getElementById(page)?.classList.toggle("module-disabled", !enabled);
   });
-  if ((!modules.pizzas && location.hash === "#pizzas") || (!modules.porcoes && location.hash === "#porcoes")) location.hash = "produtos";
+  if ((!modules.acaiteria && location.hash === "#acaiteria") || (!modules.pizzas && location.hash === "#pizzas") || (!modules.porcoes && location.hash === "#porcoes")) location.hash = "produtos";
 }
 
 function renderAdminModeBanner() {
@@ -332,7 +332,7 @@ function renderRenewalInfo() {
 function showCurrentPanelPage() {
   let page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
   const modules = enabledModules();
-  if ((page === "pizzas" && !modules.pizzas) || (page === "porcoes" && !modules.porcoes)) page = "produtos";
+  if ((page === "acaiteria" && !modules.acaiteria) || (page === "pizzas" && !modules.pizzas) || (page === "porcoes" && !modules.porcoes)) page = "produtos";
   document.querySelectorAll("main > section").forEach((section) => {
     const isUtilityBand = section.classList.contains("soon-band")
       || section.classList.contains("dashboard-toolbar")
