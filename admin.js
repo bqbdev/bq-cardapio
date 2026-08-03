@@ -48,6 +48,20 @@ const state = {
 const $ = (selector) => document.querySelector(selector);
 const adminViews = ["dashboard", "solicitacoes", "estabelecimentos", "clientes", "parceiros", "vencimentos"];
 
+function moduleFlags(business = {}) {
+  const modules = business.modulos || {};
+  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+}
+
+function panelLink(id) {
+  return `painel.html?administrar=${encodeURIComponent(id)}`;
+}
+
+function menuLink(id, name) {
+  const base = `${location.origin}${location.pathname.replace(/admin\.html$/, "")}cardapio.html`;
+  return `${base}?${new URLSearchParams({ estabelecimento: id, loja: name || "cardapio" })}`;
+}
+
 onAuthStateChanged(auth, async (user) => {
   try {
     if (!user) {
@@ -330,6 +344,8 @@ function renderBusinesses() {
       <td>${escapeHtml(item.metodoPagamento || "-")}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
+        <a class="btn btn-small btn-primary" href="${panelLink(item.id)}">Acessar painel</a>
+        <a class="btn btn-small" href="${menuLink(item.id, item.nomeEstabelecimento)}" target="_blank" rel="noopener">Ver cardápio</a>
         ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativação</button>` : ""}
         <button class="btn btn-small" data-password-reset="${item.id}">Resetar senha</button>
         <button class="btn btn-small" data-access-reset="${item.id}">Redefinir acesso</button>
@@ -465,6 +481,7 @@ async function approveRequest(id) {
     activationTokenConfirm: "",
     dataAtivacao: null,
     slug: businessRef.id,
+    modulos: { produtosSimples: true, acaiteria: true, pizzas: false, porcoes: false },
     origem: request.origem || "",
     parceiroWhatsapp: request.parceiroWhatsapp || "",
     indicacaoParceiroId: request.indicacaoParceiroId || ""
@@ -748,6 +765,9 @@ function openEditor(id) {
   }).forEach(([key, value]) => {
     if (form.elements[key]) form.elements[key].value = value || "";
   });
+  const modules = moduleFlags(business);
+  form.elements.moduloPizzas.checked = modules.pizzas;
+  form.elements.moduloPorcoes.checked = modules.porcoes;
   setMessage(form.querySelector(".form-message"), "");
   $("#business-editor").classList.remove("hidden");
   showAdminView("estabelecimentos");
@@ -765,8 +785,19 @@ async function saveBusiness(event) {
   const data = formToObject(form);
   const id = data.id;
   delete data.id;
+  const modulos = {
+    produtosSimples: true,
+    acaiteria: true,
+    pizzas: Boolean(data.moduloPizzas),
+    porcoes: Boolean(data.moduloPorcoes)
+  };
+  delete data.moduloProdutosSimples;
+  delete data.moduloAcaiteria;
+  delete data.moduloPizzas;
+  delete data.moduloPorcoes;
   await updateDoc(doc(db, "estabelecimentos", id), {
     ...data,
+    modulos,
     plano: data.plano || "Mensal",
     valorMensalidade: Number(data.valorMensalidade || 89.90),
     dataInicio: fromDateInput(data.dataInicio),

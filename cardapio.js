@@ -59,7 +59,8 @@ async function init() {
     $("#menu-message").textContent = "Informe o estabelecimento no link do cardápio.";
     return;
   }
-  await Promise.all([loadBusiness(), loadSettings(), loadCategories(), loadProducts()]);
+  await Promise.all([loadBusiness(), loadSettings()]);
+  await Promise.all([loadCategories(), loadProducts()]);
   syncPublicMenuUrl();
   syncSharePreviewMeta();
   renderHeader();
@@ -81,6 +82,11 @@ function businessLogoUrl() {
   return state.settings.logoUrl || state.business.logoUrl || state.business.fotoUrl || absoluteAssetUrl("logo.png");
 }
 
+function enabledModules() {
+  const modules = state.business?.modulos || {};
+  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+}
+
 function syncPublicMenuUrl() {
   const name = businessDisplayName();
   const currentSlug = requireParam("loja");
@@ -100,6 +106,9 @@ function syncSharePreviewMeta() {
   setMeta("og:description", description, "property");
   setMeta("og:image", imageUrl, "property");
   setMeta("og:image:secure_url", imageUrl, "property");
+  setMeta("og:url", location.href, "property");
+  setMeta("og:type", "website", "property");
+  setMeta("twitter:card", "summary_large_image");
   setMeta("twitter:title", title);
   setMeta("twitter:description", description);
   setMeta("twitter:image", imageUrl);
@@ -145,6 +154,12 @@ async function loadProducts() {
   state.products = snap.docs
     .map((item) => ({ id: item.id, ...item.data() }))
     .filter((item) => item.disponivel !== false)
+    .filter((item) => {
+      const modules = enabledModules();
+      if (item.moduleType === "pizza" || item.pizzaMode) return modules.pizzas;
+      if (item.moduleType === "porcao") return modules.porcoes;
+      return true;
+    })
     .sort((a, b) => Number(Boolean(b.destaque)) - Number(Boolean(a.destaque)) || String(a.nome || "").localeCompare(String(b.nome || "")));
 }
 
@@ -514,14 +529,16 @@ function renderProducts(categoryId = "todos") {
 
 function virtualCategories() {
   const categories = [];
-  if (moduleFlavors("pizza").length) categories.push({ id: "__pizza", nome: "Pizzas" });
-  if (moduleFlavors("porcao").length) categories.push({ id: "__porcao", nome: "Porções" });
+  const modules = enabledModules();
+  if (modules.pizzas && moduleFlavors("pizza").length) categories.push({ id: "__pizza", nome: "Pizzas" });
+  if (modules.porcoes && moduleFlavors("porcao").length) categories.push({ id: "__porcao", nome: "Porções" });
   return categories;
 }
 
 function menuProducts() {
   const virtual = [];
-  const pizzaFlavors = moduleFlavors("pizza");
+  const modules = enabledModules();
+  const pizzaFlavors = modules.pizzas ? moduleFlavors("pizza") : [];
   if (pizzaFlavors.length) {
     virtual.push({
       id: "__pizza_builder",
@@ -539,7 +556,7 @@ function menuProducts() {
     });
     virtual.push(...pizzaFlavors.map((flavor) => moduleFlavorProduct(flavor, "pizza")));
   }
-  const portionFlavors = moduleFlavors("porcao");
+  const portionFlavors = modules.porcoes ? moduleFlavors("porcao") : [];
   if (portionFlavors.length) {
     virtual.push({
       id: "__portion_builder",
@@ -599,7 +616,7 @@ function moduleFlavors(type) {
 }
 
 function publicSimpleProducts() {
-  return state.products.filter((item) => item.moduleType === "simples" && item.disponivel !== false);
+  return state.products.filter((item) => ["simples", "acaiteria"].includes(item.moduleType) && item.disponivel !== false);
 }
 
 function publicCategories() {

@@ -127,6 +127,13 @@
           <select name="status"><option>ativo</option><option>aguardando_ativacao</option><option>bloqueado</option><option>pendente</option><option>vencido</option><option>cancelado</option></select>
         </label>
         <label class="full">Observações internas<textarea name="observacoesInternas" rows="3"></textarea></label>
+        <fieldset class="full module-permissions">
+          <legend>Módulos do estabelecimento</legend>
+          <label class="check-row"><input name="moduloProdutosSimples" type="checkbox" checked disabled> Produtos Simples (sempre ativo)</label>
+          <label class="check-row"><input name="moduloAcaiteria" type="checkbox" checked disabled> Açaíteria (sempre ativo)</label>
+          <label class="check-row"><input name="moduloPizzas" type="checkbox"> Pizzas</label>
+          <label class="check-row"><input name="moduloPorcoes" type="checkbox"> Porções</label>
+        </fieldset>
         <p class="form-message full"></p>
         <button class="btn btn-primary full" type="submit">Salvar alterações</button>
       </form>

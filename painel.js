@@ -32,7 +32,7 @@ const IMAGE_PRESETS = {
   hero: { maxDimension: 1100, quality: 0.8, maxBytes: 900 * 1024 },
   logo: { maxDimension: 640, quality: 0.86, maxBytes: 420 * 1024, trim: true, square: true }
 };
-const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
+const panelPages = ["dashboard", "pedidos", "produtos", "produtos-simples", "acaiteria", "pizzas", "porcoes", "categorias", "sabores", "bordas", "adicionais", "clientes", "financeiro", "taxas", "configuracoes", "delivery"];
 const orderStatuses = ["Aguardando aprovação", "Aceito", "Em preparo", "Pronto", "Saiu para entrega", "Entregue", "Cancelado"];
 const defaultSettings = {
   aceitaRetirada: true,
@@ -46,7 +46,10 @@ onAuthStateChanged(auth, async (user) => {
       location.replace("login.html");
       return;
     }
-    const businessDoc = await findBusinessForUser(user.uid);
+    const requestedBusinessId = new URLSearchParams(location.search).get("administrar");
+    const adminSnap = requestedBusinessId ? await getDoc(doc(db, "admins", user.uid)) : null;
+    const isAdminMode = Boolean(requestedBusinessId && adminSnap?.exists());
+    const businessDoc = isAdminMode ? await getBusinessById(requestedBusinessId) : await findBusinessForUser(user.uid);
     if (!businessDoc) {
       await signOut(auth);
       location.replace("login.html");
@@ -54,17 +57,20 @@ onAuthStateChanged(auth, async (user) => {
     }
     state.businessId = businessDoc.id;
     state.business = businessDoc.data();
-    if (state.business.status !== "ativo") {
+    if (state.business.status !== "ativo" && !isAdminMode) {
       alert("Acesso temporariamente bloqueado. Fale com a administração da plataforma.");
       await signOut(auth);
       location.replace("login.html");
       return;
     }
     sessionStorage.setItem("businessId", state.businessId);
+    state.adminMode = isAdminMode;
     updateDoc(doc(db, "estabelecimentos", state.businessId), { ultimoAcesso: serverTimestamp() }).catch((error) => {
       console.warn("Não foi possível atualizar último acesso:", error);
     });
     renderBusinessHeader();
+    applyModulePermissions();
+    if (isAdminMode) renderAdminModeBanner();
     await loadPanelData();
     showCurrentPanelPage();
     document.body.classList.remove("protected-loading");
@@ -267,6 +273,37 @@ async function findBusinessForUser(uid) {
   return snap.docs[0];
 }
 
+async function getBusinessById(id) {
+  const snap = await getDoc(doc(db, "estabelecimentos", id));
+  return snap.exists() ? { id: snap.id, data: () => snap.data() } : null;
+}
+
+function enabledModules() {
+  const modules = state.business?.modulos || {};
+  return { produtosSimples: true, acaiteria: true, pizzas: modules.pizzas === true, porcoes: modules.porcoes === true };
+}
+
+function applyModulePermissions() {
+  const modules = enabledModules();
+  const availability = { pizzas: modules.pizzas, porcoes: modules.porcoes };
+  Object.entries(availability).forEach(([page, enabled]) => {
+    document.querySelector(`.sidebar a[href="#${page}"]`)?.classList.toggle("hidden", !enabled);
+    document.getElementById(page)?.classList.toggle("module-disabled", !enabled);
+  });
+  if ((!modules.pizzas && location.hash === "#pizzas") || (!modules.porcoes && location.hash === "#porcoes")) location.hash = "produtos";
+}
+
+function renderAdminModeBanner() {
+  document.body.insertAdjacentHTML("afterbegin", `<div class="admin-mode-banner"><strong>Você está administrando: ${escapeHtmlLocal(state.business.nomeEstabelecimento || state.businessId)}</strong><a class="btn btn-small" href="admin.html#estabelecimentos">Voltar ao Administrador Geral</a></div>`);
+  document.body.classList.add("admin-mode");
+}
+
+function escapeHtmlLocal(value = "") {
+  const div = document.createElement("div");
+  div.textContent = String(value);
+  return div.innerHTML;
+}
+
 function renderBusinessHeader() {
   const name = state.business.nomeEstabelecimento || "Meu estabelecimento";
   $("#business-title").textContent = name;
@@ -293,7 +330,9 @@ function renderRenewalInfo() {
 }
 
 function showCurrentPanelPage() {
-  const page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
+  let page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
+  const modules = enabledModules();
+  if ((page === "pizzas" && !modules.pizzas) || (page === "porcoes" && !modules.porcoes)) page = "produtos";
   document.querySelectorAll("main > section").forEach((section) => {
     const isUtilityBand = section.classList.contains("soon-band")
       || section.classList.contains("dashboard-toolbar")
@@ -447,6 +486,10 @@ function simpleProducts() {
   return state.products.filter((item) => item.moduleType === "simples").sort(sortByHighlightAndName);
 }
 
+function acaiProducts() {
+  return state.products.filter((item) => item.moduleType === "acaiteria").sort(sortByHighlightAndName);
+}
+
 function moduleItems(type) {
   return state.flavors.filter((item) => item.tipo === type || item.moduleType === type).sort(sortByHighlightAndName);
 }
@@ -462,6 +505,7 @@ function extraAddons() {
 function renderModuleProducts() {
   renderAllProductsOverview();
   renderSimpleProducts();
+  renderAcaiProducts();
   renderPizzas();
   renderPortions();
 }
@@ -524,6 +568,10 @@ function allCatalogItems() {
     disponivel: item.disponivel !== false,
     edit: "simple-product"
   }));
+  const acaiItems = acaiProducts().map((item) => ({
+    id: item.id, nome: item.nome || "Produto sem nome", descricao: item.descricao || "", categoria: categoryName(item.categoriaId),
+    tipo: "Açaíteria", preco: item.preco, destaque: Boolean(item.destaque), disponivel: item.disponivel !== false, edit: "simple-product"
+  }));
   const pizzaItems = moduleItems("pizza").map((item) => ({
     id: item.id,
     nome: item.nome || "Pizza sem nome",
@@ -548,7 +596,7 @@ function allCatalogItems() {
     disponivel: item.disponivel !== false,
     edit: "portion-item"
   }));
-  return [...simpleItems, ...pizzaItems, ...portionItems].sort(sortByHighlightAndName);
+  return [...simpleItems, ...acaiItems, ...pizzaItems, ...portionItems].sort(sortByHighlightAndName);
 }
 
 function sortByHighlightAndName(a, b) {
@@ -588,6 +636,17 @@ function renderSimpleProducts() {
     highlight: "product",
     highlighted: Boolean(item.destaque)
   })).join("") || "<p>Nenhum produto simples cadastrado.</p>";
+  bindModuleActions(target);
+}
+
+function renderAcaiProducts() {
+  const target = $("#acai-products-list");
+  if (!target) return;
+  target.innerHTML = acaiProducts().map((item) => moduleListItem({
+    title: `${item.nome}${item.destaque ? " <span class='pill'>Destaque</span>" : ""}`,
+    meta: `${money(item.preco)} - ${categoryName(item.categoriaId)} - ${item.disponivel !== false ? "Ativo" : "Inativo"}`,
+    id: item.id, edit: "simple-product", remove: "product", highlight: "product", highlighted: Boolean(item.destaque)
+  })).join("") || "<p>Nenhum produto de açaí cadastrado.</p>";
   bindModuleActions(target);
 }
 
@@ -1280,6 +1339,13 @@ document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
 });
 
 $("#new-simple-product-btn")?.addEventListener("click", () => saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form"))));
+$("#new-acai-product-btn")?.addEventListener("click", () => {
+  resetSimpleProductForm($("#simple-product-form"));
+  $("#simple-product-form").elements.moduleType.value = "acaiteria";
+  location.hash = "produtos-simples";
+  showCurrentPanelPage();
+  $("#simple-product-form").elements.nome.focus();
+});
 $("#new-pizza-btn")?.addEventListener("click", () => saveDraftOrReset($("#pizza-item-form"), () => saveModuleFlavor($("#pizza-item-form"), "pizza", "Pizza salva"), () => resetModuleFlavorForm($("#pizza-item-form"), "pizza")));
 $("#new-portion-btn")?.addEventListener("click", () => saveDraftOrReset($("#portion-item-form"), () => saveModuleFlavor($("#portion-item-form"), "porcao", "Porção salva"), () => resetModuleFlavorForm($("#portion-item-form"), "porcao")));
 $("#new-category-btn")?.addEventListener("click", () => saveDraftOrReset($("#module-category-form"), () => saveModuleCategory($("#module-category-form")), () => resetModuleCategoryForm($("#module-category-form"))));
@@ -1325,7 +1391,7 @@ async function saveSimpleProduct(form) {
       preco: numberValue(data.preco),
       fotoUrl: data.fotoUrl || "",
       tipoProduto: "simples",
-      moduleType: "simples",
+      moduleType: data.moduleType === "acaiteria" ? "acaiteria" : "simples",
       disponivel: Boolean(data.disponivel),
       destaque: Boolean(data.destaque),
       permiteObservacoes: true,
@@ -1593,6 +1659,7 @@ function resetSimpleProductForm(form = $("#simple-product-form")) {
   if (form?.elements.fotoUrl) form.elements.fotoUrl.value = "";
   if (form?.elements.disponivel) form.elements.disponivel.checked = true;
   if (form?.elements.destaque) form.elements.destaque.checked = false;
+  if (form?.elements.moduleType) form.elements.moduleType.value = "simples";
   renderSimpleProductPhotoPreview("");
 }
 
@@ -1658,6 +1725,7 @@ function fillSimpleProduct(id) {
   form.elements.preco.value = item.preco || 0;
   form.elements.categoriaId.value = item.categoriaId || "";
   form.elements.descricao.value = item.descricao || "";
+  if (form.elements.moduleType) form.elements.moduleType.value = item.moduleType === "acaiteria" ? "acaiteria" : "simples";
   form.elements.fotoUrl.value = item.fotoUrl || "";
   form.elements.disponivel.checked = item.disponivel !== false;
   if (form.elements.destaque) form.elements.destaque.checked = Boolean(item.destaque);

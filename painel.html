@@ -27,6 +27,7 @@
       <a href="#pedidos">Pedidos</a>
       <a href="#produtos">Produtos</a>
       <a href="#produtos-simples">Produtos Simples</a>
+      <a href="#acaiteria">Açaíteria</a>
       <a href="#pizzas">Pizzas</a>
       <a href="#porcoes">Porções</a>
       <a href="#categorias">Categorias</a>
@@ -123,6 +124,7 @@
         <label>Nome do produto<input name="nome" required></label>
         <label>Valor<input name="preco" type="number" step="0.01" required></label>
         <label>Categoria<select name="categoriaId" id="simple-product-category"></select></label>
+        <label>Módulo<select name="moduleType"><option value="simples">Produtos Simples</option><option value="acaiteria">Açaíteria</option></select></label>
         <label class="full">Descrição<textarea name="descricao" rows="2"></textarea></label>
         <input name="fotoUrl" type="hidden">
         <label class="full">Imagem do produto<input id="simple-product-photo-file" type="file" accept="image/*"></label>
@@ -132,6 +134,11 @@
         <button class="btn btn-primary full" type="submit">Salvar produto simples</button>
       </form>
       <div id="simple-products-list" class="stack-list"></div>
+    </section>
+
+    <section id="acaiteria" class="panel module-page">
+      <div class="panel-heading"><div><h2>Açaíteria</h2><p>Produtos de açaí, complementos e combinações.</p></div><button id="new-acai-product-btn" class="btn btn-small" type="button">+ Novo produto de açaí</button></div>
+      <div id="acai-products-list" class="stack-list"></div>
     </section>
 
     <section id="pizzas" class="panel module-page">
