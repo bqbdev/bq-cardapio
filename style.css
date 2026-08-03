@@ -3568,9 +3568,10 @@ th { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-s
 .module-permissions { border: 1px solid var(--line, #dce4dd); border-radius: 12px; padding: 14px; }
 .module-permissions legend { font-weight: 700; padding: 0 6px; }
 .admin-mode-banner { position: fixed; inset: 0 0 auto 0; z-index: 1000; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 8px 16px; background: #17251d; color: #fff; }
-.admin-mode .sidebar, .admin-mode .app-main { margin-top: 48px; }
+.admin-mode .sidebar { margin-top: 48px; top: 48px; height: calc(100vh - 48px); }
+.admin-mode .app-main { margin-top: 48px; min-height: calc(100vh - 48px); }
 .module-disabled { display: none !important; }
-@media (max-width: 700px) { .admin-mode-banner { position: sticky; flex-wrap: wrap; text-align: center; } .admin-mode .sidebar, .admin-mode .app-main { margin-top: 0; } }
+@media (max-width: 700px) { .admin-mode-banner { position: sticky; flex-wrap: wrap; text-align: center; } .admin-mode .sidebar, .admin-mode .app-main { margin-top: 0; min-height: auto; } .admin-mode .sidebar { top: 0; height: auto; } }
 
 body.modal-open { overflow: hidden; }
 .admin-editor-backdrop {

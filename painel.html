@@ -14,7 +14,7 @@
   <meta property="og:image:secure_url" content="https://bqbdev.github.io/bq-cardapio/logo.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://bqbdev.github.io/bq-cardapio/logo.png">
-  <link rel="stylesheet" href="style.css?v=logo-card-4">
+  <link rel="stylesheet" href="style.css?v=admin-layout-3">
 </head>
 <body class="app-page protected-page protected-loading">
   <div class="auth-check-screen">
@@ -257,9 +257,10 @@
         <div class="full addon-scope-panel" data-module-addon-panel="modulo">
           <strong>Módulos</strong>
           <div class="category-check-grid">
-            <label class="category-check is-selected"><input type="checkbox" data-module-addon-module="pizza" checked><span>Pizzas</span></label>
-            <label class="category-check"><input type="checkbox" data-module-addon-module="porcao"><span>Porções</span></label>
-            <label class="category-check"><input type="checkbox" data-module-addon-module="simples"><span>Produtos simples</span></label>
+            <label class="category-check" data-addon-module-option="pizza"><input type="checkbox" data-module-addon-module="pizza"><span>Pizzas</span></label>
+            <label class="category-check" data-addon-module-option="porcao"><input type="checkbox" data-module-addon-module="porcao"><span>Porções</span></label>
+            <label class="category-check" data-addon-module-option="acaiteria"><input type="checkbox" data-module-addon-module="acaiteria"><span>Açaíteria</span></label>
+            <label class="category-check is-selected" data-addon-module-option="simples"><input type="checkbox" data-module-addon-module="simples" checked><span>Produtos simples</span></label>
           </div>
         </div>
         <div class="full addon-scope-panel hidden" data-module-addon-panel="categoria">
@@ -497,7 +498,7 @@
       </div>
     </section>
   </main>
-  <script type="module" src="painel.js?v=admin-support-2"></script>
+  <script type="module" src="painel.js?v=module-permissions-4"></script>
 </body>
 </html>
 

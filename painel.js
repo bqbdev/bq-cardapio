@@ -304,12 +304,33 @@ function enabledModules() {
 
 function applyModulePermissions() {
   const modules = enabledModules();
-  const availability = { acaiteria: modules.acaiteria, pizzas: modules.pizzas, porcoes: modules.porcoes };
+  const availability = {
+    acaiteria: modules.acaiteria,
+    pizzas: modules.pizzas,
+    porcoes: modules.porcoes,
+    sabores: modules.pizzas,
+    bordas: modules.pizzas
+  };
   Object.entries(availability).forEach(([page, enabled]) => {
     document.querySelector(`.sidebar a[href="#${page}"]`)?.classList.toggle("hidden", !enabled);
     document.getElementById(page)?.classList.toggle("module-disabled", !enabled);
   });
-  if ((!modules.acaiteria && location.hash === "#acaiteria") || (!modules.pizzas && location.hash === "#pizzas") || (!modules.porcoes && location.hash === "#porcoes")) location.hash = "produtos";
+  document.querySelectorAll("[data-addon-module-option]").forEach((option) => {
+    const moduleName = option.dataset.addonModuleOption;
+    const enabled = moduleName === "simples" || Boolean(modules[moduleName]);
+    option.classList.toggle("hidden", !enabled);
+    const input = option.querySelector("input");
+    if (input && !enabled) input.checked = false;
+  });
+  setModuleAddonModules(selectedModuleAddonModules());
+  const blockedPages = [
+    !modules.acaiteria && "#acaiteria",
+    !modules.pizzas && "#pizzas",
+    !modules.pizzas && "#sabores",
+    !modules.pizzas && "#bordas",
+    !modules.porcoes && "#porcoes"
+  ].filter(Boolean);
+  if (blockedPages.includes(location.hash)) location.hash = "produtos";
 }
 
 function renderAdminModeBanner() {
@@ -356,7 +377,7 @@ function renderRenewalInfo() {
 function showCurrentPanelPage() {
   let page = panelPages.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : "dashboard";
   const modules = enabledModules();
-  if ((page === "acaiteria" && !modules.acaiteria) || (page === "pizzas" && !modules.pizzas) || (page === "porcoes" && !modules.porcoes)) page = "produtos";
+  if ((page === "acaiteria" && !modules.acaiteria) || (["pizzas", "sabores", "bordas"].includes(page) && !modules.pizzas) || (page === "porcoes" && !modules.porcoes)) page = "produtos";
   document.querySelectorAll("main > section").forEach((section) => {
     const isUtilityBand = section.classList.contains("soon-band")
       || section.classList.contains("dashboard-toolbar")
@@ -803,6 +824,7 @@ function moduleTypeLabel(value = "") {
   if (value === "pizza") return "Pizza";
   if (value === "porcao") return "Porção";
   if (value === "simples") return "Produto simples";
+  if (value === "acaiteria") return "Açaíteria";
   return "Geral";
 }
 
@@ -810,6 +832,7 @@ function moduleAddonScope(value = "") {
   if (value === "pizza") return "Pizzas";
   if (value === "porcao") return "Porções";
   if (value === "simples") return "Produtos simples";
+  if (value === "acaiteria") return "Açaíteria";
   return "Todos";
 }
 
@@ -878,8 +901,15 @@ function selectedModuleAddonModules() {
   return Array.from(document.querySelectorAll("[data-module-addon-module]:checked")).map((input) => input.dataset.moduleAddonModule);
 }
 
-function setModuleAddonModules(values = ["pizza"]) {
-  const selected = new Set(values?.length ? values : ["pizza"]);
+function availableAddonModules() {
+  const modules = enabledModules();
+  return ["simples", modules.acaiteria && "acaiteria", modules.pizzas && "pizza", modules.porcoes && "porcao"].filter(Boolean);
+}
+
+function setModuleAddonModules(values = []) {
+  const available = availableAddonModules();
+  const requested = (values || []).filter((value) => available.includes(value));
+  const selected = new Set(requested.length ? requested : [available[0] || "simples"]);
   document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
     input.checked = selected.has(input.dataset.moduleAddonModule);
     input.closest(".category-check")?.classList.toggle("is-selected", input.checked);
@@ -1362,11 +1392,15 @@ document.querySelectorAll("[data-module-addon-module]").forEach((input) => {
   input.addEventListener("change", () => input.closest(".category-check")?.classList.toggle("is-selected", input.checked));
 });
 
-$("#new-simple-product-btn")?.addEventListener("click", () => saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form"))));
+$("#new-simple-product-btn")?.addEventListener("click", () => {
+  placeSimpleProductForm("simples");
+  saveDraftOrReset($("#simple-product-form"), () => saveSimpleProduct($("#simple-product-form")), () => resetSimpleProductForm($("#simple-product-form")));
+});
 $("#new-acai-product-btn")?.addEventListener("click", () => {
   resetSimpleProductForm($("#simple-product-form"));
+  placeSimpleProductForm("acaiteria");
   $("#simple-product-form").elements.moduleType.value = "acaiteria";
-  location.hash = "produtos-simples";
+  location.hash = "acaiteria";
   showCurrentPanelPage();
   $("#simple-product-form").elements.nome.focus();
 });
@@ -1407,6 +1441,7 @@ function focusFirstField(form) {
 async function saveSimpleProduct(form) {
   await runFormSave(form, async () => {
     const data = formToObject(form);
+    const moduleType = data.moduleType === "acaiteria" ? "acaiteria" : "simples";
     const id = data.id || doc(collection(db, "tmp")).id;
     await setDoc(doc(db, `estabelecimentos/${state.businessId}/produtos`, id), {
       nome: data.nome,
@@ -1415,13 +1450,16 @@ async function saveSimpleProduct(form) {
       preco: numberValue(data.preco),
       fotoUrl: data.fotoUrl || "",
       tipoProduto: "simples",
-      moduleType: data.moduleType === "acaiteria" ? "acaiteria" : "simples",
+      moduleType,
       disponivel: Boolean(data.disponivel),
       destaque: Boolean(data.destaque),
       permiteObservacoes: true,
       atualizadoEm: serverTimestamp()
     }, { merge: true });
     resetSimpleProductForm(form);
+    placeSimpleProductForm(moduleType);
+    form.elements.moduleType.value = moduleType;
+    location.hash = moduleType === "acaiteria" ? "acaiteria" : "produtos-simples";
     await loadProducts();
   }, "Produto salvo");
 }
@@ -1687,6 +1725,14 @@ function resetSimpleProductForm(form = $("#simple-product-form")) {
   renderSimpleProductPhotoPreview("");
 }
 
+function placeSimpleProductForm(moduleType = "simples") {
+  const form = $("#simple-product-form");
+  const list = moduleType === "acaiteria" ? $("#acai-products-list") : $("#simple-products-list");
+  if (!form || !list) return;
+  list.parentElement.insertBefore(form, list);
+  if (form.elements.moduleType) form.elements.moduleType.value = moduleType;
+}
+
 function resetModuleFlavorForm(form, type = "pizza") {
   form?.reset();
   if (form?.elements.id) form.elements.id.value = "";
@@ -1744,17 +1790,19 @@ function fillSimpleProduct(id) {
   const item = state.products.find((product) => product.id === id);
   const form = $("#simple-product-form");
   if (!item || !form) return;
+  const moduleType = item.moduleType === "acaiteria" ? "acaiteria" : "simples";
+  placeSimpleProductForm(moduleType);
   form.elements.id.value = id;
   form.elements.nome.value = item.nome || "";
   form.elements.preco.value = item.preco || 0;
   form.elements.categoriaId.value = item.categoriaId || "";
   form.elements.descricao.value = item.descricao || "";
-  if (form.elements.moduleType) form.elements.moduleType.value = item.moduleType === "acaiteria" ? "acaiteria" : "simples";
+  if (form.elements.moduleType) form.elements.moduleType.value = moduleType;
   form.elements.fotoUrl.value = item.fotoUrl || "";
   form.elements.disponivel.checked = item.disponivel !== false;
   if (form.elements.destaque) form.elements.destaque.checked = Boolean(item.destaque);
   renderSimpleProductPhotoPreview(item.fotoUrl || "");
-  location.hash = "produtos-simples";
+  location.hash = moduleType === "acaiteria" ? "acaiteria" : "produtos-simples";
   showCurrentPanelPage();
 }
 
