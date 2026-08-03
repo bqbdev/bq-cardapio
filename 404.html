@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Abrindo cardápio...</title><meta name="robots" content="noindex"></head>
+<body><p>Abrindo cardápio...</p><script>
+  const parts = location.pathname.split("/").filter(Boolean);
+  if (parts[0] === "loja" && parts[1]) {
+    const params = new URLSearchParams({ estabelecimento: parts[1], loja: parts[2] || "cardapio" });
+    location.replace(`/cardapio.html?${params}`);
+  } else {
+    location.replace("/index.html");
+  }
+</script></body></html>

@@ -17,11 +17,8 @@ export const slugify = (text = "") => String(text)
   .replace(/(^-|-$)/g, "");
 
 export const publicMenuLink = (businessId, businessName = "", basePath = location.pathname) => {
-  const directory = basePath.replace(/[^/]*$/, "");
-  const url = new URL(`${directory}cardapio.html`, location.origin);
   const slug = slugify(businessName) || "cardapio";
-  url.searchParams.set("loja", slug);
-  url.searchParams.set("estabelecimento", businessId);
+  const url = new URL(`/loja/${encodeURIComponent(businessId)}/${slug}`, location.origin);
   return url.toString();
 };
 

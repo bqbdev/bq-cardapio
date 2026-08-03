@@ -58,13 +58,27 @@ Esse fluxo não exige que o admin crie manualmente o usuário do estabelecimento
 
 ## Link público do cardápio
 
-Use:
+O sistema gera links no formato:
 
 ```text
-cardapio.html?estabelecimento=ID_DO_ESTABELECIMENTO
+/loja/ID_DO_ESTABELECIMENTO/nome-da-loja
 ```
 
-Esse link funciona no GitHub Pages depois que o Firebase estiver configurado.
+No Firebase Hosting, essa rota passa pela Function `previewCardapio`, que lê o nome e o logo do estabelecimento no Firestore e entrega as metatags corretas para WhatsApp, Facebook, Instagram, X e outras plataformas. Depois, o visitante é direcionado ao cardápio estático.
+
+O arquivo `404.html` mantém os links acessíveis durante a transição a partir do GitHub Pages, mas a prévia personalizada somente passa a funcionar após a publicação da Function e a conexão do domínio ao Firebase Hosting.
+
+## Publicação no Firebase Hosting
+
+Pré-requisitos:
+
+1. Alterar o projeto `bq-cardapio` para o plano Blaze e vincular uma conta de faturamento.
+2. Instalar a versão atual do Firebase CLI e autenticar a conta proprietária do projeto.
+3. Na raiz do projeto, executar `firebase deploy --only functions,hosting`.
+4. No Console do Firebase, conectar o domínio `bqmenu.bqsystems.com.br` ao Hosting e aplicar os registros DNS informados.
+5. Depois da propagação do domínio, testar um link `/loja/ID/nome-da-loja` no WhatsApp.
+
+A Function usa `minInstances: 0`, limita a escala a cinco instâncias e mantém cache de dez minutos no CDN para controlar custos. Alterações de logo podem levar até dez minutos para aparecer nas novas prévias. O cache antigo do próprio WhatsApp também pode precisar expirar.
 
 ## Delivery
 
