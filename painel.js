@@ -76,10 +76,29 @@ onAuthStateChanged(auth, async (user) => {
     document.body.classList.remove("protected-loading");
   } catch (error) {
     console.error("Falha ao verificar estabelecimento:", error);
+    if (state.adminMode) {
+      showAdminLoadError(error);
+      document.body.classList.remove("protected-loading");
+      return;
+    }
     await signOut(auth);
     location.replace("login.html");
   }
 });
+
+function showAdminLoadError(error) {
+  if (!document.body.classList.contains("admin-mode")) renderAdminModeBanner();
+  const existing = $("#admin-load-error");
+  if (existing) existing.remove();
+  document.querySelector(".app-main")?.insertAdjacentHTML("afterbegin", `
+    <section id="admin-load-error" class="panel form-message error">
+      <strong>O acesso administrativo foi mantido, mas uma área do cliente não carregou.</strong>
+      <span>${escapeHtmlLocal(error?.message || "Erro inesperado ao carregar os dados.")}</span>
+      <button id="retry-admin-load" class="btn btn-small" type="button">Tentar novamente</button>
+    </section>
+  `);
+  $("#retry-admin-load")?.addEventListener("click", () => location.reload());
+}
 
 $("#logout-btn")?.addEventListener("click", async () => {
   await signOut(auth);
