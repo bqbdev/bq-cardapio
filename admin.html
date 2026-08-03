@@ -104,8 +104,8 @@
       </div>
     </section>
 
-    <section id="business-editor" class="panel admin-view hidden" data-view="estabelecimentos">
-      <div class="panel-heading"><h2>Editar estabelecimento</h2><button id="close-editor" class="btn btn-small">Fechar</button></div>
+    <section id="business-editor" class="panel admin-view hidden" data-view="estabelecimentos" role="dialog" aria-modal="true" aria-labelledby="business-editor-title">
+      <div class="panel-heading"><h2 id="business-editor-title">Editar estabelecimento</h2><button id="close-editor" class="btn btn-small">Fechar</button></div>
       <form id="business-form" class="form-grid">
         <input type="hidden" name="id">
         <label>Nome<input name="nomeEstabelecimento" required></label>

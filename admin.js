@@ -57,6 +57,14 @@ function panelLink(id) {
   return `painel.html?administrar=${encodeURIComponent(id)}`;
 }
 
+function accessBusinessPanel(id) {
+  const business = state.businesses.find((item) => item.id === id);
+  if (!business) return;
+  sessionStorage.setItem("adminBusinessId", id);
+  sessionStorage.setItem("adminBusinessName", business.nomeEstabelecimento || id);
+  location.href = panelLink(id);
+}
+
 function menuLink(id, name) {
   const base = `${location.origin}${location.pathname.replace(/admin\.html$/, "")}cardapio.html`;
   return `${base}?${new URLSearchParams({ estabelecimento: id, loja: name || "cardapio" })}`;
@@ -93,6 +101,9 @@ function bindAdminControls() {
   });
   $("#refresh-admin")?.addEventListener("click", loadAdminData);
   $("#close-editor")?.addEventListener("click", closeEditor);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !$("#business-editor")?.classList.contains("hidden")) closeEditor();
+  });
   $("#admin-period")?.addEventListener("change", (event) => {
     state.adminPeriod = event.target.value;
     toggleCustomPeriod();
@@ -344,7 +355,7 @@ function renderBusinesses() {
       <td>${escapeHtml(item.metodoPagamento || "-")}</td>
       <td class="item-actions">
         <button class="btn btn-small" data-edit="${item.id}">Editar</button>
-        <a class="btn btn-small btn-primary" href="${panelLink(item.id)}">Acessar painel</a>
+        <button class="btn btn-small btn-primary" type="button" data-access-panel="${item.id}">Acessar painel</button>
         <a class="btn btn-small" href="${menuLink(item.id, item.nomeEstabelecimento)}" target="_blank" rel="noopener">Ver cardápio</a>
         ${item.activationToken && !item.uid ? `<button class="btn btn-small btn-primary" data-activation="${item.id}">Mensagem de ativação</button>` : ""}
         <button class="btn btn-small" data-password-reset="${item.id}">Resetar senha</button>
@@ -357,6 +368,7 @@ function renderBusinesses() {
     </tr>
   `).join("") || "<tr><td colspan='6'>Nenhum estabelecimento cadastrado.</td></tr>";
   document.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.edit)));
+  document.querySelectorAll("[data-access-panel]").forEach((button) => button.addEventListener("click", () => accessBusinessPanel(button.dataset.accessPanel)));
   document.querySelectorAll("[data-activation]").forEach((button) => button.addEventListener("click", () => sendActivationMessage(button.dataset.activation)));
   document.querySelectorAll("[data-password-reset]").forEach((button) => button.addEventListener("click", () => sendPasswordReset(button.dataset.passwordReset)));
   document.querySelectorAll("[data-access-reset]").forEach((button) => button.addEventListener("click", () => resetBusinessAccess(button.dataset.accessReset)));
@@ -770,14 +782,32 @@ function openEditor(id) {
   form.elements.moduloPizzas.checked = modules.pizzas;
   form.elements.moduloPorcoes.checked = modules.porcoes;
   setMessage(form.querySelector(".form-message"), "");
+  ensureEditorBackdrop();
   $("#business-editor").classList.remove("hidden");
+  document.body.classList.add("modal-open");
   showAdminView("estabelecimentos");
+}
+
+function ensureEditorBackdrop() {
+  let backdrop = $("#business-editor-backdrop");
+  if (!backdrop) {
+    backdrop = document.createElement("button");
+    backdrop.id = "business-editor-backdrop";
+    backdrop.className = "admin-editor-backdrop";
+    backdrop.type = "button";
+    backdrop.setAttribute("aria-label", "Fechar edição do estabelecimento");
+    backdrop.addEventListener("click", closeEditor);
+    document.body.appendChild(backdrop);
+  }
+  backdrop.classList.remove("hidden");
 }
 
 function closeEditor() {
   const form = $("#business-form");
   if (form) form.reset();
   $("#business-editor").classList.add("hidden");
+  $("#business-editor-backdrop")?.classList.add("hidden");
+  document.body.classList.remove("modal-open");
 }
 
 async function saveBusiness(event) {

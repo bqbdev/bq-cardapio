@@ -46,7 +46,7 @@ onAuthStateChanged(auth, async (user) => {
       location.replace("login.html");
       return;
     }
-    const requestedBusinessId = new URLSearchParams(location.search).get("administrar");
+    const requestedBusinessId = new URLSearchParams(location.search).get("administrar") || sessionStorage.getItem("adminBusinessId");
     const adminSnap = requestedBusinessId ? await getDoc(doc(db, "admins", user.uid)) : null;
     const isAdminMode = Boolean(requestedBusinessId && adminSnap?.exists());
     const businessDoc = isAdminMode ? await getBusinessById(requestedBusinessId) : await findBusinessForUser(user.uid);
@@ -294,8 +294,13 @@ function applyModulePermissions() {
 }
 
 function renderAdminModeBanner() {
-  document.body.insertAdjacentHTML("afterbegin", `<div class="admin-mode-banner"><strong>Você está administrando: ${escapeHtmlLocal(state.business.nomeEstabelecimento || state.businessId)}</strong><a class="btn btn-small" href="admin.html#estabelecimentos">Voltar ao Administrador Geral</a></div>`);
+  document.body.insertAdjacentHTML("afterbegin", `<div class="admin-mode-banner"><strong>Você está administrando: ${escapeHtmlLocal(state.business.nomeEstabelecimento || state.businessId)}</strong><button id="leave-admin-mode" class="btn btn-small" type="button">Voltar ao Administrador Geral</button></div>`);
   document.body.classList.add("admin-mode");
+  $("#leave-admin-mode")?.addEventListener("click", () => {
+    sessionStorage.removeItem("adminBusinessId");
+    sessionStorage.removeItem("adminBusinessName");
+    location.href = "admin.html#estabelecimentos";
+  });
 }
 
 function escapeHtmlLocal(value = "") {
