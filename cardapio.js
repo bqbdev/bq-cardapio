@@ -13,7 +13,7 @@
 } from "./firebase.js";
 import { calculatePaymentFee } from "./taxas.js";
 import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-lookup-3";
-import { formToObject, money, normalizePhone, publicMenuLink, requireParam, setMessage, slugify, whatsappAppLink, whatsappLink } from "./utils.js";
+import { formToObject, money, normalizePhone, publicMenuLink, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js";
 
 const state = {
   estabelecimentoId: requireParam("estabelecimento"),
@@ -89,9 +89,7 @@ function enabledModules() {
 
 function syncPublicMenuUrl() {
   const name = businessDisplayName();
-  const currentSlug = requireParam("loja");
-  const expectedSlug = slugify(name) || "cardapio";
-  if (currentSlug === expectedSlug) return;
+  if (location.pathname.startsWith("/loja/")) return;
   history.replaceState(null, "", publicMenuLink(state.estabelecimentoId, name));
 }
 
@@ -125,7 +123,7 @@ function setMeta(name, content, attribute = "name") {
 }
 
 function absoluteAssetUrl(path) {
-  return new URL(path, location.href).toString();
+  return new URL(`/${String(path || "").replace(/^\/+/, "")}`, location.origin).toString();
 }
 
 async function loadBusiness() {
@@ -1502,7 +1500,7 @@ function closeReservedWindow(win) {
 }
 
 function orderTrackingUrl(orderId) {
-  const url = new URL("pedido.html", location.href);
+  const url = new URL("/pedido.html", location.origin);
   url.searchParams.set("estabelecimento", state.estabelecimentoId);
   url.searchParams.set("pedido", orderId);
   return url.href;
@@ -1631,7 +1629,7 @@ function renderClientOrderCard(order) {
       </div>
       ${renderCurrentStatus(order.status)}
       <small>${escapeHtml(order.tipoEntrega || "")} - ${money(order.totalFinal)}</small>
-      <a class="btn btn-small" href="pedido.html?estabelecimento=${state.estabelecimentoId}&pedido=${order.id}">Ver detalhes</a>
+      <a class="btn btn-small" href="/pedido.html?estabelecimento=${state.estabelecimentoId}&pedido=${order.id}">Ver detalhes</a>
     </article>
   `;
 }
