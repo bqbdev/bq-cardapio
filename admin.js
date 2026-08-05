@@ -26,6 +26,7 @@ import {
   money,
   normalizePhone,
   planMonths,
+  publicMenuLink,
   setMessage,
   toBrazilDate,
   toDateInput,
@@ -66,8 +67,7 @@ function accessBusinessPanel(id) {
 }
 
 function menuLink(id, name) {
-  const base = `${location.origin}${location.pathname.replace(/admin\.html$/, "")}cardapio.html`;
-  return `${base}?${new URLSearchParams({ estabelecimento: id, loja: name || "cardapio" })}`;
+  return publicMenuLink(id, name || "cardapio");
 }
 
 onAuthStateChanged(auth, async (user) => {
