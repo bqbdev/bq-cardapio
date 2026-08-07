@@ -1,4 +1,4 @@
-import { Timestamp } from "./firebase.js";
+import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 export const money = (value = 0) => Number(value || 0).toLocaleString("pt-BR", {
   style: "currency",

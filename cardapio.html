@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="//www.gstatic.com">
+  <link rel="dns-prefetch" href="//firestore.googleapis.com">
   <title>Cardápio - bq menu</title>
   <meta name="description" content="Cardápio digital bq menu para fazer pedidos pelo WhatsApp.">
   <link rel="icon" type="image/png" href="logo.png">
@@ -19,7 +24,8 @@
   <meta name="twitter:title" content="Cardápio digital - bq menu">
   <meta name="twitter:description" content="Confira nosso cardápio e faça seu pedido.">
   <meta name="twitter:image" content="https://bqmenu.bqsystems.com.br/logo.png">
-  <link rel="stylesheet" href="style.css?v=brand-logo-5">
+  <link rel="modulepreload" href="firebase-public.js?v=menu-perf-1">
+  <link rel="stylesheet" href="style.css?v=menu-perf-1">
 </head>
 <body class="menu-page">
   <header class="menu-header">
@@ -42,9 +48,16 @@
   </header>
   <main class="menu-shell">
     <section>
-      <section id="menu-hero" class="menu-hero"></section>
-      <div id="category-tabs" class="category-tabs"></div>
-      <div id="menu-products" class="menu-products"></div>
+      <section id="menu-hero" class="menu-hero menu-loading-hero" aria-busy="true">
+        <div class="menu-loading-copy"><span></span><strong></strong><small></small><small></small></div>
+        <div class="menu-loading-art"></div>
+      </section>
+      <div id="category-tabs" class="category-tabs menu-loading-tabs" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div id="menu-products" class="menu-products" aria-live="polite">
+        <article class="product-card menu-loading-card"><i></i><div><strong></strong><span></span><b></b></div></article>
+        <article class="product-card menu-loading-card"><i></i><div><strong></strong><span></span><b></b></div></article>
+        <article class="product-card menu-loading-card"><i></i><div><strong></strong><span></span><b></b></div></article>
+      </div>
     </section>
     <aside class="cart-panel">
       <h2>Seu pedido</h2>
@@ -117,6 +130,6 @@
       <p id="builder-message" class="form-message full"></p>
     </form>
   </dialog>
-  <script type="module" src="cardapio.js?v=share-url-1"></script>
+  <script type="module" src="cardapio.js?v=menu-perf-1"></script>
 </body>
 </html>

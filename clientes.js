@@ -1,6 +1,5 @@
-import { increment } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-import { db, collection, doc, getDoc, getDocs, limit, query, setDoc, serverTimestamp, where } from "./firebase.js";
-import { normalizePhone } from "./utils.js";
+import { db, collection, doc, getDoc, getDocs, increment, limit, query, setDoc, serverTimestamp, where } from "./firebase-public.js?v=menu-perf-1";
+import { normalizePhone } from "./utils.js?v=menu-perf-1";
 
 function phoneCandidates(phone) {
   const cleanPhone = normalizePhone(phone);

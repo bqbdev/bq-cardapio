@@ -10,10 +10,10 @@
   where,
   orderBy,
   serverTimestamp
-} from "./firebase.js";
+} from "./firebase-public.js?v=menu-perf-1";
 import { calculatePaymentFee } from "./taxas.js";
-import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-lookup-3";
-import { formToObject, money, normalizePhone, publicMenuLink, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js";
+import { getClientByWhatsApp, upsertClient } from "./clientes.js?v=client-lookup-4";
+import { formToObject, money, normalizePhone, publicMenuLink, requireParam, setMessage, whatsappAppLink, whatsappLink } from "./utils.js?v=menu-perf-1";
 
 const state = {
   estabelecimentoId: requireParam("estabelecimento"),
@@ -59,8 +59,13 @@ async function init() {
     $("#menu-message").textContent = "Informe o estabelecimento no link do cardápio.";
     return;
   }
-  await Promise.all([loadBusiness(), loadSettings()]);
-  await Promise.all([loadCategories(), loadProducts()]);
+  try {
+    await loadInitialCatalog();
+  } catch (error) {
+    console.error("Não foi possível carregar o cardápio:", error);
+    renderCatalogLoadError();
+    return;
+  }
   syncPublicMenuUrl();
   syncSharePreviewMeta();
   renderHeader();
@@ -126,14 +131,37 @@ function absoluteAssetUrl(path) {
   return new URL(`/${String(path || "").replace(/^\/+/, "")}`, location.origin).toString();
 }
 
-async function loadBusiness() {
-  const snap = await getDoc(doc(db, "estabelecimentos", state.estabelecimentoId));
-  state.business = snap.data() || {};
+async function loadInitialCatalog() {
+  const basePath = `estabelecimentos/${state.estabelecimentoId}`;
+  const [businessSnap, settingsSnap, categoriesSnap, productsSnap] = await Promise.all([
+    getDoc(doc(db, "estabelecimentos", state.estabelecimentoId)),
+    getDoc(doc(db, `${basePath}/configuracoes`, "geral")),
+    getDocs(query(collection(db, `${basePath}/categorias`), orderBy("ordem", "asc"))),
+    getDocs(query(collection(db, `${basePath}/produtos`), orderBy("nome", "asc")))
+  ]);
+
+  state.business = businessSnap.data() || {};
+  state.settings = settingsSnap.data() || {};
+  applyCategoriesSnapshot(categoriesSnap);
+  applyProductsSnapshot(productsSnap);
 }
 
-async function loadSettings() {
-  const snap = await getDoc(doc(db, `estabelecimentos/${state.estabelecimentoId}/configuracoes`, "geral"));
-  state.settings = snap.data() || {};
+function renderCatalogLoadError() {
+  $("#menu-business-name").textContent = "Não foi possível carregar";
+  $("#menu-message").textContent = "Verifique sua conexão e tente novamente.";
+  $("#menu-hero").innerHTML = `
+    <div class="menu-load-error">
+      <strong>O cardápio não carregou desta vez.</strong>
+      <span>Nenhum pedido ou dado foi alterado.</span>
+      <button class="btn btn-primary" type="button" onclick="location.reload()">Tentar novamente</button>
+    </div>
+  `;
+  $("#menu-hero").classList.remove("menu-loading-hero");
+  $("#menu-hero").removeAttribute("aria-busy");
+  $("#category-tabs").innerHTML = "";
+  $("#category-tabs").classList.remove("menu-loading-tabs");
+  $("#category-tabs").removeAttribute("aria-hidden");
+  $("#menu-products").innerHTML = "";
 }
 
 async function loadFees() {
@@ -142,13 +170,11 @@ async function loadFees() {
   state.feesLoaded = true;
 }
 
-async function loadCategories() {
-  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/categorias`), orderBy("ordem", "asc")));
+function applyCategoriesSnapshot(snap) {
   state.categories = snap.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.ativo !== false);
 }
 
-async function loadProducts() {
-  const snap = await getDocs(query(collection(db, `estabelecimentos/${state.estabelecimentoId}/produtos`), orderBy("nome", "asc")));
+function applyProductsSnapshot(snap) {
   state.products = snap.docs
     .map((item) => ({ id: item.id, ...item.data() }))
     .filter((item) => item.disponivel !== false)
@@ -451,6 +477,8 @@ function scheduleLabel(dateValue, timeValue) {
 function renderMenuHero() {
   const target = $("#menu-hero");
   if (!target) return;
+  target.classList.remove("menu-loading-hero");
+  target.removeAttribute("aria-busy");
   const phone = state.settings.whatsappPedidos || state.business.whatsapp || "";
   const name = state.settings.nomePublico || state.business.nomeEstabelecimento || "cardápio";
   const heroWhatsappHref = phone ? whatsappLink(phone, `Olá, vim pelo cardápio digital de ${name}.`) : "#";
@@ -486,6 +514,8 @@ function bestHeroProduct() {
 
 function renderCategories(activeId = "todos") {
   const tabs = [{ id: "todos", nome: "Todos" }, ...virtualCategories(), ...publicCategories()];
+  $("#category-tabs").classList.remove("menu-loading-tabs");
+  $("#category-tabs").removeAttribute("aria-hidden");
   $("#category-tabs").innerHTML = tabs.map((item) => `<button class="${item.id === activeId ? "active" : ""}" data-category="${item.id}"><b>${item.nome}</b></button>`).join("");
   document.querySelectorAll("[data-category]").forEach((button) => {
     button.addEventListener("click", () => {
